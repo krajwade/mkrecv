@@ -37,6 +37,7 @@ namespace mkrecv
       ("ibv-vector", make_opt(ibv_comp_vector), "Interrupt vector (-1 for polled)")
       ("ibv-max-poll", make_opt(ibv_max_poll), "Maximum number of times to poll in a row")
 #endif
+      ("udp_if", make_opt(udp_if), "UDP interface")
       ("freq_first", make_opt(freq_first), "lowest frequency in all incomming heaps")
       ("freq_step", make_opt(freq_step), "difference between consecutive frequencies")
       ("freq_count", make_opt(freq_count), "number of frequency bands")

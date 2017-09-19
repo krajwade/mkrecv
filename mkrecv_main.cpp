@@ -83,7 +83,15 @@ namespace mkrecv
 	  else
 #endif
 	    {
+	      if (opts.udp_if != "")
+		{
+		  boost::asio::ip::address interface_address = boost::asio::ip::address::from_string(opts.udp_if);
+		  stream->emplace_reader<spead2::recv::udp_reader>(endpoint, opts.packet, opts.buffer, interface_address);
+		}
+	     else
+		{
 	      stream->emplace_reader<spead2::recv::udp_reader>(endpoint, opts.packet, opts.buffer);
+		}
 	    }
       }
     return stream;

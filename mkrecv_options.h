@@ -40,13 +40,14 @@ namespace mkrecv
     int                       ibv_comp_vector = 0;
     int                       ibv_max_poll = spead2::recv::udp_ibv_reader::default_max_poll;
 #endif
+    std::string               udp_if;
     std::size_t               freq_first = 0;  // the lowest frequency in all incomming heaps
     std::size_t               freq_step = 1000;   // the difference between consecutive frequencies
     std::size_t               freq_count = 8;  // the number of frequency bands
     std::size_t               feng_first = 0;  // the lowest fengine id
     std::size_t               feng_count = 64;  // the number of fengines
     std::size_t               time_step = 31;   // the difference between consecutive timestamps
-    std::size_t               port = 7768;
+    std::size_t               port = 7148;
     std::string               key = "dada";
     std::vector<std::string>  sources;
   private:
