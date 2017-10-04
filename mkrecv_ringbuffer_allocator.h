@@ -84,6 +84,7 @@ namespace mkrecv
   public:
     void handle_data_full();
     void handle_temp_full();
+    void mark(spead2::s_item_pointer_t cnt, bool isok);
     void mark(spead2::recv::heap &heap);
   };
   

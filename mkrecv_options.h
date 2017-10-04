@@ -47,7 +47,7 @@ namespace mkrecv
     std::size_t               feng_first = 0;  // the lowest fengine id
     std::size_t               feng_count = 64;  // the number of fengines
     std::size_t               time_step = 31;   // the difference between consecutive timestamps
-    std::size_t               port = 7148;
+    std::string               port = "7148";
     std::string               key = "dada";
     std::vector<std::string>  sources;
   private:

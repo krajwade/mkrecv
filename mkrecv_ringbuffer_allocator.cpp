@@ -66,28 +66,34 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
             }
         }
     }
-  std::cout << "heap " << ph->heap_cnt << " timestamp" << timestamp << " feng_id " << feng_id << " frequency " << frequency << std::endl;
+  //std::cout << "heap " << ph->heap_cnt << " timestamp" << timestamp << " feng_id " << feng_id << " frequency " << frequency << std::endl;
   // put some values in the header buffer
   if (state == INIT_STATE)
     { // put some values in the header buffer
       header  h;
-      h.timestamp = timestamp;
+      h.timestamp = timestamp + 2*time_step;
       memcpy(hdr.ptr(), &h, sizeof(h));
       hdr.used_bytes(sizeof(h));
       dada.header_stream().release();
       // calculate some values needed to calculate a memory offset for incoming heaps
-      heap_size = ph->payload_length;
+      heap_size = size;
       freq_size = heap_size;
       feng_size = freq_count*freq_size;
       time_size = feng_count*feng_size;
       dest[DATA_DEST].capacity  = dest[DATA_DEST].size/time_size;
       dest[TEMP_DEST].capacity  = dest[TEMP_DEST].size/time_size;
       dest[TRASH_DEST].capacity = dest[TRASH_DEST].size/time_size;
-      dest[DATA_DEST].first  = timestamp;
-      dest[DATA_DEST].space  = dest[DATA_DEST].capacity*feng_count*freq_count;
-      dest[DATA_DEST].needed = dest[DATA_DEST].space;
-      dest[TEMP_DEST].space  = dest[TEMP_DEST].capacity*feng_count*freq_count;
-      dest[TEMP_DEST].needed = dest[TEMP_DEST].space;
+      dest[DATA_DEST].first   = timestamp + 2*time_step;
+      dest[DATA_DEST].space   = dest[DATA_DEST].capacity*feng_count*freq_count;
+      dest[DATA_DEST].needed  = dest[DATA_DEST].space;
+      dest[TEMP_DEST].space   = dest[TEMP_DEST].capacity*feng_count*freq_count;
+      dest[TEMP_DEST].needed  = dest[TEMP_DEST].space;
+      dest[TRASH_DEST].space  = dest[TRASH_DEST].capacity*feng_count*freq_count;
+      dest[TRASH_DEST].needed = dest[TRASH_DEST].space;
+      std::cout << "sizes: heap " << heap_size << " freq " << freq_size << " feng " << feng_size << " time " << time_size << std::endl;
+      std::cout << "DATA_DEST:  capacity " << dest[DATA_DEST].capacity << " space " << dest[DATA_DEST].space << " first " << dest[DATA_DEST].first << std::endl;
+      std::cout << "TEMP_DEST:  capacity " << dest[TEMP_DEST].capacity << " space " << dest[TEMP_DEST].space << " first " << dest[TEMP_DEST].first << std::endl;
+      std::cout << "TRASH_DEST: capacity " << dest[TRASH_DEST].capacity << " space " << dest[TRASH_DEST].space << " first " << dest[TRASH_DEST].first << std::endl;
       state = SEQUENTIAL_STATE;
     }
   // The term "+ time_step/2" allows to have nonintegral time_steps.
@@ -142,6 +148,20 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
   mem_offset += feng_size*feng_index;
   mem_offset += freq_size*freq_index;
   heap2dest[ph->heap_cnt] = d; // store the relation between heap counter and destination
+  /*
+  std::cout << "heap " << ph->heap_cnt << " timestamp " << timestamp << " feng_id " << feng_id << " frequency " << frequency << " size " << size
+  	    << " ->"
+	    << " dest " << d << " indices " << time_index << " " << feng_index << " " << freq_index
+	    << " offset " << mem_offset
+	    << " nlost " << nlost << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
+	    << std::endl;
+  */
+  /*
+  d = TRASH_DEST;
+  heap2dest[ph->heap_cnt] = d;
+  mem_base = dest[d].ptr.ptr();
+  mem_offset = 0;
+  */
   return pointer((std::uint8_t*)(mem_base + mem_offset), deleter(shared_from_this(), (void *) std::uintptr_t(size)));
 }
 
@@ -152,12 +172,13 @@ void ringbuffer_allocator::free(std::uint8_t *ptr, void *user)
 void ringbuffer_allocator::handle_data_full()
 {
   std::lock_guard<std::mutex> lock(dest_mutex);
+  std::cout << "-> parellel ntrash " << ntrash << " nlost " << nlost << std::endl;
   // release the current ringbuffer slot
   dada.data_stream().release();	
   // get a new ringbuffer slot
-  dest[DATA_DEST].ptr    = dada.data_stream().next();
-  dest[DATA_DEST].needed = dest[DATA_DEST].space;
-  dest[DATA_DEST].first  = dest[TEMP_DEST].first;
+  dest[DATA_DEST].ptr     = dada.data_stream().next();
+  dest[DATA_DEST].needed  = dest[DATA_DEST].space;
+  dest[DATA_DEST].first  += dest[DATA_DEST].capacity*time_step;
   // switch to parallel data/temp order
   state = PARALLEL_STATE;
 }
@@ -166,6 +187,7 @@ void ringbuffer_allocator::handle_temp_full()
 {
   memcpy(dest[DATA_DEST].ptr.ptr(), dest[TEMP_DEST].ptr.ptr(), dest[TEMP_DEST].space*heap_size);
   std::lock_guard<std::mutex> lock(dest_mutex);
+  std::cout << "-> sequential ntrash " << ntrash << " nlost " << nlost << std::endl;
   dest[TEMP_DEST].needed  = dest[TEMP_DEST].space;
   dest[TEMP_DEST].first   = 0;
   dest[DATA_DEST].needed -= dest[TEMP_DEST].space;
@@ -183,10 +205,9 @@ void do_handle_temp_full(ringbuffer_allocator *rb)
   rb->handle_temp_full();
 }
 
-void ringbuffer_allocator::mark(spead2::recv::heap &heap)
+void ringbuffer_allocator::mark(spead2::s_item_pointer_t cnt, bool isok)
 {
-  spead2::s_item_pointer_t cnt = heap.get_cnt();
-  std::size_t              nd, nt;
+  std::size_t  nd, nt;
 
   {
     std::lock_guard<std::mutex> lock(dest_mutex);
@@ -195,15 +216,22 @@ void ringbuffer_allocator::mark(spead2::recv::heap &heap)
     heap2dest.erase(cnt);
     nd = dest[DATA_DEST].needed;
     nt = dest[TEMP_DEST].needed;
+    if (!isok) nlost++;
+    //std::cout << "mark " << cnt << " isok " << isok << " dest " << d << " needed " << nd << " " << nt << std::endl;
   }
   if (nd == 0)
     {
-      std::thread dfull(do_handle_data_full, this);
+      handle_data_full(); // std::thread dfull(do_handle_data_full, this); <- does not work, terminate
     }
   else if (nt == 0)
     {
-      std::thread tfull(do_handle_temp_full, this);
+      handle_temp_full(); // std::thread tfull(do_handle_temp_full, this); <- does not work, terminate
     }
+}
+
+void ringbuffer_allocator::mark(spead2::recv::heap &heap)
+{
+  mark(heap.get_cnt(), true);
 }
 
 

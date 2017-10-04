@@ -62,7 +62,7 @@ namespace mkrecv
     for (It i = first_source; i != last_source; ++i)
       {
         udp::resolver resolver(thread_pool.get_io_service());
-        udp::resolver::query query(opts.bind, *i);
+        udp::resolver::query query(*i, opts.port);
         udp::endpoint endpoint = *resolver.resolve(query);
 #if SPEAD2_USE_NETMAP
         if (opts.netmap_if != "")

@@ -75,13 +75,14 @@ namespace mkrecv
     if (heap.is_contiguous())
       {
 	spead2::recv::heap frozen(std::move(heap));
-	show_heap(frozen);
+	//show_heap(frozen);
 	rbuffer->mark(frozen);
 	n_complete++;
       }
     else
       {
 	std::cout << "Discarding incomplete heap " << heap.get_cnt() << '\n';
+	rbuffer->mark(heap.get_cnt(), false);
       }
   }
 
