@@ -66,7 +66,7 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
             }
         }
     }
-  //std::cout << "heap " << ph->heap_cnt << " timestamp" << timestamp << " feng_id " << feng_id << " frequency " << frequency << std::endl;
+  //std::cout << "heap " << ph->heap_cnt << " timestamp " << timestamp << " feng_id " << feng_id << " frequency " << frequency << std::endl;
   // put some values in the header buffer
   if (state == INIT_STATE)
     { // put some values in the header buffer
