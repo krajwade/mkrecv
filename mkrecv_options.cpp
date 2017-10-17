@@ -46,6 +46,7 @@ namespace mkrecv
       ("time_step", make_opt(time_step), "difference between consecutive timestamps")
       ("key", make_opt(key), "PSRDADA ring buffer key")
       ("port", make_opt(port), "Port number")
+      ("no-dada", make_opt(no_dada), "put all heaps into trash")
       ;
     hidden.add_options()
       ("source", po::value<std::vector<std::string>>()->composing(), "sources");

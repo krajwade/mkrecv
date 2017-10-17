@@ -81,7 +81,7 @@ namespace mkrecv
       }
     else
       {
-	std::cout << "Discarding incomplete heap " << heap.get_cnt() << '\n';
+	//std::cout << "Discarding incomplete heap " << heap.get_cnt() << '\n';
 	rbuffer->mark(heap.get_cnt(), false);
       }
   }

@@ -59,6 +59,23 @@ namespace mkrecv
     stream->set_ringbuffer(dada);
     if (opts.memcpy_nt)
       stream->set_memcpy(spead2::MEMCPY_NONTEMPORAL);
+#if SPEAD2_USE_IBV
+    if (opts.ibv_if != "")
+      {
+        std::vector<boost::asio::ip::udp::endpoint> endpoints;
+	for (It i = first_source; i != last_source; ++i)
+	  {
+	    udp::resolver resolver(thread_pool.get_io_service());
+            udp::resolver::query query(*i, opts.port);
+            udp::endpoint endpoint = *resolver.resolve(query);
+	    endpoints.push_back(endpoint);
+	  }
+        boost::asio::ip::address interface_address = boost::asio::ip::address::from_string(opts.ibv_if);
+        stream->emplace_reader<spead2::recv::udp_ibv_reader>(
+							   endpoints, interface_address, opts.packet, opts.buffer,
+							   opts.ibv_comp_vector, opts.ibv_max_poll);
+      }
+#else
     for (It i = first_source; i != last_source; ++i)
       {
         udp::resolver resolver(thread_pool.get_io_service());
@@ -72,16 +89,6 @@ namespace mkrecv
 	  }
         else
 #endif
-#if SPEAD2_USE_IBV
-	  if (opts.ibv_if != "")
-	    {
-	      boost::asio::ip::address interface_address = boost::asio::ip::address::from_string(opts.ibv_if);
-	      stream->emplace_reader<spead2::recv::udp_ibv_reader>(
-								   endpoint, interface_address, opts.packet, opts.buffer,
-								   opts.ibv_comp_vector, opts.ibv_max_poll);
-	    }
-	  else
-#endif
 	    {
 	      if (opts.udp_if != "")
 		{
@@ -94,6 +101,7 @@ namespace mkrecv
 		}
 	    }
       }
+#endif
     return stream;
   }
 

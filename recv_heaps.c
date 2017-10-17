@@ -21,7 +21,7 @@
 
 #define PORT               7148
 #define MAX_THREADS           4
-#define MAX_HEAPS          4096
+#define MAX_HEAPS          8192
 #define HEAP_HEADER_SIZE        sizeof(uint64_t)
 #define HEAP_ITEM_SIZE       11*sizeof(uint64_t)
 #define HEAP_PAYLOAD_SIZE  1024*sizeof(uint8_t)
@@ -287,7 +287,7 @@ int main(int argc, char *argv[])
   for (j = 1; j < g_context.heap_count - 1; j++) {
     tsize += g_context.heap_size[j];
     trec  += g_context.heap_received[j];
-      printf("heap[%05d] %ld size %ld remaining %ld received %.1f %%\n",
+      printf("heap[%05d] %ld size %ld received %ld  = %.1f %%\n",
       j,
       g_context.heap_id[j],
       g_context.heap_size[j],

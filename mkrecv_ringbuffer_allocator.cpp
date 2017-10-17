@@ -11,6 +11,7 @@ ringbuffer_allocator::ringbuffer_allocator(key_t key, std::string mlname, const 
 {
   int i;
 
+  no_dada = opts.no_dada;
   hdr = dada.header_stream().next();
   dest[DATA_DEST].set_buffer(dada.data_stream().next(), dada.data_buffer_size());
   dest[TEMP_DEST].allocate_buffer(MAX_TEMPORARY_SPACE);
@@ -25,8 +26,6 @@ ringbuffer_allocator::ringbuffer_allocator(key_t key, std::string mlname, const 
 
 ringbuffer_allocator::~ringbuffer_allocator()
 {
-  std::cout << "ntrash " << ntrash << '\n';
-  std::cout << "nlost  " << nlost  << '\n';
   delete dest[DATA_DEST].ptr.ptr();
   delete dest[TRASH_DEST].ptr.ptr();
 }
@@ -68,6 +67,7 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
     }
   //std::cout << "heap " << ph->heap_cnt << " timestamp " << timestamp << " feng_id " << feng_id << " frequency " << frequency << std::endl;
   // put some values in the header buffer
+  ntotal++;
   if (state == INIT_STATE)
     { // put some values in the header buffer
       header  h;
@@ -105,7 +105,6 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
     { // at least one index out of range -> unwanted heaps will go into thrash
       d = TRASH_DEST;
       time_index = 0;
-      ntrash++;
     }
   else if (((state == SEQUENTIAL_STATE) && (time_index >= dest[DATA_DEST].capacity + dest[TEMP_DEST].capacity))
 	   ||
@@ -113,7 +112,7 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
     { // we are not fast enough to keep up with the data stream -> lost heaps will go into trash
       d = TRASH_DEST;
       time_index = 0;
-      nlost++;
+      noverrun++;
     }
   else if (state == SEQUENTIAL_STATE)
     { // data and temp are in sequential order
@@ -147,6 +146,15 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
   // The term "+ freq_step/2" allows to have nonintegral freq_step.
   mem_offset += feng_size*feng_index;
   mem_offset += freq_size*freq_index;
+  if (no_dada)
+    {
+      d = TRASH_DEST;
+    }
+  if (d == TRASH_DEST)
+    {
+      mem_offset = 0;
+    }
+  dest[d].count++;
   heap2dest[ph->heap_cnt] = d; // store the relation between heap counter and destination
   /*
   std::cout << "heap " << ph->heap_cnt << " timestamp " << timestamp << " feng_id " << feng_id << " frequency " << frequency << " size " << size
@@ -172,7 +180,7 @@ void ringbuffer_allocator::free(std::uint8_t *ptr, void *user)
 void ringbuffer_allocator::handle_data_full()
 {
   std::lock_guard<std::mutex> lock(dest_mutex);
-  std::cout << "-> parellel ntrash " << ntrash << " nlost " << nlost << std::endl;
+  std::cout << "-> parallel total " << ntotal << " completed " << ncompleted << " discarded " << ndiscarded << std::endl;
   // release the current ringbuffer slot
   dada.data_stream().release();	
   // get a new ringbuffer slot
@@ -187,7 +195,7 @@ void ringbuffer_allocator::handle_temp_full()
 {
   memcpy(dest[DATA_DEST].ptr.ptr(), dest[TEMP_DEST].ptr.ptr(), dest[TEMP_DEST].space*heap_size);
   std::lock_guard<std::mutex> lock(dest_mutex);
-  std::cout << "-> sequential ntrash " << ntrash << " nlost " << nlost << std::endl;
+  std::cout << "-> sequential total " << ntotal << " completed " << ncompleted << " discarded " << ndiscarded << std::endl;
   dest[TEMP_DEST].needed  = dest[TEMP_DEST].space;
   dest[TEMP_DEST].first   = 0;
   dest[DATA_DEST].needed -= dest[TEMP_DEST].space;
@@ -216,8 +224,27 @@ void ringbuffer_allocator::mark(spead2::s_item_pointer_t cnt, bool isok)
     heap2dest.erase(cnt);
     nd = dest[DATA_DEST].needed;
     nt = dest[TEMP_DEST].needed;
-    if (!isok) nlost++;
+    if (!isok)
+      {
+        ndiscarded++;
+      }
+    else
+      {
+	ncompleted++;
+      }
     //std::cout << "mark " << cnt << " isok " << isok << " dest " << d << " needed " << nd << " " << nt << std::endl;
+    if (ntotal%1024 == 0)
+      {
+        std::cout << "heaps: total " << ntotal << " completed " << ncompleted << " discarded " << ndiscarded << " overrun " << noverrun
+	       	  << " assigned " << dest[DATA_DEST].count << " " << dest[TEMP_DEST].count << " " << dest[TRASH_DEST].count
+		  << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed << " " << dest[TRASH_DEST].needed
+		  << std::endl;
+      }
+    if (nd > 100000)
+      {
+	std::cout << "mark " << cnt << " isok " << isok << " dest " << d << " needed " << nd << " " << nt << std::endl;
+        exit(0);
+      }
   }
   if (nd == 0)
     {

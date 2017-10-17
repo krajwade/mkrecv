@@ -34,7 +34,7 @@ namespace mkrecv
   static const unsigned int FREQUENCY_ID   = 0x4103;
   static const unsigned int FENG_RAW_ID    = 0x4300;
 
-  static const std::size_t  MAX_TEMPORARY_SPACE = 8*64*4096*2*2;
+  static const std::size_t  MAX_TEMPORARY_SPACE = 64*4096*128;
 
   static const int DATA_DEST  = 0;
   static const int TEMP_DEST  = 1;
@@ -70,8 +70,11 @@ namespace mkrecv
     std::size_t                   time_size;   // feng_count*feng_size
     std::size_t                   time_step;   // the difference between consecutive timestamps
     int                           state = INIT_STATE;
-    std::size_t                   ntrash = 0;
-    std::size_t                   nlost = 0;
+    std::size_t                   ntotal = 0;      // number of received heaps (calls of allocate())
+    std::size_t                   noverrun = 0;    // number of heaps which are lost due to overrun
+    std::size_t                   ncompleted = 0;  // number of completed heaps
+    std::size_t                   ndiscarded = 0;  // number of discarded heaps
+    bool                          no_dada = false;
     
   public:
     ringbuffer_allocator(key_t key, std::string mlname, const mkrecv::options &opts);
