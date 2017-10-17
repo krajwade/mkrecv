@@ -39,7 +39,7 @@ typedef struct {
   int                 heap_count;
   uint64_t            heap_id[MAX_HEAPS];
   uint64_t            heap_size[MAX_HEAPS];
-  uint64_t            heap_remaining[MAX_HEAPS];
+  uint64_t            heap_received[MAX_HEAPS];
   uint64_t            boards[64];
   uint64_t            channels[4096];
 } mcast_context_t;
@@ -183,15 +183,19 @@ static int process_heap(mcast_context_t *context)
   }
   for (index = context->heap_count - 1; index >= 0; index--) {
     if (context->heap_id[index] == heap_id) break;
+    if (context->heap_id[index] < heap_id - 0x40) {
+      index = -1;
+      break;
+    }
   }
   if ((index == -1) && (context->heap_count < MAX_HEAPS)) {
     index = context->heap_count;
     context->heap_id[index] = heap_id;
     context->heap_size[index] = heap_size;
-    context->heap_remaining[index] = heap_size;
+    context->heap_received[index] = 0;
     context->heap_count++;
   }
-  context->heap_remaining[index] -= heap_received;
+  context->heap_received[index] += heap_received;
   context->boards[board] = 1;
   context->channels[channel] = 1;
   if (!g_quiet) printf("\n");
@@ -207,7 +211,7 @@ static void *receive_heaps(void *arg)
   for (i = 0; i < MAX_HEAPS; i++) {
     context->heap_id[i] = 0;
     context->heap_size[i] = 0;
-    context->heap_remaining[i] = 0;
+    context->heap_received[i] = 0;
   }
   while (1) {
     uint8_t   *ptr = context->data;
@@ -237,7 +241,7 @@ int main(int argc, char *argv[])
   int    if_index = 1;
   int    mc_index = 2;
   size_t tsize    = 0;
-  size_t trem     = 0;
+  size_t trec     = 0;
 
   if (argc <= 2) {
     usage(argv[0]);
@@ -282,20 +286,19 @@ int main(int argc, char *argv[])
   delete_connection(&g_context);
   for (j = 1; j < g_context.heap_count - 1; j++) {
     tsize += g_context.heap_size[j];
-    trem  += g_context.heap_remaining[j];
-    /*
-      printf("heap %ld size %ld remaining %ld lost %.1f %%\n",
-      g_contexts[i].heap_id[j],
-      g_contexts[i].heap_size[j],
-      g_contexts[i].heap_remaining[j],
-      100.0*((double)(g_contexts[i].heap_remaining[j])/(double)(g_contexts[i].heap_size[j])));
-    */
+    trec  += g_context.heap_received[j];
+      printf("heap[%05d] %ld size %ld remaining %ld received %.1f %%\n",
+      j,
+      g_context.heap_id[j],
+      g_context.heap_size[j],
+      g_context.heap_received[j],
+      100.0*((double)(g_context.heap_received[j])/(double)(g_context.heap_size[j])));
   }
-  printf("nheaps: %d total size %ld total remaining %ld average lost %.1f\n",
+  printf("nheaps: %d total size %ld total received %ld average received %.1f\n",
 	 g_context.heap_count-2,
 	 tsize,
-	 trem,
-	 100.0*(double)trem/(double)tsize);
+	 trec,
+	 100.0*(double)trec/(double)tsize);
   for (i = 0; i < 64; i++) {
     if (g_context.boards[i] == 1) {
       printf("board %d\n", i);
