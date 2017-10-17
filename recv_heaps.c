@@ -40,6 +40,8 @@ typedef struct {
   uint64_t            heap_id[MAX_HEAPS];
   uint64_t            heap_size[MAX_HEAPS];
   uint64_t            heap_remaining[MAX_HEAPS];
+  uint64_t            boards[64];
+  uint64_t            channels[4096];
 } mcast_context_t;
 
 static int             g_quiet = 0;
@@ -150,6 +152,8 @@ static int process_heap(mcast_context_t *context)
   uint64_t    heap_id = 0;
   uint64_t    heap_size = 0;
   uint64_t    heap_received = 0;
+  uint64_t    board = 0;
+  uint64_t    channel = 0;
   int         index = -1;
 
   spead_header = (uint64_t)(be64toh(spead_ptr[0]));
@@ -172,6 +176,8 @@ static int process_heap(mcast_context_t *context)
     case 1: heap_id = item_value; break;
     case 2: heap_size = item_value; break;
     case 4: heap_received = item_value; break;
+    case 0x4101: board = item_value; break;
+    case 0x4103: channel = item_value; break;
     default:;
     }
   }
@@ -186,6 +192,8 @@ static int process_heap(mcast_context_t *context)
     context->heap_count++;
   }
   context->heap_remaining[index] -= heap_received;
+  context->boards[board] = 1;
+  context->channels[channel] = 1;
   if (!g_quiet) printf("\n");
 }
 
@@ -240,6 +248,12 @@ int main(int argc, char *argv[])
     if_index++;
     mc_index++;
   }
+  for (i = 0; i < 64; i++) {
+    g_context.boards[i] = 0;
+  }
+  for (i = 0; i < 4096; i++) {
+    g_context.channels[i] = 0;
+  }
   printf("create all connections\n");
   if (create_connection(&g_context)) {
     for (i = mc_index; i < argc; i++) {
@@ -282,5 +296,15 @@ int main(int argc, char *argv[])
 	 tsize,
 	 trem,
 	 100.0*(double)trem/(double)tsize);
+  for (i = 0; i < 64; i++) {
+    if (g_context.boards[i] == 1) {
+      printf("board %d\n", i);
+    }
+  }
+  for (i = 0; i < 4096; i++) {
+    if (g_context.channels[i] == 1) {
+      printf("channel %d\n", i);
+    }
+  }
 }
 
