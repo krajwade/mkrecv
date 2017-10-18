@@ -42,11 +42,11 @@ namespace mkrecv
 #endif
     std::string               udp_if;
     std::size_t               freq_first = 0;  // the lowest frequency in all incomming heaps
-    std::size_t               freq_step = 1000;   // the difference between consecutive frequencies
+    std::size_t               freq_step = 256;   // the difference between consecutive frequencies
     std::size_t               freq_count = 8;  // the number of frequency bands
     std::size_t               feng_first = 0;  // the lowest fengine id
     std::size_t               feng_count = 64;  // the number of fengines
-    std::size_t               time_step = 31;   // the difference between consecutive timestamps
+    std::size_t               time_step = 0x200000;   // the difference between consecutive timestamps
     std::string               port = "7148";
     std::string               key = "dada";
     bool                      no_dada = false;

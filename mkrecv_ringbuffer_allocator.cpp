@@ -123,8 +123,8 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
       else
 	{ // the current heap will go into the temporary memory
 	  // determine the first timestamp in the temporary buffer
-	  if (dest[TEMP_DEST].first == 0) dest[TEMP_DEST].first = timestamp;
-	  if (dest[TEMP_DEST].first > timestamp) dest[TEMP_DEST].first = timestamp;
+	  //if (dest[TEMP_DEST].first == 0) dest[TEMP_DEST].first = timestamp;
+	  //if (dest[TEMP_DEST].first > timestamp) dest[TEMP_DEST].first = timestamp;
 	  d = TEMP_DEST;
 	  time_index -= dest[DATA_DEST].capacity;
 	}
