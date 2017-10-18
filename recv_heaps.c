@@ -183,10 +183,12 @@ static int process_heap(mcast_context_t *context)
   }
   for (index = context->heap_count - 1; index >= 0; index--) {
     if (context->heap_id[index] == heap_id) break;
+    /*
     if (context->heap_id[index] < heap_id - 0x40) {
       index = -1;
       break;
     }
+    */
   }
   if ((index == -1) && (context->heap_count < MAX_HEAPS)) {
     index = context->heap_count;

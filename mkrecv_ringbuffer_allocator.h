@@ -49,6 +49,16 @@ namespace mkrecv
     spead2::s_item_pointer_t   timestamp;
   };
 
+  typedef struct 
+  {
+    std::size_t    ntotal;     // number of received heaps (calls of allocate())
+    std::size_t    noverrun;   // number of lost heaps due to overrun
+    std::size_t    ncompleted; // number of completed heaps
+    std::size_t    ndiscarded; // number of discarded heaps
+    std::size_t    nexpected;  // number of expected payload bytes (ntotal*heapsize)
+    std::size_t    nreceived;  // number of received payload bytes
+  } statistics_t;
+
   class ringbuffer_allocator : public spead2::memory_allocator
   {
   private:
@@ -59,6 +69,7 @@ namespace mkrecv
     std::mutex                    dest_mutex;
     destination                   dest[3];
     std::unordered_map<spead2::s_item_pointer_t, int> heap2dest;
+    std::unordered_map<spead2::s_item_pointer_t, int> heap2board;
     std::size_t                   heap_size;   // Size of the HEAP payload (TPC), s_item_pointer_t, ph->payload_length)
     std::size_t                   freq_size;   //
     std::size_t                   freq_first;  // the lowest frequency in all incomming heaps
@@ -70,11 +81,9 @@ namespace mkrecv
     std::size_t                   time_size;   // feng_count*feng_size
     std::size_t                   time_step;   // the difference between consecutive timestamps
     int                           state = INIT_STATE;
-    std::size_t                   ntotal = 0;      // number of received heaps (calls of allocate())
-    std::size_t                   noverrun = 0;    // number of heaps which are lost due to overrun
-    std::size_t                   ncompleted = 0;  // number of completed heaps
-    std::size_t                   ndiscarded = 0;  // number of discarded heaps
-    bool                          no_dada = false;
+    statistics_t                  tstat;
+    statistics_t                  bstat[64];
+    bool                          with_dada = true;
     
   public:
     ringbuffer_allocator(key_t key, std::string mlname, const mkrecv::options &opts);
@@ -87,8 +96,7 @@ namespace mkrecv
   public:
     void handle_data_full();
     void handle_temp_full();
-    void mark(spead2::s_item_pointer_t cnt, bool isok);
-    void mark(spead2::recv::heap &heap);
+    void mark(spead2::s_item_pointer_t cnt, bool isok, spead2::s_item_pointer_t reclen);
   };
   
 }

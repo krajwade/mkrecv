@@ -11,9 +11,31 @@ ringbuffer_allocator::ringbuffer_allocator(key_t key, std::string mlname, const 
 {
   int i;
 
-  no_dada = opts.no_dada;
-  hdr = dada.header_stream().next();
-  dest[DATA_DEST].set_buffer(dada.data_stream().next(), dada.data_buffer_size());
+  with_dada = !opts.no_dada;
+  if (with_dada)
+    {
+      hdr = dada.header_stream().next();
+      dest[DATA_DEST].set_buffer(dada.data_stream().next(), dada.data_buffer_size());
+    }
+  else
+    {
+      dest[DATA_DEST].allocate_buffer(MAX_TEMPORARY_SPACE);
+    }
+  tstat.ntotal = 0;
+  tstat.noverrun = 0;
+  tstat.ncompleted = 0;
+  tstat.ndiscarded = 0;
+  tstat.nexpected = 0;
+  tstat.nreceived = 0;
+  for (i = 0; i < 64; i++)
+    {
+      bstat[i].ntotal = 0;
+      bstat[i].noverrun = 0;
+      bstat[i].ncompleted = 0;
+      bstat[i].ndiscarded = 0;
+      bstat[i].nexpected = 0;
+      bstat[i].nreceived = 0;
+    }
   dest[TEMP_DEST].allocate_buffer(MAX_TEMPORARY_SPACE);
   dest[TRASH_DEST].allocate_buffer(MAX_TEMPORARY_SPACE);
   freq_first = opts.freq_first;  // the lowest frequency in all incomming heaps
@@ -26,7 +48,11 @@ ringbuffer_allocator::ringbuffer_allocator(key_t key, std::string mlname, const 
 
 ringbuffer_allocator::~ringbuffer_allocator()
 {
-  delete dest[DATA_DEST].ptr.ptr();
+  if (!with_dada)
+    {
+      delete dest[DATA_DEST].ptr.ptr();
+    }
+  delete dest[TEMP_DEST].ptr.ptr();
   delete dest[TRASH_DEST].ptr.ptr();
 }
 
@@ -66,15 +92,24 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
         }
     }
   //std::cout << "heap " << ph->heap_cnt << " timestamp " << timestamp << " feng_id " << feng_id << " frequency " << frequency << std::endl;
+  if ((feng_id < 0) || (feng_id > 63))
+    {
+      std::cout << "heap " << ph->heap_cnt << " timestamp " << timestamp << " feng_id " << feng_id << " frequency " << frequency << std::endl;
+      feng_id = 0;
+    }
   // put some values in the header buffer
-  ntotal++;
+  tstat.ntotal++;
+  bstat[feng_id].ntotal++;
   if (state == INIT_STATE)
     { // put some values in the header buffer
-      header  h;
-      h.timestamp = timestamp + 2*time_step;
-      memcpy(hdr.ptr(), &h, sizeof(h));
-      hdr.used_bytes(sizeof(h));
-      dada.header_stream().release();
+      if (with_dada)
+	{
+          header  h;
+          h.timestamp = timestamp + 2*time_step;
+          memcpy(hdr.ptr(), &h, sizeof(h));
+          hdr.used_bytes(sizeof(h));
+          dada.header_stream().release();
+	}
       // calculate some values needed to calculate a memory offset for incoming heaps
       heap_size = size;
       freq_size = heap_size;
@@ -83,7 +118,7 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
       dest[DATA_DEST].capacity  = dest[DATA_DEST].size/time_size;
       dest[TEMP_DEST].capacity  = dest[TEMP_DEST].size/time_size;
       dest[TRASH_DEST].capacity = dest[TRASH_DEST].size/time_size;
-      dest[DATA_DEST].first   = timestamp + 2*time_step;
+      dest[DATA_DEST].first   = timestamp + 2048*time_step;
       dest[DATA_DEST].space   = dest[DATA_DEST].capacity*feng_count*freq_count;
       dest[DATA_DEST].needed  = dest[DATA_DEST].space;
       dest[TEMP_DEST].space   = dest[TEMP_DEST].capacity*feng_count*freq_count;
@@ -98,55 +133,63 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
     }
   // The term "+ time_step/2" allows to have nonintegral time_steps.
   // The term "+ freq_step/2" allows to have nonintegral freq_steps.
-  time_index = (timestamp - dest[DATA_DEST].first + time_step/2)/time_step;
-  feng_index = feng_id - feng_first;
-  freq_index = (frequency - freq_first + freq_step/2)/freq_step;
-  if ((time_index < 0) || (feng_index < 0) || (feng_index >= feng_count) || (freq_index < 0) || (freq_index >= freq_count))
-    { // at least one index out of range -> unwanted heaps will go into thrash
-      d = TRASH_DEST;
-      time_index = 0;
+  if (with_dada)
+    {
+      time_index = (timestamp - dest[DATA_DEST].first + time_step/2)/time_step;
+      feng_index = feng_id - feng_first;
+      freq_index = (frequency - freq_first + freq_step/2)/freq_step;
+      if ((time_index < 0) || (feng_index < 0) || (feng_index >= feng_count) || (freq_index < 0) || (freq_index >= freq_count))
+        { // at least one index out of range -> unwanted heaps will go into thrash
+          d = TRASH_DEST;
+          time_index = 0;
+        }
+      else if (state == SEQUENTIAL_STATE)
+        { // data and temp are in sequential order
+          if (time_index >= (dest[DATA_DEST].capacity + dest[TEMP_DEST].capacity))
+	    {
+	      d = TRASH_DEST;
+	      time_index = 0;
+	      tstat.noverrun++;
+	      bstat[feng_id].noverrun++;
+            }
+          else if (time_index < dest[DATA_DEST].capacity)
+	    { // the current heap will go into the ringbuffer slot
+	      d = DATA_DEST;
+	    }
+          else
+	    { // the current heap will go into the temporary memory
+	      // determine the first timestamp in the temporary buffer
+	      //if (dest[TEMP_DEST].first == 0) dest[TEMP_DEST].first = timestamp;
+	      //if (dest[TEMP_DEST].first > timestamp) dest[TEMP_DEST].first = timestamp;
+	      d = TEMP_DEST;
+	      time_index -= dest[DATA_DEST].capacity;
+	    }
+        }
+      else if (state == PARALLEL_STATE)
+        { // data and temp are in parallel order
+          if (time_index >= dest[DATA_DEST].capacity)
+	    {
+	      d = TRASH_DEST;
+	      time_index = 0;
+	      tstat.noverrun++;
+	      bstat[feng_id].noverrun++;
+	    }
+          else if (time_index < dest[TEMP_DEST].capacity)
+	    { // the current heap will go into the temporary buffer until it is full and is copied at the beginning of the data buffer
+	      d = TEMP_DEST;
+	    }
+          else
+	    { // the current heap will go into the ringbuffer slot
+	      d = DATA_DEST;
+	    }
+        }
+      mem_offset = time_size*time_index;
+      // add the remaining offsets
+      // The term "+ freq_step/2" allows to have nonintegral freq_step.
+      mem_offset += feng_size*feng_index;
+      mem_offset += freq_size*freq_index;
     }
-  else if (((state == SEQUENTIAL_STATE) && (time_index >= dest[DATA_DEST].capacity + dest[TEMP_DEST].capacity))
-	   ||
-	   ((state == PARALLEL_STATE) && (time_index >= dest[DATA_DEST].capacity)))
-    { // we are not fast enough to keep up with the data stream -> lost heaps will go into trash
-      d = TRASH_DEST;
-      time_index = 0;
-      noverrun++;
-    }
-  else if (state == SEQUENTIAL_STATE)
-    { // data and temp are in sequential order
-      if (time_index < dest[DATA_DEST].capacity)
-	{ // the current heap will go into the ringbuffer slot
-	  d = DATA_DEST;
-	}
-      else
-	{ // the current heap will go into the temporary memory
-	  // determine the first timestamp in the temporary buffer
-	  //if (dest[TEMP_DEST].first == 0) dest[TEMP_DEST].first = timestamp;
-	  //if (dest[TEMP_DEST].first > timestamp) dest[TEMP_DEST].first = timestamp;
-	  d = TEMP_DEST;
-	  time_index -= dest[DATA_DEST].capacity;
-	}
-    }
-  else if (state == PARALLEL_STATE)
-    { // data and temp are in parallel order
-      if (time_index < dest[TEMP_DEST].capacity)
-	{ // the current heap will go into the temporary buffer until it is full and is copied at the beginning of the data buffer
-	  d = TEMP_DEST;
-	}
-      else
-	{ // the current heap will go into the ringbuffer slot
-	  d = DATA_DEST;
-	}
-    }
-  mem_base   = dest[d].ptr.ptr();
-  mem_offset = time_size*time_index;
-  // add the remaining offsets
-  // The term "+ freq_step/2" allows to have nonintegral freq_step.
-  mem_offset += feng_size*feng_index;
-  mem_offset += freq_size*freq_index;
-  if (no_dada)
+  else
     {
       d = TRASH_DEST;
     }
@@ -154,21 +197,19 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
     {
       mem_offset = 0;
     }
+  mem_base = dest[d].ptr.ptr();
   dest[d].count++;
   heap2dest[ph->heap_cnt] = d; // store the relation between heap counter and destination
+  heap2board[ph->heap_cnt] = feng_id;
+  tstat.nexpected += heap_size;
+  bstat[feng_id].nexpected += heap_size;
   /*
   std::cout << "heap " << ph->heap_cnt << " timestamp " << timestamp << " feng_id " << feng_id << " frequency " << frequency << " size " << size
   	    << " ->"
 	    << " dest " << d << " indices " << time_index << " " << feng_index << " " << freq_index
 	    << " offset " << mem_offset
-	    << " nlost " << nlost << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
+	    << " ntotal " << ntotal << " noverrun " << noverrun << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
 	    << std::endl;
-  */
-  /*
-  d = TRASH_DEST;
-  heap2dest[ph->heap_cnt] = d;
-  mem_base = dest[d].ptr.ptr();
-  mem_offset = 0;
   */
   return pointer((std::uint8_t*)(mem_base + mem_offset), deleter(shared_from_this(), (void *) std::uintptr_t(size)));
 }
@@ -180,11 +221,14 @@ void ringbuffer_allocator::free(std::uint8_t *ptr, void *user)
 void ringbuffer_allocator::handle_data_full()
 {
   std::lock_guard<std::mutex> lock(dest_mutex);
-  std::cout << "-> parallel total " << ntotal << " completed " << ncompleted << " discarded " << ndiscarded << std::endl;
-  // release the current ringbuffer slot
-  dada.data_stream().release();	
-  // get a new ringbuffer slot
-  dest[DATA_DEST].ptr     = dada.data_stream().next();
+  std::cout << "-> parallel total " << tstat.ntotal << " completed " << tstat.ncompleted << " discarded " << tstat.ndiscarded << std::endl;
+  if (with_dada)
+    {
+      // release the current ringbuffer slot
+      dada.data_stream().release();	
+      // get a new ringbuffer slot
+      dest[DATA_DEST].ptr     = dada.data_stream().next();
+    }
   dest[DATA_DEST].needed  = dest[DATA_DEST].space;
   dest[DATA_DEST].first  += dest[DATA_DEST].capacity*time_step;
   // switch to parallel data/temp order
@@ -193,9 +237,9 @@ void ringbuffer_allocator::handle_data_full()
 
 void ringbuffer_allocator::handle_temp_full()
 {
-  memcpy(dest[DATA_DEST].ptr.ptr(), dest[TEMP_DEST].ptr.ptr(), dest[TEMP_DEST].space*heap_size);
+  //memcpy(dest[DATA_DEST].ptr.ptr(), dest[TEMP_DEST].ptr.ptr(), dest[TEMP_DEST].space*heap_size);
   std::lock_guard<std::mutex> lock(dest_mutex);
-  std::cout << "-> sequential total " << ntotal << " completed " << ncompleted << " discarded " << ndiscarded << std::endl;
+  std::cout << "-> sequential total " << tstat.ntotal << " completed " << tstat.ncompleted << " discarded " << tstat.ndiscarded << std::endl;
   dest[TEMP_DEST].needed  = dest[TEMP_DEST].space;
   dest[TEMP_DEST].first   = 0;
   dest[DATA_DEST].needed -= dest[TEMP_DEST].space;
@@ -213,32 +257,49 @@ void do_handle_temp_full(ringbuffer_allocator *rb)
   rb->handle_temp_full();
 }
 
-void ringbuffer_allocator::mark(spead2::s_item_pointer_t cnt, bool isok)
+void ringbuffer_allocator::mark(spead2::s_item_pointer_t cnt, bool isok, spead2::s_item_pointer_t reclen)
 {
   std::size_t  nd, nt;
 
   {
     std::lock_guard<std::mutex> lock(dest_mutex);
     int d = heap2dest[cnt];
+    int b = heap2board[cnt];
+    if (b < 0) b = 0;
+    if (b > 63) b = 63;
     dest[d].needed--;
     heap2dest.erase(cnt);
+    heap2board.erase(cnt);
+    tstat.nreceived += reclen;
+    bstat[b].nreceived += reclen;
     nd = dest[DATA_DEST].needed;
     nt = dest[TEMP_DEST].needed;
     if (!isok)
       {
-        ndiscarded++;
+        tstat.ndiscarded++;
+	bstat[b].ndiscarded++;
       }
     else
       {
-	ncompleted++;
+	tstat.ncompleted++;
+	bstat[b].ncompleted++;
       }
     //std::cout << "mark " << cnt << " isok " << isok << " dest " << d << " needed " << nd << " " << nt << std::endl;
-    if (ntotal%1024 == 0)
+    if (tstat.ntotal%1024 == 0)
       {
-        std::cout << "heaps: total " << ntotal << " completed " << ncompleted << " discarded " << ndiscarded << " overrun " << noverrun
+	int i;
+        std::cout << "heaps: total " << tstat.ntotal << " completed " << tstat.ncompleted << " discarded " << tstat.ndiscarded << " overrun " << tstat.noverrun
 	       	  << " assigned " << dest[DATA_DEST].count << " " << dest[TEMP_DEST].count << " " << dest[TRASH_DEST].count
 		  << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed << " " << dest[TRASH_DEST].needed
+		  << " payload " << tstat.nexpected << " " << tstat.nreceived
 		  << std::endl;
+	for (i = 0; i < 4; i++)
+	  {
+	    std::cout << "   board " << i
+		      << " total " << bstat[b].ntotal << " completed " << bstat[b].ncompleted << " discarded " << bstat[b].ndiscarded << " overrun " << bstat[b].noverrun
+                      << " payload " << bstat[b].nexpected << " " << bstat[b].nreceived
+		      << std::endl;
+          }
       }
     if (nd > 100000)
       {
@@ -255,11 +316,5 @@ void ringbuffer_allocator::mark(spead2::s_item_pointer_t cnt, bool isok)
       handle_temp_full(); // std::thread tfull(do_handle_temp_full, this); <- does not work, terminate
     }
 }
-
-void ringbuffer_allocator::mark(spead2::recv::heap &heap)
-{
-  mark(heap.get_cnt(), true);
-}
-
 
 }

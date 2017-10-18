@@ -72,17 +72,18 @@ namespace mkrecv
 
   void fengine_stream::heap_ready(spead2::recv::live_heap &&heap)
   {
+    rbuffer->mark(heap.get_cnt(), heap.is_contiguous(), heap.get_received_length());
     if (heap.is_contiguous())
       {
-	spead2::recv::heap frozen(std::move(heap));
+	//spead2::recv::heap frozen(std::move(heap));
 	//show_heap(frozen);
-	rbuffer->mark(frozen);
+	//rbuffer->mark(heap.get_cnt(), true, heap.get_received_length());
 	n_complete++;
       }
     else
       {
 	//std::cout << "Discarding incomplete heap " << heap.get_cnt() << '\n';
-	rbuffer->mark(heap.get_cnt(), false);
+	//rbuffer->mark(heap.get_cnt(), false, heap.get_received_length());
       }
   }
 
