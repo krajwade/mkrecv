@@ -81,7 +81,7 @@ static int create_connection(mcast_context_t *context)
     return 0;
   }
   context->available = HEAP_HEADER_SIZE + HEAP_ITEM_SIZE + HEAP_PAYLOAD_SIZE;
-  context->data = malloc(context->available);
+  context->data = (uint8_t *)malloc(context->available);
   if (context->data == NULL) {
     fprintf(stderr, "ERROR: cannot allocate buffer for a SPEAD heap packet: %s\n", strerror(errno));
     return 0;

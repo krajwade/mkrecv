@@ -88,8 +88,11 @@ endif (DEBUG_PRINT)
 add_executable(mkrecv ${mkrecv_src})
 target_link_libraries(mkrecv ${MKRECV_LIBRARIES})
 
+add_executable(recv_heaps recv_heaps.cpp)
 
-install (TARGETS ${CMAKE_PROJECT_NAME}
+add_executable(decode_heap decode_heap.cpp)
+
+install (TARGETS mkrecv recv_heaps decode_heap
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib)

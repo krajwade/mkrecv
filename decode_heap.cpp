@@ -210,7 +210,7 @@ static void read_udp_packet(FILE *in, udp_packet_t *packet)
   packet->total_length = read_uint16(in);
   packet->checksum = read_uint16(in);
   if (packet->total_length > packet->available) {
-    packet->data = realloc(packet->data, (size_t)(packet->total_length));
+    packet->data = (uint8_t*)realloc(packet->data, (size_t)(packet->total_length));
     packet->available = packet->total_length;
   }
   packet->used = (size_t)(packet->total_length) - 4*sizeof(uint16_t);
