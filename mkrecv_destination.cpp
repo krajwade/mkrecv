@@ -4,7 +4,7 @@
 
 namespace mkrecv {
 
-destination::destination() : ptr(NULL,0) {}
+destination::destination() : mptr(), ptr(NULL,0) {}
 
 void destination::set_buffer(psrdada_cpp::RawBytes &ptr, std::size_t size)
 {
@@ -12,10 +12,18 @@ void destination::set_buffer(psrdada_cpp::RawBytes &ptr, std::size_t size)
   this->ptr = ptr;
 }
 
-void destination::allocate_buffer(std::size_t size)
+void destination::allocate_buffer(std::shared_ptr<spead2::mmap_allocator> memallocator, std::size_t size)
 {
   this->size = size;
-  this->ptr  = psrdada_cpp::RawBytes(new char[size], size, 0);
+  if (memallocator == NULL)
+    {
+      this->ptr  = psrdada_cpp::RawBytes(new char[size], size, 0);
+    }
+  else
+    {
+      mptr = memallocator->allocate(size, NULL);
+      this->ptr = psrdada_cpp::RawBytes((char*)mptr.get(), size, 0);
+    }
 }
 
 }

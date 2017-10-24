@@ -66,11 +66,13 @@ namespace mkrecv
     psrdada_cpp::MultiLog         mlog;
     psrdada_cpp::DadaWriteClient  dada;
     psrdada_cpp::RawBytes         hdr;   // memory to store constant (header) information
+    std::shared_ptr<spead2::mmap_allocator>   memallocator;
     std::mutex                    dest_mutex;
     destination                   dest[3];
     std::unordered_map<spead2::s_item_pointer_t, int> heap2dest;
     std::unordered_map<spead2::s_item_pointer_t, int> heap2board;
-    std::size_t                   heap_size;   // Size of the HEAP payload (TPC), s_item_pointer_t, ph->payload_length)
+    std::size_t                   payload_size;// size of one packet payload (ph->payload_length
+    std::size_t                   heap_size;   // Size of a complete HEAP
     std::size_t                   freq_size;   //
     std::size_t                   freq_first;  // the lowest frequency in all incomming heaps
     std::size_t                   freq_step;   // the difference between consecutive frequencies
@@ -84,6 +86,7 @@ namespace mkrecv
     statistics_t                  tstat;
     statistics_t                  bstat[64];
     bool                          with_dada = true;
+    std::size_t                   log_counter = 0;
     
   public:
     ringbuffer_allocator(key_t key, std::string mlname, const mkrecv::options &opts);

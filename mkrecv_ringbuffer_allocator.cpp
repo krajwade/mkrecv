@@ -11,6 +11,7 @@ ringbuffer_allocator::ringbuffer_allocator(key_t key, std::string mlname, const 
 {
   int i;
 
+  memallocator = std::make_shared<spead2::mmap_allocator>(0, true);
   with_dada = !opts.no_dada;
   if (with_dada)
     {
@@ -19,7 +20,7 @@ ringbuffer_allocator::ringbuffer_allocator(key_t key, std::string mlname, const 
     }
   else
     {
-      dest[DATA_DEST].allocate_buffer(MAX_TEMPORARY_SPACE);
+      dest[DATA_DEST].allocate_buffer(memallocator, MAX_TEMPORARY_SPACE);
     }
   tstat.ntotal = 0;
   tstat.noverrun = 0;
@@ -36,8 +37,8 @@ ringbuffer_allocator::ringbuffer_allocator(key_t key, std::string mlname, const 
       bstat[i].nexpected = 0;
       bstat[i].nreceived = 0;
     }
-  dest[TEMP_DEST].allocate_buffer(MAX_TEMPORARY_SPACE);
-  dest[TRASH_DEST].allocate_buffer(MAX_TEMPORARY_SPACE);
+  dest[TEMP_DEST].allocate_buffer(memallocator, MAX_TEMPORARY_SPACE);
+  dest[TRASH_DEST].allocate_buffer(memallocator, MAX_TEMPORARY_SPACE);
   freq_first = opts.freq_first;  // the lowest frequency in all incomming heaps
   freq_step  = opts.freq_step;   // the difference between consecutive frequencies
   freq_count = opts.freq_count;  // the number of frequency bands
@@ -111,13 +112,14 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
           dada.header_stream().release();
 	}
       // calculate some values needed to calculate a memory offset for incoming heaps
+      payload_size = ph->payload_length;
       heap_size = size;
       freq_size = heap_size;
       feng_size = freq_count*freq_size;
       time_size = feng_count*feng_size;
       dest[DATA_DEST].capacity  = dest[DATA_DEST].size/time_size;
-      dest[TEMP_DEST].capacity  = dest[TEMP_DEST].size/time_size;
-      dest[TRASH_DEST].capacity = dest[TRASH_DEST].size/time_size;
+      dest[TEMP_DEST].capacity  = 2; //dest[TEMP_DEST].size/time_size;
+      dest[TRASH_DEST].capacity = 2; //dest[TRASH_DEST].size/time_size;
       dest[DATA_DEST].first   = timestamp + 2048*time_step;
       dest[DATA_DEST].space   = dest[DATA_DEST].capacity*feng_count*freq_count;
       dest[DATA_DEST].needed  = dest[DATA_DEST].space;
@@ -221,28 +223,36 @@ void ringbuffer_allocator::free(std::uint8_t *ptr, void *user)
 void ringbuffer_allocator::handle_data_full()
 {
   std::lock_guard<std::mutex> lock(dest_mutex);
-  std::cout << "-> parallel total " << tstat.ntotal << " completed " << tstat.ncompleted << " discarded " << tstat.ndiscarded << std::endl;
+  ///*
   if (with_dada)
     {
       // release the current ringbuffer slot
       dada.data_stream().release();	
       // get a new ringbuffer slot
       dest[DATA_DEST].ptr     = dada.data_stream().next();
-    }
+  }
+  //*/
   dest[DATA_DEST].needed  = dest[DATA_DEST].space;
   dest[DATA_DEST].first  += dest[DATA_DEST].capacity*time_step;
+  std::cout << "-> parallel total " << tstat.ntotal << " completed " << tstat.ncompleted << " discarded " << tstat.ndiscarded << " overrun " << tstat.noverrun
+	    << " assigned " << dest[DATA_DEST].count << " " << dest[TEMP_DEST].count << " " << dest[TRASH_DEST].count
+	    << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
+	    << " payload " << tstat.nexpected << " " << tstat.nreceived << std::endl;
   // switch to parallel data/temp order
   state = PARALLEL_STATE;
 }
 
 void ringbuffer_allocator::handle_temp_full()
 {
-  //memcpy(dest[DATA_DEST].ptr.ptr(), dest[TEMP_DEST].ptr.ptr(), dest[TEMP_DEST].space*heap_size);
+  memcpy(dest[DATA_DEST].ptr.ptr(), dest[TEMP_DEST].ptr.ptr(), dest[TEMP_DEST].space*heap_size);
   std::lock_guard<std::mutex> lock(dest_mutex);
-  std::cout << "-> sequential total " << tstat.ntotal << " completed " << tstat.ncompleted << " discarded " << tstat.ndiscarded << std::endl;
   dest[TEMP_DEST].needed  = dest[TEMP_DEST].space;
   dest[TEMP_DEST].first   = 0;
   dest[DATA_DEST].needed -= dest[TEMP_DEST].space;
+  std::cout << "-> sequential total " << tstat.ntotal << " completed " << tstat.ncompleted << " discarded " << tstat.ndiscarded << " overrun " << tstat.noverrun
+	    << " assigned " << dest[DATA_DEST].count << " " << dest[TEMP_DEST].count << " " << dest[TRASH_DEST].count
+	    << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
+	    << " payload " << tstat.nexpected << " " << tstat.nreceived << std::endl;
   // switch to sequential data/temp order
   state = SEQUENTIAL_STATE;
 }
@@ -259,7 +269,7 @@ void do_handle_temp_full(ringbuffer_allocator *rb)
 
 void ringbuffer_allocator::mark(spead2::s_item_pointer_t cnt, bool isok, spead2::s_item_pointer_t reclen)
 {
-  std::size_t  nd, nt;
+  std::size_t  nd, nt, rt;
 
   {
     std::lock_guard<std::mutex> lock(dest_mutex);
@@ -274,6 +284,7 @@ void ringbuffer_allocator::mark(spead2::s_item_pointer_t cnt, bool isok, spead2:
     bstat[b].nreceived += reclen;
     nd = dest[DATA_DEST].needed;
     nt = dest[TEMP_DEST].needed;
+    rt = dest[TEMP_DEST].space - dest[TEMP_DEST].needed;
     if (!isok)
       {
         tstat.ndiscarded++;
@@ -285,21 +296,25 @@ void ringbuffer_allocator::mark(spead2::s_item_pointer_t cnt, bool isok, spead2:
 	bstat[b].ncompleted++;
       }
     //std::cout << "mark " << cnt << " isok " << isok << " dest " << d << " needed " << nd << " " << nt << std::endl;
-    if (tstat.ntotal%1024 == 0)
+    if ((tstat.ntotal - log_counter) >= 1024)
       {
 	int i;
+	log_counter += 1024;
         std::cout << "heaps: total " << tstat.ntotal << " completed " << tstat.ncompleted << " discarded " << tstat.ndiscarded << " overrun " << tstat.noverrun
 	       	  << " assigned " << dest[DATA_DEST].count << " " << dest[TEMP_DEST].count << " " << dest[TRASH_DEST].count
-		  << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed << " " << dest[TRASH_DEST].needed
+		  << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
 		  << " payload " << tstat.nexpected << " " << tstat.nreceived
 		  << std::endl;
-	for (i = 0; i < 4; i++)
+	/*
+	for (i = 0; i < 64; i++)
 	  {
+            if (bstat[i].nexpected == 0) continue;
 	    std::cout << "   board " << i
-		      << " total " << bstat[b].ntotal << " completed " << bstat[b].ncompleted << " discarded " << bstat[b].ndiscarded << " overrun " << bstat[b].noverrun
-                      << " payload " << bstat[b].nexpected << " " << bstat[b].nreceived
+		      << " total " << bstat[i].ntotal << " completed " << bstat[i].ncompleted << " discarded " << bstat[i].ndiscarded << " overrun " << bstat[i].noverrun
+                      << " payload " << bstat[i].nexpected << " " << bstat[i].nreceived
 		      << std::endl;
           }
+	*/
       }
     if (nd > 100000)
       {
@@ -307,7 +322,7 @@ void ringbuffer_allocator::mark(spead2::s_item_pointer_t cnt, bool isok, spead2:
         exit(0);
       }
   }
-  if (nd == 0)
+  if (nd == 0) 
     {
       handle_data_full(); // std::thread dfull(do_handle_data_full, this); <- does not work, terminate
     }

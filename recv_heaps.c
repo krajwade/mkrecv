@@ -19,7 +19,7 @@
 #include <string.h>
 #include <pthread.h>
 
-#define PORT               7148
+#define PORT               60416 // 7148
 #define MAX_THREADS           4
 #define MAX_HEAPS          8192
 #define HEAP_HEADER_SIZE        sizeof(uint64_t)
@@ -158,7 +158,7 @@ static int process_heap(mcast_context_t *context)
 
   spead_header = (uint64_t)(be64toh(spead_ptr[0]));
   nitems = (int)(spead_header & 0xffff);
-  if (!g_quiet) printf("spead %d items", nitems);
+  if (!g_quiet) printf("spead %016lx %d items", spead_header, nitems);
   for (iitem = 0; iitem < nitems; iitem++) {
     uint64_t   item;
     int        immediate_flag, item_tag;
