@@ -23,19 +23,31 @@ ringbuffer_allocator::ringbuffer_allocator(key_t key, std::string mlname, const 
       dest[DATA_DEST].allocate_buffer(memallocator, MAX_TEMPORARY_SPACE);
     }
   tstat.ntotal = 0;
+  tstat.nskipped = 0;
   tstat.noverrun = 0;
   tstat.ncompleted = 0;
   tstat.ndiscarded = 0;
   tstat.nexpected = 0;
   tstat.nreceived = 0;
+  tstat.ntserror = 0;
+  tstat.nbiskipped = 0;
+  tstat.nbierror = 0;
+  tstat.nfcskipped = 0;
+  tstat.nfcerror = 0;
   for (i = 0; i < 64; i++)
     {
       bstat[i].ntotal = 0;
+      bstat[i].nskipped = 0;
       bstat[i].noverrun = 0;
       bstat[i].ncompleted = 0;
       bstat[i].ndiscarded = 0;
       bstat[i].nexpected = 0;
       bstat[i].nreceived = 0;
+      bstat[i].ntserror = 0;
+      bstat[i].nbiskipped = 0;
+      bstat[i].nbierror = 0;
+      bstat[i].nfcskipped = 0;
+      bstat[i].nfcerror = 0;
     }
   dest[TEMP_DEST].allocate_buffer(memallocator, MAX_TEMPORARY_SPACE);
   dest[TRASH_DEST].allocate_buffer(memallocator, MAX_TEMPORARY_SPACE);
@@ -61,13 +73,14 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
 {
   spead2::recv::packet_header    *ph = (spead2::recv::packet_header*)hint;
   spead2::recv::pointer_decoder   decoder(ph->heap_address_bits);
-  spead2::s_item_pointer_t        timestamp, feng_id, frequency;
+  spead2::s_item_pointer_t        timestamp = 0, feng_id = 0, frequency = 0, otimestamp = 0, ofeng_id = 0, ofrequency = 0;
   std::size_t                     time_index;
   std::size_t                     freq_index;
   std::size_t                     feng_index;
   char*                           mem_base = NULL;
   std::size_t                     mem_offset;
   int                             d;
+  int                             isbad = 0;
 
   // extract some values from the heap
   for (int i = 0; i < ph->n_items; i++)
@@ -79,13 +92,13 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
 	  switch (decoder.get_id(pointer))
             {
             case TIMESTAMP_ID:
-	      timestamp = decoder.get_immediate(pointer);
+	      otimestamp = timestamp = decoder.get_immediate(pointer);
 	      break;
             case FENG_ID_ID:
-	      feng_id = decoder.get_immediate(pointer);
+	      ofeng_id = feng_id = decoder.get_immediate(pointer);
 	      break;
             case FREQUENCY_ID:
-	      frequency = decoder.get_immediate(pointer);
+	      ofrequency = frequency = decoder.get_immediate(pointer);
 	      break;
             default:
 	      break;
@@ -93,10 +106,11 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
         }
     }
   //std::cout << "heap " << ph->heap_cnt << " timestamp " << timestamp << " feng_id " << feng_id << " frequency " << frequency << std::endl;
-  if ((feng_id < 0) || (feng_id > 63))
+  if ((ofeng_id < 0) || (ofeng_id > 63))
     {
       std::cout << "heap " << ph->heap_cnt << " timestamp " << timestamp << " feng_id " << feng_id << " frequency " << frequency << std::endl;
       feng_id = 0;
+      isbad = 1;
     }
   // put some values in the header buffer
   tstat.ntotal++;
@@ -120,7 +134,7 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
       dest[DATA_DEST].capacity  = dest[DATA_DEST].size/time_size;
       dest[TEMP_DEST].capacity  = 2; //dest[TEMP_DEST].size/time_size;
       dest[TRASH_DEST].capacity = 2; //dest[TRASH_DEST].size/time_size;
-      dest[DATA_DEST].first   = timestamp + 2048*time_step;
+      dest[DATA_DEST].first   = timestamp + 2*freq_count*feng_count*time_step;
       dest[DATA_DEST].space   = dest[DATA_DEST].capacity*feng_count*freq_count;
       dest[DATA_DEST].needed  = dest[DATA_DEST].space;
       dest[TEMP_DEST].space   = dest[TEMP_DEST].capacity*feng_count*freq_count;
@@ -131,6 +145,7 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
       std::cout << "DATA_DEST:  capacity " << dest[DATA_DEST].capacity << " space " << dest[DATA_DEST].space << " first " << dest[DATA_DEST].first << std::endl;
       std::cout << "TEMP_DEST:  capacity " << dest[TEMP_DEST].capacity << " space " << dest[TEMP_DEST].space << " first " << dest[TEMP_DEST].first << std::endl;
       std::cout << "TRASH_DEST: capacity " << dest[TRASH_DEST].capacity << " space " << dest[TRASH_DEST].space << " first " << dest[TRASH_DEST].first << std::endl;
+      std::cout << "heap " << ph->heap_cnt << " timestamp " << otimestamp << " feng_id " << ofeng_id << " frequency " << ofrequency << std::endl;
       state = SEQUENTIAL_STATE;
     }
   // The term "+ time_step/2" allows to have nonintegral time_steps.
@@ -140,56 +155,76 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
       time_index = (timestamp - dest[DATA_DEST].first + time_step/2)/time_step;
       feng_index = feng_id - feng_first;
       freq_index = (frequency - freq_first + freq_step/2)/freq_step;
-      if ((time_index < 0) || (feng_index < 0) || (feng_index >= feng_count) || (freq_index < 0) || (freq_index >= freq_count))
-        { // at least one index out of range -> unwanted heaps will go into thrash
-          d = TRASH_DEST;
-          time_index = 0;
+      if (timestamp < dest[DATA_DEST].first)
+	{
+          tstat.nskipped++;
+	  d = TRASH_DEST;
+	}
+      else if ((timestamp > dest[DATA_DEST].first) && (time_index >= 4*dest[DATA_DEST].capacity))
+	{
+	  tstat.ntserror++;
+	  d = TRASH_DEST;
+	  isbad = 1;
+	}
+      else if (ofeng_id >= 64)
+	{
+	  tstat.nbierror++;
+	  d = TRASH_DEST;
+	  isbad = 1;
+	}
+      else if ((feng_id < feng_first) || (feng_index >= feng_count))
+	{
+          tstat.nbiskipped++;
+	  d = TRASH_DEST;
         }
+      else if (ofrequency >= 4096)
+	{
+	  tstat.nfcerror++;
+	  d = TRASH_DEST;
+	  isbad = 1;
+	}
+      else if ((frequency < freq_first) || (freq_index >= freq_count))
+	{
+	  tstat.nfcskipped++;
+	  d = TRASH_DEST;
+	}
       else if (state == SEQUENTIAL_STATE)
-        { // data and temp are in sequential order
-          if (time_index >= (dest[DATA_DEST].capacity + dest[TEMP_DEST].capacity))
+	{
+	  if (time_index >= (dest[DATA_DEST].capacity + dest[TEMP_DEST].capacity))
 	    {
+              tstat.noverrun++;
 	      d = TRASH_DEST;
-	      time_index = 0;
-	      tstat.noverrun++;
-	      bstat[feng_id].noverrun++;
-            }
-          else if (time_index < dest[DATA_DEST].capacity)
-	    { // the current heap will go into the ringbuffer slot
-	      d = DATA_DEST;
 	    }
-          else
-	    { // the current heap will go into the temporary memory
-	      // determine the first timestamp in the temporary buffer
-	      //if (dest[TEMP_DEST].first == 0) dest[TEMP_DEST].first = timestamp;
-	      //if (dest[TEMP_DEST].first > timestamp) dest[TEMP_DEST].first = timestamp;
+	  else if (time_index >= dest[DATA_DEST].capacity)
+	    {
 	      d = TEMP_DEST;
 	      time_index -= dest[DATA_DEST].capacity;
 	    }
-        }
-      else if (state == PARALLEL_STATE)
-        { // data and temp are in parallel order
-          if (time_index >= dest[DATA_DEST].capacity)
+	  else
 	    {
-	      d = TRASH_DEST;
-	      time_index = 0;
-	      tstat.noverrun++;
-	      bstat[feng_id].noverrun++;
-	    }
-          else if (time_index < dest[TEMP_DEST].capacity)
-	    { // the current heap will go into the temporary buffer until it is full and is copied at the beginning of the data buffer
-	      d = TEMP_DEST;
-	    }
-          else
-	    { // the current heap will go into the ringbuffer slot
 	      d = DATA_DEST;
 	    }
+	}
+      else if (state == PARALLEL_STATE)
+	{
+	  if (time_index >= dest[DATA_DEST].capacity)
+	    {
+	      tstat.noverrun++;
+	      d = TRASH_DEST;
+ 	    }
+	  else if (time_index >= dest[TEMP_DEST].capacity)
+	    {
+	      d = DATA_DEST;
+	    }
+	  else
+	    {
+	      d = TEMP_DEST;
+	    }
         }
-      mem_offset = time_size*time_index;
-      // add the remaining offsets
-      // The term "+ freq_step/2" allows to have nonintegral freq_step.
-      mem_offset += feng_size*feng_index;
-      mem_offset += freq_size*freq_index;
+      if (isbad)
+        {
+          //std::cout << "error heap: " << ph->heap_cnt << " timestamp " << otimestamp << " feng_id " << ofeng_id << " frequency " << ofrequency << " indices " << time_index << " " << feng_index << " " << freq_index << std::endl;
+	}
     }
   else
     {
@@ -198,6 +233,10 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
   if (d == TRASH_DEST)
     {
       mem_offset = 0;
+    }
+  else
+    {
+      mem_offset = time_size*time_index + feng_size*feng_index + freq_size*freq_index;
     }
   mem_base = dest[d].ptr.ptr();
   dest[d].count++;
@@ -234,7 +273,7 @@ void ringbuffer_allocator::handle_data_full()
   //*/
   dest[DATA_DEST].needed  = dest[DATA_DEST].space;
   dest[DATA_DEST].first  += dest[DATA_DEST].capacity*time_step;
-  std::cout << "-> parallel total " << tstat.ntotal << " completed " << tstat.ncompleted << " discarded " << tstat.ndiscarded << " overrun " << tstat.noverrun
+  std::cout << "-> parallel total " << tstat.ntotal << " completed " << tstat.ncompleted << " discarded " << tstat.ndiscarded << " skipped " << tstat.nskipped << " overrun " << tstat.noverrun
 	    << " assigned " << dest[DATA_DEST].count << " " << dest[TEMP_DEST].count << " " << dest[TRASH_DEST].count
 	    << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
 	    << " payload " << tstat.nexpected << " " << tstat.nreceived << std::endl;
@@ -249,7 +288,7 @@ void ringbuffer_allocator::handle_temp_full()
   dest[TEMP_DEST].needed  = dest[TEMP_DEST].space;
   dest[TEMP_DEST].first   = 0;
   dest[DATA_DEST].needed -= dest[TEMP_DEST].space;
-  std::cout << "-> sequential total " << tstat.ntotal << " completed " << tstat.ncompleted << " discarded " << tstat.ndiscarded << " overrun " << tstat.noverrun
+  std::cout << "-> sequential total " << tstat.ntotal << " completed " << tstat.ncompleted << " discarded " << tstat.ndiscarded << " skipped " << tstat.nskipped << " overrun " << tstat.noverrun
 	    << " assigned " << dest[DATA_DEST].count << " " << dest[TEMP_DEST].count << " " << dest[TRASH_DEST].count
 	    << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
 	    << " payload " << tstat.nexpected << " " << tstat.nreceived << std::endl;
@@ -300,9 +339,10 @@ void ringbuffer_allocator::mark(spead2::s_item_pointer_t cnt, bool isok, spead2:
       {
 	int i;
 	log_counter += 1024;
-        std::cout << "heaps: total " << tstat.ntotal << " completed " << tstat.ncompleted << " discarded " << tstat.ndiscarded << " overrun " << tstat.noverrun
+        std::cout << "heaps: total " << tstat.ntotal << " completed " << tstat.ncompleted << " discarded " << tstat.ndiscarded << " skipped " << tstat.nskipped << " overrun " << tstat.noverrun
 	       	  << " assigned " << dest[DATA_DEST].count << " " << dest[TEMP_DEST].count << " " << dest[TRASH_DEST].count
 		  << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
+		  << " error " << tstat.ntserror << " " << tstat.nbierror << " " << tstat.nfcerror
 		  << " payload " << tstat.nexpected << " " << tstat.nreceived
 		  << std::endl;
 	/*

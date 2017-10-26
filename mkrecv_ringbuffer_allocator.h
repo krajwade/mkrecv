@@ -52,11 +52,17 @@ namespace mkrecv
   typedef struct 
   {
     std::size_t    ntotal;     // number of received heaps (calls of allocate())
+    std::size_t    nskipped;   // number of skipped heaps (before first timestamp)
     std::size_t    noverrun;   // number of lost heaps due to overrun
     std::size_t    ncompleted; // number of completed heaps
     std::size_t    ndiscarded; // number of discarded heaps
     std::size_t    nexpected;  // number of expected payload bytes (ntotal*heapsize)
     std::size_t    nreceived;  // number of received payload bytes
+    std::size_t    ntserror;   // number of heaps which have a suspicious timestamp
+    std::size_t    nbiskipped; // number of skipped heaps due to board ids outside range
+    std::size_t    nbierror;   // number of heaps which have a suspicious board id
+    std::size_t    nfcskipped; // number of skipped heaps due to frequency channels outside range
+    std::size_t    nfcerror;   // number of heaps which have a suspicious frequency channel number
   } statistics_t;
 
   class ringbuffer_allocator : public spead2::memory_allocator

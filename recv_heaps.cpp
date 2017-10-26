@@ -19,7 +19,8 @@
 #include <string.h>
 #include <pthread.h>
 
-#define PORT               60416 // 7148
+//#define PORT               60416
+#define PORT                7148
 #define MAX_THREADS           4
 #define MAX_HEAPS          8192
 #define HEAP_HEADER_SIZE        sizeof(uint64_t)
