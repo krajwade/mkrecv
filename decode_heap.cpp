@@ -106,44 +106,83 @@ static void init_memory()
 static uint8_t read_uint8(FILE *in)
 {
   uint8_t   val;
+  size_t    nread;
 
-  fread(&val, sizeof(val), 1, in);
+  nread = fread(&val, sizeof(val), 1, in);
+  if (nread != sizeof(val)) {
+    perror("Cannot read a uint8_t value from the tcpdump file.");
+  }
   return val;
 }
 
 static uint16_t read_uint16(FILE *in)
 {
   uint16_t  val;
+  size_t    nread;
 
-  fread(&val, sizeof(val), 1, in);
+  nread = fread(&val, sizeof(val), 1, in);
+  if (nread != sizeof(val)) {
+    perror("Cannot read a uint16_t value from the tcpdump file.");
+  }
   return (uint16_t)be16toh(val);
 }
 
 static uint32_t read_uint32(FILE *in)
 {
   uint32_t  val;
+  size_t    nread;
 
-  fread(&val, sizeof(val), 1, in);
+  nread = fread(&val, sizeof(val), 1, in);
+  if (nread != sizeof(val)) {
+    perror("Cannot read a uint32_t value from the tcpdump file.");
+  }
   return (uint32_t)be32toh(val);
 }
 
 static uint64_t read_uint64(FILE *in)
 {
   uint64_t  val;
+  size_t    nread;
 
-  fread(&val, sizeof(val), 1, in);
+  nread = fread(&val, sizeof(val), 1, in);
+  if (nread != sizeof(val)) {
+    perror("Cannot read a uint64_t value from the tcpdump file.");
+  }
   return (uint64_t)be64toh(val);
 }
 
 static void read_file_prefix(FILE *in, file_prefix_t *prefix)
 {
-  fread(&(prefix->magic), sizeof(prefix->magic), 1, in);
-  fread(&(prefix->version_major), sizeof(prefix->version_major), 1, in);
-  fread(&(prefix->version_minor), sizeof(prefix->version_minor), 1, in);
-  fread(&(prefix->time_zone_offset), sizeof(prefix->time_zone_offset), 1, in);
-  fread(&(prefix->timestamp_accuracy), sizeof(prefix->timestamp_accuracy), 1, in);
-  fread(&(prefix->snapshot_length), sizeof(prefix->snapshot_length), 1, in);
-  fread(&(prefix->header_type), sizeof(prefix->header_type), 1, in);
+  size_t    nread;
+
+  nread = fread(&(prefix->magic), sizeof(prefix->magic), 1, in);
+  if (nread != sizeof(prefix->magic)) {
+    perror("Cannot read prefix->magic from the tcpdump file.");
+  }
+  nread = fread(&(prefix->version_major), sizeof(prefix->version_major), 1, in);
+  if (nread != sizeof(prefix->version_major)) {
+    perror("Cannot read prefix->version_major from the tcpdump file.");
+  }
+  nread = fread(&(prefix->version_minor), sizeof(prefix->version_minor), 1, in);
+  if (nread != sizeof(prefix->version_minor)) {
+    perror("Cannot read prefix->version_minor from the tcpdump file.");
+  }
+  nread = fread(&(prefix->time_zone_offset), sizeof(prefix->time_zone_offset), 1, in);
+  if (nread != sizeof(prefix->time_zone_offset)) {
+    perror("Cannot read prefix->time_zone_offset from the tcpdump file.");
+  }
+  nread = fread(&(prefix->timestamp_accuracy), sizeof(prefix->timestamp_accuracy), 1, in);
+  if (nread != sizeof(prefix->timestamp_accuracy)) {
+    perror("Cannot read prefix->timestamp_accuracy from the tcpdump file.");
+  }
+  nread = fread(&(prefix->snapshot_length), sizeof(prefix->snapshot_length), 1, in);
+  if (nread != sizeof(prefix->snapshot_length)) {
+    perror("Cannot read prefix->snapshot_length from the tcpdump file.");
+  }
+  nread = fread(&(prefix->header_type), sizeof(prefix->header_type), 1, in);
+  if (nread != sizeof(prefix->header_type)) {
+    perror("Cannot read prefix->header_type from the tcpdump file.");
+  }
 }
 
 static void dump_file_prefix(file_prefix_t *prefix)
@@ -158,10 +197,24 @@ static void dump_file_prefix(file_prefix_t *prefix)
 
 static void read_packet_prefix(FILE *in, packet_prefix_t *prefix)
 {
-  fread(&(prefix->timestamp_seconds), sizeof(prefix->timestamp_seconds), 1, in);
-  fread(&(prefix->timestamp_nanoseconds), sizeof(prefix->timestamp_nanoseconds), 1, in);
-  fread(&(prefix->captured_length), sizeof(prefix->captured_length), 1, in);
-  fread(&(prefix->untruncated_length), sizeof(prefix->untruncated_length), 1, in);
+  size_t    nread;
+
+  nread = fread(&(prefix->timestamp_seconds), sizeof(prefix->timestamp_seconds), 1, in);
+  if (nread != sizeof(prefix->timestamp_seconds)) {
+    perror("Cannot read prefix->timestamp_seconds from the tcpdump file.");
+  }
+  nread = fread(&(prefix->timestamp_nanoseconds), sizeof(prefix->timestamp_nanoseconds), 1, in);
+  if (nread != sizeof(prefix->timestamp_nanoseconds)) {
+    perror("Cannot read prefix->timestamp_nanoseconds from the tcpdump file.");
+  }
+  nread = fread(&(prefix->captured_length), sizeof(prefix->captured_length), 1, in);
+  if (nread != sizeof(prefix->captured_length)) {
+    perror("Cannot read prefix->captured_length from the tcpdump file.");
+  }
+  nread = fread(&(prefix->untruncated_length), sizeof(prefix->untruncated_length), 1, in);
+  if (nread != sizeof(prefix->untruncated_length)) {
+    perror("Cannot read prefix->untruncated_length from the tcpdump file.");
+  }
 }
 
 static void dump_packet_prefix(packet_prefix_t *prefix)
@@ -175,7 +228,12 @@ static void dump_packet_prefix(packet_prefix_t *prefix)
 
 static void read_ip_header(FILE *in, ip_packet_header_t *header)
 {
-  fread(&(header->unknown), sizeof(header->unknown), 1, in);
+  size_t    nread;
+
+  nread = fread(&(header->unknown), sizeof(header->unknown), 1, in);
+  if (nread != sizeof(header->unknown)) {
+    perror("Cannot read header->unknown from the tcpdump file.");
+  }
   header->version_header_length = read_uint8(in);
   header->service_type = read_uint8(in);
   header->total_length = read_uint16(in);
@@ -184,8 +242,14 @@ static void read_ip_header(FILE *in, ip_packet_header_t *header)
   header->time_to_live = read_uint8(in);
   header->protokoll = read_uint8(in);
   header->header_checksum = read_uint16(in);
-  fread(&(header->source_ip), sizeof(header->source_ip), 1, in);
-  fread(&(header->destination_ip), sizeof(header->destination_ip), 1, in);
+  nread = fread(&(header->source_ip), sizeof(header->source_ip), 1, in);
+  if (nread != sizeof(header->source_ip)) {
+    perror("Cannot read header->source_ip from the tcpdump file.");
+  }
+  nread = fread(&(header->destination_ip), sizeof(header->destination_ip), 1, in);
+  if (nread != sizeof(header->destination_ip)) {
+    perror("Cannot read header->destination_ip from the tcpdump file.");
+  }
 }
 
 static void dump_ip_header(ip_packet_header_t *header)
@@ -205,6 +269,8 @@ static void dump_ip_header(ip_packet_header_t *header)
 
 static void read_udp_packet(FILE *in, udp_packet_t *packet)
 {
+  size_t    nread;
+
   packet->source_port = read_uint16(in);
   packet->destination_port = read_uint16(in);
   packet->total_length = read_uint16(in);
@@ -214,7 +280,10 @@ static void read_udp_packet(FILE *in, udp_packet_t *packet)
     packet->available = packet->total_length;
   }
   packet->used = (size_t)(packet->total_length) - 4*sizeof(uint16_t);
-  fread(packet->data, sizeof(uint8_t), packet->used, in);
+  nread = fread(packet->data, sizeof(uint8_t), packet->used, in);
+  if (nread != (sizeof(uint8_t) * packet->used)) {
+    perror("Cannot read data from the tcpdump file.");
+  }
 }
 
 static void dump_udp_packet(udp_packet_t *packet)

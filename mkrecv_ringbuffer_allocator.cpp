@@ -141,6 +141,7 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
       dest[TEMP_DEST].needed  = dest[TEMP_DEST].space;
       dest[TRASH_DEST].space  = dest[TRASH_DEST].capacity*feng_count*freq_count;
       dest[TRASH_DEST].needed = dest[TRASH_DEST].space;
+      dest[TEMP_DEST].cts = 1;
       std::cout << "sizes: heap " << heap_size << " freq " << freq_size << " feng " << feng_size << " time " << time_size << std::endl;
       std::cout << "DATA_DEST:  capacity " << dest[DATA_DEST].capacity << " space " << dest[DATA_DEST].space << " first " << dest[DATA_DEST].first << std::endl;
       std::cout << "TEMP_DEST:  capacity " << dest[TEMP_DEST].capacity << " space " << dest[TEMP_DEST].space << " first " << dest[TEMP_DEST].first << std::endl;
@@ -273,6 +274,7 @@ void ringbuffer_allocator::handle_data_full()
   //*/
   dest[DATA_DEST].needed  = dest[DATA_DEST].space;
   dest[DATA_DEST].first  += dest[DATA_DEST].capacity*time_step;
+  dest[DATA_DEST].cts = freq_count*feng_count;
   std::cout << "-> parallel total " << tstat.ntotal << " completed " << tstat.ncompleted << " discarded " << tstat.ndiscarded << " skipped " << tstat.nskipped << " overrun " << tstat.noverrun
 	    << " assigned " << dest[DATA_DEST].count << " " << dest[TEMP_DEST].count << " " << dest[TRASH_DEST].count
 	    << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
@@ -288,6 +290,7 @@ void ringbuffer_allocator::handle_temp_full()
   dest[TEMP_DEST].needed  = dest[TEMP_DEST].space;
   dest[TEMP_DEST].first   = 0;
   dest[DATA_DEST].needed -= dest[TEMP_DEST].space;
+  dest[TEMP_DEST].cts = 1;
   std::cout << "-> sequential total " << tstat.ntotal << " completed " << tstat.ncompleted << " discarded " << tstat.ndiscarded << " skipped " << tstat.nskipped << " overrun " << tstat.noverrun
 	    << " assigned " << dest[DATA_DEST].count << " " << dest[TEMP_DEST].count << " " << dest[TRASH_DEST].count
 	    << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
@@ -308,7 +311,7 @@ void do_handle_temp_full(ringbuffer_allocator *rb)
 
 void ringbuffer_allocator::mark(spead2::s_item_pointer_t cnt, bool isok, spead2::s_item_pointer_t reclen)
 {
-  std::size_t  nd, nt, rt;
+  std::size_t  nd, nt, rt, ctsd, ctst;
 
   {
     std::lock_guard<std::mutex> lock(dest_mutex);
@@ -317,6 +320,7 @@ void ringbuffer_allocator::mark(spead2::s_item_pointer_t cnt, bool isok, spead2:
     if (b < 0) b = 0;
     if (b > 63) b = 63;
     dest[d].needed--;
+    dest[d].cts--;
     heap2dest.erase(cnt);
     heap2board.erase(cnt);
     tstat.nreceived += reclen;
@@ -324,6 +328,8 @@ void ringbuffer_allocator::mark(spead2::s_item_pointer_t cnt, bool isok, spead2:
     nd = dest[DATA_DEST].needed;
     nt = dest[TEMP_DEST].needed;
     rt = dest[TEMP_DEST].space - dest[TEMP_DEST].needed;
+    ctsd = dest[DATA_DEST].cts;
+    ctst = dest[TEMP_DEST].cts;
     if (!isok)
       {
         tstat.ndiscarded++;
@@ -362,11 +368,11 @@ void ringbuffer_allocator::mark(spead2::s_item_pointer_t cnt, bool isok, spead2:
         exit(0);
       }
   }
-  if (nd == 0) 
+  if ((nd == 0) || (ctst == 0))
     {
       handle_data_full(); // std::thread dfull(do_handle_data_full, this); <- does not work, terminate
     }
-  else if (nt == 0)
+  else if ((nt == 0) || (ctsd == 0))
     {
       handle_temp_full(); // std::thread tfull(do_handle_temp_full, this); <- does not work, terminate
     }
