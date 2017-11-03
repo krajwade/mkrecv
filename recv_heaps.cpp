@@ -19,8 +19,6 @@
 #include <string.h>
 #include <pthread.h>
 
-//#define PORT               60416
-#define PORT                7148
 #define MAX_THREADS           4
 #define MAX_HEAPS          8192
 #define HEAP_HEADER_SIZE        sizeof(uint64_t)
@@ -46,6 +44,7 @@ typedef struct {
 } mcast_context_t;
 
 static int             g_quiet = 0;
+static int             g_port = 7148;
 static mcast_context_t g_context;
 
 static int create_connection(mcast_context_t *context)
@@ -69,10 +68,10 @@ static int create_connection(mcast_context_t *context)
   }
   context->adr.sin_family      = AF_INET;
   context->adr.sin_addr.s_addr = htonl (INADDR_ANY);
-  context->adr.sin_port        = htons(PORT);
+  context->adr.sin_port        = htons(g_port);
   rc = bind(context->sock, (struct sockaddr *)&(context->adr), sizeof(context->adr));
   if (rc < 0) {
-    fprintf(stderr, "ERROR: can't bind portnumber %d: %s\n", PORT, strerror(errno));
+    fprintf(stderr, "ERROR: can't bind portnumber %d: %s\n", g_port, strerror(errno));
     return 0;
   }
   // activate multicast
@@ -232,7 +231,9 @@ static void *receive_heaps(void *arg)
 
 static void usage(char *exename)
 {
-  printf("usage: $s <interface_ip> { <multicast_ip> }\n");
+  printf("usage: $s [-quiet] [-port <port>] <interface_ip> { <multicast_ip> }\n");
+  printf("  -quiet         : only a summary after receiving %d heaps is printed\n", MAX_HEAPS);
+  printf("  -port <port>   : changes the port from the default %d to a given number\n", g_port);
   printf("  <interface_ip> : ip address (IPv4) of the network interface which will receive the data\n");
   printf("  <multicast_ip> : ip address (IPv4) of a UDP multicast group which send SPEAD heaps\n");
 }
@@ -241,8 +242,9 @@ int main(int argc, char *argv[])
 {
   int    i, j;
   int    isok     = 1;
-  int    if_index = 1;
-  int    mc_index = 2;
+  int    idx      = 1;
+  int    if_index;
+  int    mc_index;
   size_t tsize    = 0;
   size_t trec     = 0;
 
@@ -250,17 +252,28 @@ int main(int argc, char *argv[])
     usage(argv[0]);
     return 0;
   }
-  if (strcmp(argv[1], "-quiet") == 0) {
-    g_quiet = 1;
-    if_index++;
-    mc_index++;
-  }
+  do {
+    if (strcmp(argv[1], "-quiet") == 0) {
+      g_quiet = 1;
+      idx++;
+      continue;
+    } 
+    if (strcmp(argv[idx], "-port") == 0) {
+      idx++;
+      g_port = atoi(argv[idx]);
+      idx++;
+      continue;
+    }
+    break;
+  } while (1);
   for (i = 0; i < 64; i++) {
     g_context.boards[i] = 0;
   }
   for (i = 0; i < 4096; i++) {
     g_context.channels[i] = 0;
   }
+  if_index = idx;
+  mc_index = idx + 1;
   printf("create all connections\n");
   if (create_connection(&g_context)) {
     for (i = mc_index; i < argc; i++) {
@@ -313,4 +326,5 @@ int main(int argc, char *argv[])
     }
   }
 }
+
 

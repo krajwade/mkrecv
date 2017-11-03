@@ -267,9 +267,9 @@ void ringbuffer_allocator::handle_data_full()
   if (with_dada)
     {
       // release the current ringbuffer slot
-      dada.data_stream().release();	
+      //dada.data_stream().release();	
       // get a new ringbuffer slot
-      dest[DATA_DEST].ptr     = dada.data_stream().next();
+      //dest[DATA_DEST].ptr     = dada.data_stream().next();
   }
   //*/
   dest[DATA_DEST].needed  = dest[DATA_DEST].space;
@@ -285,7 +285,7 @@ void ringbuffer_allocator::handle_data_full()
 
 void ringbuffer_allocator::handle_temp_full()
 {
-  memcpy(dest[DATA_DEST].ptr.ptr(), dest[TEMP_DEST].ptr.ptr(), dest[TEMP_DEST].space*heap_size);
+  //memcpy(dest[DATA_DEST].ptr.ptr(), dest[TEMP_DEST].ptr.ptr(), dest[TEMP_DEST].space*heap_size);
   std::lock_guard<std::mutex> lock(dest_mutex);
   dest[TEMP_DEST].needed  = dest[TEMP_DEST].space;
   dest[TEMP_DEST].first   = 0;
@@ -368,11 +368,13 @@ void ringbuffer_allocator::mark(spead2::s_item_pointer_t cnt, bool isok, spead2:
         exit(0);
       }
   }
-  if ((nd == 0) || (ctst == 0))
+  //if ((nd == 0) || (ctst == 0))
+  if ((state == SEQUENTIAL_STATE) && (ctst == 0))
     {
       handle_data_full(); // std::thread dfull(do_handle_data_full, this); <- does not work, terminate
     }
-  else if ((nt == 0) || (ctsd == 0))
+  //else if ((nt == 0) || (ctsd == 0))
+  else if ((state == PARALLEL_STATE) && (ctsd == 0))
     {
       handle_temp_full(); // std::thread tfull(do_handle_temp_full, this); <- does not work, terminate
     }
