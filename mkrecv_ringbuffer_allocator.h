@@ -34,6 +34,7 @@ namespace mkrecv
   static const unsigned int FREQUENCY_ID   = 0x4103;
   static const unsigned int FENG_RAW_ID    = 0x4300;
 
+  static const std::size_t  MAX_DATA_SPACE = 256*1024*1024;
   static const std::size_t  MAX_TEMPORARY_SPACE = 64*4096*128;
 
   static const int DATA_DEST  = 0;
@@ -43,6 +44,8 @@ namespace mkrecv
   static const int INIT_STATE       = 0;
   static const int SEQUENTIAL_STATE = 1;
   static const int PARALLEL_STATE   = 2;
+
+  static const int LOG_FREQ = 10000;
 
   struct header
   {
@@ -56,6 +59,7 @@ namespace mkrecv
     std::size_t    noverrun;   // number of lost heaps due to overrun
     std::size_t    ncompleted; // number of completed heaps
     std::size_t    ndiscarded; // number of discarded heaps
+    std::size_t    nignored;   // number of ignored heaps (id == 1)
     std::size_t    nexpected;  // number of expected payload bytes (ntotal*heapsize)
     std::size_t    nreceived;  // number of received payload bytes
     std::size_t    ntserror;   // number of heaps which have a suspicious timestamp
@@ -91,7 +95,7 @@ namespace mkrecv
     int                           state = INIT_STATE;
     statistics_t                  tstat;
     statistics_t                  bstat[64];
-    bool                          with_dada = true;
+    std::size_t                   dada_mode = 4;
     std::size_t                   log_counter = 0;
     
   public:

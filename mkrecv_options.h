@@ -49,7 +49,7 @@ namespace mkrecv
     std::size_t               time_step = 0x200000;   // the difference between consecutive timestamps
     std::string               port = "7148";
     std::string               key = "dada";
-    bool                      no_dada = false;
+    std::size_t               dada_mode = 4;
     std::vector<std::string>  sources;
   private:
     po::options_description              desc;
