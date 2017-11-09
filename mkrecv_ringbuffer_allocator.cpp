@@ -51,6 +51,8 @@ ringbuffer_allocator::ringbuffer_allocator(key_t key, std::string mlname, const 
       bstat[i].nfcskipped = 0;
       bstat[i].nfcerror = 0;
     }
+  for (i = 0; i < 64; i++) bcount[i] = 0;
+  for (i = 0; i < 4096; i++) fcount[i] = 0;
   dest[TEMP_DEST].allocate_buffer(memallocator, MAX_TEMPORARY_SPACE);
   dest[TRASH_DEST].allocate_buffer(memallocator, MAX_TEMPORARY_SPACE);
   std::cout << "dest[DATA_DEST].ptr.ptr()  = " << (std::size_t)(dest[DATA_DEST].ptr.ptr()) << std::endl;
@@ -88,6 +90,7 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
   int                             d;
   int                             isbad = 0;
 
+  std::lock_guard<std::mutex> lock(dest_mutex);
   if (ph->heap_cnt == 1)
     {
       d = TRASH_DEST;
@@ -143,6 +146,8 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
   // put some values in the header buffer
   tstat.ntotal++;
   bstat[feng_id].ntotal++;
+  bcount[feng_id]++;
+  fcount[frequency]++;
   if (state == INIT_STATE)
     { // put some values in the header buffer
       if (dada_mode >= 2)
@@ -194,23 +199,27 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
       d = TRASH_DEST;
       isbad = 1;
     }
+  /*
   else if (ofeng_id >= 64)
     {
       tstat.nbierror++;
       d = TRASH_DEST;
       isbad = 1;
     }
+  */
   else if ((feng_id < feng_first) || (feng_index >= feng_count))
     {
       tstat.nbiskipped++;
       d = TRASH_DEST;
     }
+  /*
   else if (ofrequency >= 4096)
     {
       tstat.nfcerror++;
       d = TRASH_DEST;
       isbad = 1;
     }
+  */
   else if ((frequency < freq_first) || (freq_index >= freq_count))
     {
       tstat.nfcskipped++;
@@ -259,12 +268,9 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
     }
   if (d == TRASH_DEST)
     {
-      mem_offset = 0;
+      time_index = 0;
     }
-  else
-    {
-      mem_offset = time_size*time_index + feng_size*feng_index + freq_size*freq_index;
-    }
+  mem_offset = time_size*time_index + feng_size*feng_index + freq_size*freq_index;
   mem_base = dest[d].ptr.ptr();
   dest[d].count++;
   heap2dest[ph->heap_cnt] = d; // store the relation between heap counter and destination
@@ -315,7 +321,7 @@ void ringbuffer_allocator::handle_temp_full()
     {
       memcpy(dest[DATA_DEST].ptr.ptr(), dest[TEMP_DEST].ptr.ptr(), dest[TEMP_DEST].space*heap_size);
     }
-  std::lock_guard<std::mutex> lock(dest_mutex);
+  //std::lock_guard<std::mutex> lock(dest_mutex);
   dest[TEMP_DEST].needed  = dest[TEMP_DEST].space;
   dest[TEMP_DEST].first   = 0;
   dest[DATA_DEST].needed -= dest[TEMP_DEST].space;
@@ -376,7 +382,13 @@ void ringbuffer_allocator::mark(spead2::s_item_pointer_t cnt, bool isok, spead2:
       {
 	int i;
 	log_counter += LOG_FREQ;
-        std::cout << "heaps: total " << tstat.ntotal << " completed " << tstat.ncompleted << " discarded " << tstat.ndiscarded << " skipped " << tstat.nskipped << " overrun " << tstat.noverrun << " ignored " << tstat.nignored
+        std::cout << "heaps:"
+                  << " total " << tstat.ntotal
+		  << " completed " << tstat.ncompleted
+	          << " discarded " << tstat.ndiscarded
+		  << " skipped " << tstat.nskipped
+		  << " overrun " << tstat.noverrun
+		  << " ignored " << tstat.nignored
 	       	  << " assigned " << dest[DATA_DEST].count << " " << dest[TEMP_DEST].count << " " << dest[TRASH_DEST].count
 		  << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
 		  << " error " << tstat.ntserror << " " << tstat.nbierror << " " << tstat.nfcerror
@@ -392,6 +404,19 @@ void ringbuffer_allocator::mark(spead2::s_item_pointer_t cnt, bool isok, spead2:
 		      << std::endl;
           }
 	*/
+	if (log_counter <= LOG_FREQ)
+	  {
+	    for (i = 0; i < 64; i++)
+	      {
+	        if (bcount[i] == 0) continue;
+		std::cout << "board id " << i << " total " << bcount[i] << std::endl;
+	      }
+	    for (i = 0; i < 4096; i++)
+	      {
+		if (fcount[i] == 0) continue;
+		std::cout << "channel " << i << " total " << fcount[i] << std::endl;
+	      }
+	  }
       }
     /*
     if (nd > 100000)

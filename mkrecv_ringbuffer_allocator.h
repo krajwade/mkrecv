@@ -95,6 +95,8 @@ namespace mkrecv
     int                           state = INIT_STATE;
     statistics_t                  tstat;
     statistics_t                  bstat[64];
+    std::size_t                   bcount[64];
+    std::size_t                   fcount[4096];
     std::size_t                   dada_mode = 4;
     std::size_t                   log_counter = 0;
     

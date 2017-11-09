@@ -44,7 +44,9 @@ namespace mkrecv
 
   template<typename It>
   static std::unique_ptr<fengine_stream> make_stream(
-						     spead2::thread_pool &thread_pool, const options &opts,
+						     spead2::thread_pool &thread_pool,
+						     const options &opts,
+						     std::shared_ptr<ringbuffer_allocator> dada,
 						     It first_source, It last_source)
   {
     using asio::ip::udp;
@@ -53,9 +55,6 @@ namespace mkrecv
     spead2::bug_compat_mask bug_compat = opts.pyspead ? spead2::BUG_COMPAT_PYSPEAD_0_5_2 : 0;
     stream.reset(new fengine_stream(opts, thread_pool, bug_compat, opts.heaps));
 
-    std::shared_ptr<ringbuffer_allocator> dada = std::make_shared<ringbuffer_allocator>(psrdada_cpp::string_to_key(opts.key),
-											"recv",
-											opts);
     stream->set_ringbuffer(dada);
     if (opts.memcpy_nt)
       stream->set_memcpy(spead2::MEMCPY_NONTEMPORAL);
@@ -113,15 +112,16 @@ int main(int argc, const char **argv)
   mkrecv::options                                         opts;
   opts.parse_args(argc, argv);
   spead2::thread_pool                                     thread_pool(opts.threads);
+  std::shared_ptr<mkrecv::ringbuffer_allocator>           dada = std::make_shared<mkrecv::ringbuffer_allocator>(psrdada_cpp::string_to_key(opts.key), "recv", opts);
   std::vector<std::unique_ptr<mkrecv::fengine_stream> >   streams;
   if (opts.joint)
     {
-      streams.push_back(mkrecv::make_stream(thread_pool, opts, opts.sources.begin(), opts.sources.end()));
+      streams.push_back(mkrecv::make_stream(thread_pool, opts, dada, opts.sources.begin(), opts.sources.end()));
     }
   else
     {
       for (auto it = opts.sources.begin(); it != opts.sources.end(); ++it)
-	streams.push_back(mkrecv::make_stream(thread_pool, opts, it, it + 1));
+	streams.push_back(mkrecv::make_stream(thread_pool, opts, dada, it, it + 1));
     }
   
   std::int64_t n_complete = 0;
