@@ -94,6 +94,7 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
   if (ph->heap_cnt == 1)
     {
       d = TRASH_DEST;
+      tstat.ntotal++;
       tstat.nignored++;
       dest[d].count++;
       heap2dest[ph->heap_cnt] = d;
