@@ -6,6 +6,7 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <signal.h>
 #include <atomic>
 #include <unordered_map>
 #include <boost/program_options.hpp>
@@ -38,6 +39,9 @@
 
 namespace po = boost::program_options;
 namespace asio = boost::asio;
+
+static int                                           g_stopped = 0;
+static std::shared_ptr<mkrecv::ringbuffer_allocator> g_dada;
 
 namespace mkrecv
 {
@@ -106,22 +110,35 @@ namespace mkrecv
 
 }
 
+void signal_handler(int signalValue)
+{
+  std::cout << "received signal " << signalValue << std::endl;
+  g_stopped++;
+  // 1. Set a flag on the memory allocator (we want to finish the current slot or we have to terminate (not sending!) the current slot)
+  // 2. If the current slot is finished or terminated, terminate the streams (one for each multicast group)
+  //g_dada->requestStop();
+  //if (g_stopped > 1)
+    //{
+      exit(-1);
+    //}
+}
 
 int main(int argc, const char **argv)
 {
   mkrecv::options                                         opts;
   opts.parse_args(argc, argv);
   spead2::thread_pool                                     thread_pool(opts.threads);
-  std::shared_ptr<mkrecv::ringbuffer_allocator>           dada = std::make_shared<mkrecv::ringbuffer_allocator>(psrdada_cpp::string_to_key(opts.key), "recv", opts);
+  g_dada = std::make_shared<mkrecv::ringbuffer_allocator>(psrdada_cpp::string_to_key(opts.key), "recv", opts);
   std::vector<std::unique_ptr<mkrecv::fengine_stream> >   streams;
+  signal(SIGINT, signal_handler);
   if (opts.joint)
     {
-      streams.push_back(mkrecv::make_stream(thread_pool, opts, dada, opts.sources.begin(), opts.sources.end()));
+      streams.push_back(mkrecv::make_stream(thread_pool, opts, g_dada, opts.sources.begin(), opts.sources.end()));
     }
   else
     {
       for (auto it = opts.sources.begin(); it != opts.sources.end(); ++it)
-	streams.push_back(mkrecv::make_stream(thread_pool, opts, dada, it, it + 1));
+	streams.push_back(mkrecv::make_stream(thread_pool, opts, g_dada, it, it + 1));
     }
   
   std::int64_t n_complete = 0;

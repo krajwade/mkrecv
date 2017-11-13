@@ -99,6 +99,8 @@ namespace mkrecv
     std::size_t                   fcount[4096];
     std::size_t                   dada_mode = 4;
     std::size_t                   log_counter = 0;
+    bool                          stop = false;
+    bool                          hasStopped = false;
     
   public:
     ringbuffer_allocator(key_t key, std::string mlname, const mkrecv::options &opts);
@@ -112,6 +114,8 @@ namespace mkrecv
     void handle_data_full();
     void handle_temp_full();
     void mark(spead2::s_item_pointer_t cnt, bool isok, spead2::s_item_pointer_t reclen);
+    void requestStop();
+    bool isStopped();
   };
   
 }

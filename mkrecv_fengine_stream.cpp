@@ -85,16 +85,21 @@ namespace mkrecv
 	//std::cout << "Discarding incomplete heap " << heap.get_cnt() << '\n';
 	//rbuffer->mark(heap.get_cnt(), false, heap.get_received_length());
       }
+    if (rbuffer->isStopped()) stop();
   }
 
   void fengine_stream::stop_received()
   {
+    std::cout << "fengine::stop_received()" << std::endl;
     spead2::recv::stream::stop_received();
+    std::cout << "  after spead2::recv::stream::stop_received()" << std::endl;
     stop_promise.set_value();
+    std::cout << "  after stop_promise.set_value()" << std::endl;
   }
 
   std::int64_t fengine_stream::join()
   {
+    std::cout << "fengine_stream::join()" << std::endl;
     std::future<void> future = stop_promise.get_future();
     future.get();
     return n_complete;

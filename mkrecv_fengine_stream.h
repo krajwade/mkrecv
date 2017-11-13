@@ -27,7 +27,7 @@ namespace mkrecv
       : spead2::recv::stream::stream(std::forward<Args>(args)...),
       opts(opts) {}
     
-    virtual void stop_received() override;
+    void stop_received(); // override;
     std::int64_t join();
     void set_ringbuffer(std::shared_ptr<ringbuffer_allocator> rb);
   };

@@ -189,7 +189,12 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
   time_index = (timestamp - dest[DATA_DEST].first + time_step/2)/time_step;
   feng_index = feng_id - feng_first;
   freq_index = (frequency - freq_first + freq_step/2)/freq_step;
-  if (timestamp < dest[DATA_DEST].first)
+  if (hasStopped)
+    {
+      tstat.nskipped++;
+      d = TRASH_DEST;
+    }
+  else if (timestamp < dest[DATA_DEST].first)
     {
       tstat.nskipped++;
       d = TRASH_DEST;
@@ -299,10 +304,22 @@ void ringbuffer_allocator::handle_data_full()
   if (dada_mode >= 3)
     {
       // release the current ringbuffer slot
-      dada.data_stream().release();	
+      if (!hasStopped)
+	{
+          dada.data_stream().release();
+	}
       // get a new ringbuffer slot
-      dest[DATA_DEST].ptr     = dada.data_stream().next();
-  }
+      if (stop)
+	{
+	  hasStopped = true;
+	  std::cout << "request to stop the transfer into the ringbuffer received." << std::endl;
+	  stop = false;
+	}
+      if (!hasStopped)
+        {
+          dest[DATA_DEST].ptr     = dada.data_stream().next();
+	}
+    }
   dest[DATA_DEST].needed  = dest[DATA_DEST].space;
   dest[DATA_DEST].first  += dest[DATA_DEST].capacity*time_step;
   dest[DATA_DEST].cts = freq_count*feng_count;
@@ -318,7 +335,7 @@ void ringbuffer_allocator::handle_data_full()
 
 void ringbuffer_allocator::handle_temp_full()
 {
-  if (dada_mode >= 4)
+  if ((dada_mode >= 4) && !hasStopped)
     {
       memcpy(dest[DATA_DEST].ptr.ptr(), dest[TEMP_DEST].ptr.ptr(), dest[TEMP_DEST].space*heap_size);
     }
@@ -437,6 +454,16 @@ void ringbuffer_allocator::mark(spead2::s_item_pointer_t cnt, bool isok, spead2:
     {
       handle_temp_full(); // std::thread tfull(do_handle_temp_full, this); <- does not work, terminate
     }
+}
+
+void ringbuffer_allocator::requestStop()
+{
+  stop = true;
+}
+
+bool ringbuffer_allocator::isStopped()
+{
+  return hasStopped;
 }
 
 }
