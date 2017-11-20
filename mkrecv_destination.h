@@ -13,7 +13,7 @@ namespace mkrecv
   {
   public:
     spead2::memory_allocator::pointer          mptr;
-    psrdada_cpp::RawBytes    ptr;
+    psrdada_cpp::RawBytes   *ptr;
     std::size_t              size = 0;     // destination size in bytes
     std::size_t              capacity = 0; // the number of timestamps which fits into the destination
     std::size_t              first = 0;    // the first timestamp in a heap destination
@@ -22,7 +22,7 @@ namespace mkrecv
     std::size_t              count = 0;    // number of heaps assigned to this destination
     std::size_t              cts = 0;      // number of completed heaps before switching from sequential to parallel
     destination();
-    void set_buffer(psrdada_cpp::RawBytes &ptr, std::size_t size);
+    void set_buffer(psrdada_cpp::RawBytes *ptr, std::size_t size);
     void allocate_buffer(std::shared_ptr<spead2::mmap_allocator> memallocator, std::size_t size);
   };
 

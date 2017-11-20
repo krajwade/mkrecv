@@ -7,7 +7,7 @@ namespace mkrecv
 ringbuffer_allocator::ringbuffer_allocator(key_t key, std::string mlname, const options &opts) :
   mlog(mlname),
   dada(key, mlog),
-  hdr(NULL, 0)
+  hdr(NULL)
 {
   int i;
 
@@ -15,8 +15,8 @@ ringbuffer_allocator::ringbuffer_allocator(key_t key, std::string mlname, const 
   dada_mode = opts.dada_mode;
   if (dada_mode > 1)
     {
-      hdr = dada.header_stream().next();
-      dest[DATA_DEST].set_buffer(dada.data_stream().next(), dada.data_buffer_size());
+      hdr = &dada.header_stream().next();
+      dest[DATA_DEST].set_buffer(&dada.data_stream().next(), dada.data_buffer_size());
     }
   else
     {
@@ -55,9 +55,9 @@ ringbuffer_allocator::ringbuffer_allocator(key_t key, std::string mlname, const 
   for (i = 0; i < 4096; i++) fcount[i] = 0;
   dest[TEMP_DEST].allocate_buffer(memallocator, MAX_TEMPORARY_SPACE);
   dest[TRASH_DEST].allocate_buffer(memallocator, MAX_TEMPORARY_SPACE);
-  std::cout << "dest[DATA_DEST].ptr.ptr()  = " << (std::size_t)(dest[DATA_DEST].ptr.ptr()) << std::endl;
-  std::cout << "dest[TEMP_DEST].ptr.ptr()  = " << (std::size_t)(dest[TEMP_DEST].ptr.ptr()) << std::endl;
-  std::cout << "dest[TRASH_DEST].ptr.ptr() = " << (std::size_t)(dest[TRASH_DEST].ptr.ptr()) << std::endl;
+  std::cout << "dest[DATA_DEST].ptr.ptr()  = " << (std::size_t)(dest[DATA_DEST].ptr->ptr()) << std::endl;
+  std::cout << "dest[TEMP_DEST].ptr.ptr()  = " << (std::size_t)(dest[TEMP_DEST].ptr->ptr()) << std::endl;
+  std::cout << "dest[TRASH_DEST].ptr.ptr() = " << (std::size_t)(dest[TRASH_DEST].ptr->ptr()) << std::endl;
   freq_first = opts.freq_first;  // the lowest frequency in all incomming heaps
   freq_step  = opts.freq_step;   // the difference between consecutive frequencies
   freq_count = opts.freq_count;  // the number of frequency bands
@@ -70,10 +70,13 @@ ringbuffer_allocator::~ringbuffer_allocator()
 {
   if (dada_mode <= 1)
     {
-      delete dest[DATA_DEST].ptr.ptr();
+      delete dest[DATA_DEST].ptr->ptr();
+      delete dest[DATA_DEST].ptr;
     }
-  delete dest[TEMP_DEST].ptr.ptr();
-  delete dest[TRASH_DEST].ptr.ptr();
+  delete dest[TEMP_DEST].ptr->ptr();
+  delete dest[TEMP_DEST].ptr;
+  delete dest[TRASH_DEST].ptr->ptr();
+  delete dest[TRASH_DEST].ptr;
 }
 
 spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t size, void *hint)
@@ -101,7 +104,7 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
       heap2board[ph->heap_cnt] = feng_id;
       tstat.nexpected += heap_size;
       bstat[feng_id].nexpected += heap_size;
-      return pointer((std::uint8_t*)(dest[d].ptr.ptr()), deleter(shared_from_this(), (void *)std::uintptr_t(size)));
+      return pointer((std::uint8_t*)(dest[d].ptr->ptr()), deleter(shared_from_this(), (void *)std::uintptr_t(size)));
     }
   // extract some values from the heap
   /*
@@ -155,9 +158,10 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
 	{
           header  h;
           h.timestamp = timestamp + 2*time_step;
-          memcpy(hdr.ptr(), &h, sizeof(h));
-          hdr.used_bytes(sizeof(h));
+          memcpy(hdr->ptr(), &h, sizeof(h));
+          hdr->used_bytes(sizeof(h));
           dada.header_stream().release();
+	  hdr = NULL;
 	}
       // calculate some values needed to calculate a memory offset for incoming heaps
       payload_size = ph->payload_length;
@@ -277,7 +281,7 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
       time_index = 0;
     }
   mem_offset = time_size*time_index + feng_size*feng_index + freq_size*freq_index;
-  mem_base = dest[d].ptr.ptr();
+  mem_base = dest[d].ptr->ptr();
   dest[d].count++;
   heap2dest[ph->heap_cnt] = d; // store the relation between heap counter and destination
   heap2board[ph->heap_cnt] = feng_id;
@@ -306,6 +310,7 @@ void ringbuffer_allocator::handle_data_full()
       // release the current ringbuffer slot
       if (!hasStopped)
 	{
+	  dest[DATA_DEST].ptr->used_bytes(dest[DATA_DEST].ptr->total_bytes());
           dada.data_stream().release();
 	}
       // get a new ringbuffer slot
@@ -317,7 +322,7 @@ void ringbuffer_allocator::handle_data_full()
 	}
       if (!hasStopped)
         {
-          dest[DATA_DEST].ptr     = dada.data_stream().next();
+          dest[DATA_DEST].ptr     = &dada.data_stream().next();
 	}
     }
   dest[DATA_DEST].needed  = dest[DATA_DEST].space;
@@ -337,7 +342,7 @@ void ringbuffer_allocator::handle_temp_full()
 {
   if ((dada_mode >= 4) && !hasStopped)
     {
-      memcpy(dest[DATA_DEST].ptr.ptr(), dest[TEMP_DEST].ptr.ptr(), dest[TEMP_DEST].space*heap_size);
+      memcpy(dest[DATA_DEST].ptr->ptr(), dest[TEMP_DEST].ptr->ptr(), dest[TEMP_DEST].space*heap_size);
     }
   //std::lock_guard<std::mutex> lock(dest_mutex);
   dest[TEMP_DEST].needed  = dest[TEMP_DEST].space;

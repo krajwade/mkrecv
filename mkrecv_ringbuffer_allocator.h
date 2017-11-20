@@ -75,7 +75,7 @@ namespace mkrecv
     /// Mutex protecting @ref allocator
     psrdada_cpp::MultiLog         mlog;
     psrdada_cpp::DadaWriteClient  dada;
-    psrdada_cpp::RawBytes         hdr;   // memory to store constant (header) information
+    psrdada_cpp::RawBytes        *hdr;   // memory to store constant (header) information
     std::shared_ptr<spead2::mmap_allocator>   memallocator;
     std::mutex                    dest_mutex;
     destination                   dest[3];
