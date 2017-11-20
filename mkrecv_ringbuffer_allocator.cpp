@@ -172,7 +172,7 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
       dest[DATA_DEST].capacity  = dest[DATA_DEST].size/time_size;
       dest[TEMP_DEST].capacity  = 2; //dest[TEMP_DEST].size/time_size;
       dest[TRASH_DEST].capacity = 2; //dest[TRASH_DEST].size/time_size;
-      dest[DATA_DEST].first   = timestamp + 2*freq_count*feng_count*time_step;
+      dest[DATA_DEST].first   = timestamp + 2*time_step;
       dest[DATA_DEST].space   = dest[DATA_DEST].capacity*feng_count*freq_count;
       dest[DATA_DEST].needed  = dest[DATA_DEST].space;
       dest[TEMP_DEST].space   = dest[TEMP_DEST].capacity*feng_count*freq_count;
@@ -318,6 +318,8 @@ void ringbuffer_allocator::handle_data_full()
 	{
 	  hasStopped = true;
 	  std::cout << "request to stop the transfer into the ringbuffer received." << std::endl;
+          dest[DATA_DEST].ptr     = &dada.data_stream().next();
+          dada.data_stream().release();
 	  stop = false;
 	}
       if (!hasStopped)
