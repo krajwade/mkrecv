@@ -116,11 +116,11 @@ void signal_handler(int signalValue)
   g_stopped++;
   // 1. Set a flag on the memory allocator (we want to finish the current slot or we have to terminate (not sending!) the current slot)
   // 2. If the current slot is finished or terminated, terminate the streams (one for each multicast group)
-  //g_dada->requestStop();
-  //if (g_stopped > 1)
-    //{
+  g_dada->requestStop();
+  if (g_stopped > 1)
+    {
       exit(-1);
-    //}
+    }
 }
 
 int main(int argc, const char **argv)
