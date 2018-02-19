@@ -72,6 +72,7 @@ namespace mkrecv
   class ringbuffer_allocator : public spead2::memory_allocator
   {
   private:
+    options                      *opts;
     /// Mutex protecting @ref allocator
     psrdada_cpp::MultiLog         mlog;
     psrdada_cpp::DadaWriteClient  dada;
@@ -103,7 +104,7 @@ namespace mkrecv
     bool                          hasStopped = false;
     
   public:
-    ringbuffer_allocator(key_t key, std::string mlname, const mkrecv::options &opts);
+    ringbuffer_allocator(key_t key, std::string mlname, mkrecv::options *opts);
     ~ringbuffer_allocator();
     virtual spead2::memory_allocator::pointer allocate(std::size_t size, void *hint) override;
     

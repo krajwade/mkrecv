@@ -1,64 +1,107 @@
 
+
+#include <string.h>
+
+#include <iostream>     // std::cout
+#include <fstream>      // std::ifstream
+
+#include "ascii_header.h"
+
 #include "mkrecv_options.h"
 
 
 namespace mkrecv
 {
 
+  /*
   template<typename T>
   static po::typed_value<T> *make_opt(T &var)
   {
     return po::value<T>(&var)->default_value(var);
   }
+  */
 
+  template<typename T>
+  static po::typed_value<T> *make_opt(T &var)
+  {
+    return po::value<T>(&var);
+  }
+
+  /*
   static po::typed_value<bool> *make_opt(bool &var)
   {
     return po::bool_switch(&var)->default_value(var);
   }
+  */
+
+  static po::typed_value<bool> *make_opt(bool &var)
+  {
+    return po::bool_switch(&var);
+  }
 
   options::options()
   {
+    int i;
+
+    header = new char[DADA_DEFAULT_HEADER_SIZE + DADA_DEFAULT_HEADER_SIZE];
+    for (i = 0; i < sizeof(header); i++) header[i] = '\0';
+    header[DADA_DEFAULT_HEADER_SIZE+1] = ASCII_HEADER_SENTINEL;
     desc.add_options()
-      ("quiet", make_opt(quiet), "Only show total of heaps received")
-      ("descriptors", make_opt(descriptors), "Show descriptors")
-      ("pyspead", make_opt(pyspead), "Be bug-compatible with PySPEAD")
-      ("joint", make_opt(joint), "Treat all sources as a single stream")
-      ("packet", make_opt(packet), "Maximum packet size to use for UDP")
-      ("bind", make_opt(bind), "Bind socket to this hostname")
-      ("buffer", make_opt(buffer), "Socket buffer size")
-      ("threads", make_opt(threads), "Number of worker threads")
-      ("heaps", make_opt(heaps), "Maximum number of in-flight heaps")
-      ("memcpy-nt", make_opt(memcpy_nt), "Use non-temporal memcpy")
+      ("help",           "show this text")
+      // optional header file contain configuration options and additional information
+      (HEADER_OPT,       make_opt(hdrname),         HEADER_DESC)
+      // some flags
+      (QUIET_OPT,        make_opt(quiet),           QUIET_DESC)
+      (DESCRIPTORS_OPT,  make_opt(descriptors),     DESCRIPTORS_DESC)
+      (PYSPEAD_OPT,      make_opt(pyspead),         PYSPEAD_DESC)
+      (JOINT_OPT,        make_opt(joint),           JOINT_DESC)
+      // some options, default values should be ok to use, will _not_ go into header
+      (PACKET_OPT,       make_opt(packet),          PACKET_DESC)
+      (BUFFER_OPT,       make_opt(buffer),          BUFFER_DESC)
+      (NTHREADS_OPT,     make_opt(threads),         NTHREADS_DESC)
+      (NHEAPS_OPT,       make_opt(heaps),           NHEAPS_DESC)
+      ("memcpy-nt",      make_opt(memcpy_nt),       "Use non-temporal memcpy")
+      // DADA ringbuffer related stuff
+      (DADA_KEY_OPT,     make_opt(key),             DADA_KEY_DESC)
+      (DADA_MODE_OPT,    make_opt(dada_mode),       DADA_MODE_DESC)
+      // network configuration
 #if SPEAD2_USE_NETMAP
-      ("netmap", make_opt(netmap_if), "Netmap interface")
+      (NETMAP_IF_OPT,    make_opt(netmap_if),       NETMAP_IF_DESC)
 #endif
 #if SPEAD2_USE_IBV
-      ("ibv", make_opt(ibv_if), "Interface address for ibverbs")
-      ("ibv-vector", make_opt(ibv_comp_vector), "Interrupt vector (-1 for polled)")
-      ("ibv-max-poll", make_opt(ibv_max_poll), "Maximum number of times to poll in a row")
+      (IBV_IF_OPT,       make_opt(ibv_if),          IBV_IF_DESC)
+      (IBV_VECTOR_OPT,   make_opt(ibv_comp_vector), IBV_VECTOR_DESC)
+      (IBV_MAX_POLL_OPT, make_opt(ibv_max_poll),    IBV_MAX_POLL_DESC)
 #endif
-      ("udp_if", make_opt(udp_if), "UDP interface")
-      ("freq_first", make_opt(freq_first), "lowest frequency in all incomming heaps")
-      ("freq_step", make_opt(freq_step), "difference between consecutive frequencies")
-      ("freq_count", make_opt(freq_count), "number of frequency bands")
-      ("feng_first", make_opt(feng_first), "lowest fengine id")
-      ("feng_count", make_opt(feng_count), "number of fengines")
-      ("time_step", make_opt(time_step), "difference between consecutive timestamps")
-      ("key", make_opt(key), "PSRDADA ring buffer key")
-      ("port", make_opt(port), "Port number")
-      ("dada", make_opt(dada_mode), "dada mode (0 = no, 1 = huge trash, 2 = dada, 3 = dada+slot, 4 = full dada")
+      (UDP_IF_OPT,       make_opt(udp_if),          UDP_IF_DESC)
+      (PORT_OPT,         make_opt(port),            PORT_DESC)
+      // heap filter mechanism
+      (FREQ_FIRST_OPT,   make_opt(freq_first),      FREQ_FIRST_DESC)
+      (FREQ_STEP_OPT,    make_opt(freq_step),       FREQ_STEP_DESC)
+      (FREQ_COUNT_OPT,   make_opt(freq_count),      FREQ_COUNT_DESC)
+      (FENG_FIRST_OPT,   make_opt(feng_first),      FENG_FIRST_DESC)
+      (FENG_COUNT_OPT,   make_opt(feng_count),      FENG_COUNT_DESC)
+      (SAMPLE_CLOCK_OPT, make_opt(sample_clock),    SAMPLE_CLOCK_DESC)
+      (SYNC_EPOCH_OPT,   make_opt(sync_epoch),      SYNC_EPOCH_DESC)
+      (TIME_STEP_OPT,    make_opt(time_step),       TIME_STEP_DESC)
       ;
     hidden.add_options()
-      ("source", po::value<std::vector<std::string>>()->composing(), "sources");
+      // network configuration
+      (SOURCES_OPT,      po::value<std::vector<std::string>>()->composing(), SOURCES_DESC);
     all.add(desc);
     all.add(hidden);
 
     positional.add("source", -1);
   }
 
+  options::~options()
+  {
+    delete header;
+  }
+
   void options::usage(std::ostream &o)
   {
-    o << "Usage: spead2_recv [options] <port>\n";
+    o << "Usage: mkrecv [options] <port>\n";
     o << desc;
   }
   
@@ -66,7 +109,6 @@ namespace mkrecv
   {
     try
       {
-	po::variables_map vm;
 	po::store(po::command_line_parser(argc, argv)
 		  .style(po::command_line_style::default_style & ~po::command_line_style::allow_guessing)
 		  .options(all)
@@ -78,15 +120,28 @@ namespace mkrecv
 	    usage(std::cout);
 	    std::exit(0);
 	  }
+	/*
 	if (!vm.count("source"))
 	  throw po::error("At least one IP is required");
-	sources = vm["source"].as<std::vector<std::string>>();
+	*/
+	if (vm.count("source"))
+	  {
+	    sources = vm["source"].as<std::vector<std::string>>();
+	  }
 #if SPEAD2_USE_NETMAP
 	if (sources.size() > 1 && netmap_if != "")
 	  {
 	    throw po::error("--netmap cannot be used with multiple sources");
 	  }
 #endif
+	//if (hdrname != "")
+	if (vm.count(HEADER_OPT) != 0)
+	  { // read the given template header file and adapt some configuration parameters
+	    //hdrname = vm[HEADER_OPT].as<std::string>();
+	    std::cout << "try to load file " << hdrname << std::endl;
+	    load_header();
+	  }
+	apply_header(); // use values from header or default values
 	return;
       }
     catch (po::error &e)
@@ -95,6 +150,288 @@ namespace mkrecv
 	usage(std::cerr);
 	std::exit(2);
       }
+  }
+
+  void options::load_header()
+  {
+    std::ifstream   is(hdrname, std::ifstream::binary);
+
+    if (is)
+      {
+	// get length of file:
+	is.seekg (0, is.end);
+	int length = is.tellg();
+	is.seekg (0, is.beg);
+	if (length > DADA_DEFAULT_HEADER_SIZE)
+	  {
+	    std::cerr << "options::load_header(), given file " << hdrname << " contains more than " << DADA_DEFAULT_HEADER_SIZE << " characters, ognoring this file." << std::endl;
+	    return;
+	  }
+	std::cout << "options::load_header(), loading file " << hdrname << std::endl;
+	is.read(header, length);
+	if (!is)
+	  {
+	    std::cerr << "error: only " << is.gcount() << " could be read" << std::endl;
+	  }
+	is.close();
+      }
+  }
+
+  void options::set_opt(int &val, const char *opt, const char *key)
+  {
+    std::cout << "set_opt(" << val << ", " << opt << ", " << key << ")" << std::endl;
+    std::cout << "  count() = " << vm.count(opt) << std::endl;
+    if ((vm.count(opt) == 0) && (key[0] != '\0')) {
+      // no option specified, try to get a value from the header
+      char sval[1024];
+      if (ascii_header_get(header, key, "%s", sval) == -1) {
+	std::cout << "  header does not contain a value for " << key << std::endl;
+      } else {
+	if (strcmp(sval, "unset") == 0) {
+	  std::cout << "  header does contain unset for " << key << std::endl;
+	} else {
+	  if (sscanf(sval, "%d", &val) != 1) {
+	    std::cerr << "header contains no integer or unset for key " << key << std::endl;
+	  } else {
+	    std::cout << "  header contains " << val << std::endl;
+	  }
+	}
+      }
+    }
+    if (key[0] != '\0') {
+      ascii_header_set(header, key, "%d", val);
+      if (!check_header()) {
+	std::cerr << "ERROR, storing " << key << " with value " << val << " in header failed due to size restrictions. -> incomplete header due to clipping" << std::endl;
+      }
+    }
+  }
+
+  void options::set_opt(std::size_t &val, const char *opt, const char *key)
+  {
+    std::cout << "set_opt(" << val << ", " << opt << ", " << key << ")" << std::endl;
+    std::cout << "  count() = " << vm.count(opt) << std::endl;
+    if ((vm.count(opt) == 0) && (key[0] != '\0')) {
+      // no option specified, try to get a value from the header
+      char sval[1024];
+      if (ascii_header_get(header, key, "%s", sval) == -1) {
+	std::cout << "  header does not contain a value for " << key << std::endl;
+      } else {
+	if (strcmp(sval, "unset") == 0) {
+	  std::cout << "  header does contain unset for " << key << std::endl;
+	} else {
+	  if (sscanf(sval, "%ld", &val) != 1) {
+	    std::cerr << "header contains no integer or unset for key " << key << std::endl;
+	  } else {
+	    std::cout << "  header contains " << val << std::endl;
+	  }
+	}
+      }
+    }
+    if (key[0] != '\0') {
+      ascii_header_set(header, key, "%ld", val);
+      std::cout << "  header becomes " << val << std::endl;
+      if (!check_header()) {
+	std::cerr << "ERROR, storing " << key << " with value " << val << " in header failed due to size restrictions. -> incomplete header due to clipping" << std::endl;
+      }
+    }
+  }
+
+  void options::set_opt(std::string &val, const char *opt, const char *key)
+  {
+    std::cout << "set_opt(" << val << ", " << opt << ", " << key << ")" << std::endl;
+    std::cout << "  count() = " << vm.count(opt) << " val = " << val << std::endl;
+    if ((vm.count(opt) == 0) && (key[0] != '\0')) {
+      // no option specified, try to get a value from the header
+      char sval[1024];
+      if (ascii_header_get(header, key, "%s", sval) == -1) {
+	std::cout << "  header does not contain a value for " << key << std::endl;
+      } else {
+	if (strcmp(sval, "unset") == 0) {
+	  std::cout << "  header does contain unset for " << key << std::endl;
+	} else {
+	  val = sval;
+	  std::cout << "  header contains " << val << std::endl;
+	}
+      }
+    }
+    if (key[0] != '\0') {
+      if (val.length() == 0) {
+	ascii_header_set(header, key, "unset");
+	std::cout << "  header becomes unset" << std::endl;
+      } else {
+	ascii_header_set(header, key, "%s", val.c_str());
+	std::cout << "  header becomes " << val << std::endl;
+      }
+      if (!check_header()) {
+	std::cerr << "ERROR, storing " << key << " with value " << val << " in header failed due to size restrictions. -> incomplete header due to clipping" << std::endl;
+      }
+    }
+  }
+
+  void options::set_opt(bool &val, const char *opt, const char *key)
+  {
+    std::cout << "set_opt(" << val << ", " << opt << ", " << key << ")" << std::endl;
+    std::cout << "  count() = " << vm.count(opt) << std::endl;
+    if ((vm.count(opt) == 0) && (key[0] != '\0')) {
+      // no option specified, try to get a value from the header
+      char sval[1024];
+      if (ascii_header_get(header, key, "%s", sval) == -1) {
+	std::cout << "  header does not contain a value for " << key << std::endl;
+      } else {
+	if (strcmp(sval, "unset") == 0) {
+	  std::cout << "  header does contain unset for " << key << std::endl;
+	} else {
+	  if (sval[0] == 'F') val = false;
+	  if (sval[0] == 'f') val = false;
+	  if (sval[0] == 'T') val = true;
+	  if (sval[0] == 't') val = true;
+	  std::cout << "  header contains " << val << std::endl;
+	}
+      }
+    }
+    if (key[0] != '\0') {
+      if (val == true) {
+	ascii_header_set(header, key, "T");
+      } else {
+	ascii_header_set(header, key, "F");
+      }
+      if (!check_header()) {
+	std::cerr << "ERROR, storing " << key << " with value " << val << " in header failed due to size restrictions. -> incomplete header due to clipping" << std::endl;
+      }
+    }
+  }
+
+  void options::set_opt(double &val, const char *opt, const char *key)
+  {
+    std::cout << "set_opt(" << val << ", " << opt << ", " << key << ")" << std::endl;
+    std::cout << "  count() = " << vm.count(opt) << std::endl;
+    if ((vm.count(opt) == 0) && (key[0] != '\0')) {
+      // no option specified, try to get a value from the header
+      char sval[1024];
+      if (ascii_header_get(header, key, "%s", sval) == -1) {
+	std::cout << "  header does not contain a value for " << key << std::endl;
+      } else {
+	if (strcmp(sval, "unset") == 0) {
+	  std::cout << "  header does contain unset for " << key << std::endl;
+	} else {
+	  if (sscanf(sval, "%lf", &val) != 1) {
+	    std::cerr << "header contains no float or unset for key " << key << std::endl;
+	  } else {
+	    std::cout << "  header contains " << val << std::endl;
+	  }
+	}
+      }
+    }
+    if (key[0] != '\0') {
+      ascii_header_set(header, key, "%lf", val);
+      if (!check_header()) {
+	std::cerr << "ERROR, storing " << key << " with value " << val << " in header failed due to size restrictions. -> incomplete header due to clipping" << std::endl;
+      }
+    }
+  }
+
+  void options::set_start_time(int64_t timestamp)
+  {
+    double epoch = sync_epoch + timestamp / sample_clock;
+    double integral;
+    double fractional = modf(epoch, &integral);
+    struct timeval tv;
+    time_t start_utc;
+    struct tm *nowtm;
+    char tbuf[64];
+    char utc_string[64];
+
+    tv.tv_sec = integral;
+    tv.tv_usec = (int) (fractional*1e6);
+    start_utc = tv.tv_sec;
+    nowtm = gmtime(&start_utc);
+    strftime(tbuf, sizeof(tbuf), DADA_TIMESTR, nowtm);
+    snprintf(utc_string, sizeof(utc_string), "%s.%06ld", tbuf, tv.tv_usec);
+    ascii_header_set(header, SAMPLE_CLOCK_START_KEY, "%ld", timestamp);
+    if (!check_header())
+      {
+	std::cerr << "ERROR, storing " << SAMPLE_CLOCK_START_KEY << " with value " << timestamp << " in header failed due to size restrictions. -> incomplete header due to clipping" << std::endl;
+      }
+    ascii_header_set(header, UTC_START_KEY, "%s", utc_string);
+    if (!check_header())
+      {
+	std::cerr << "ERROR, storing " << UTC_START_KEY << " with value " << utc_string << " in header failed due to size restrictions. -> incomplete header due to clipping" << std::endl;
+      }
+  }
+
+  void options::use_sources(std::vector<std::string> &val, const char *opt, const char *key)
+  {
+    if ((vm.count(opt) == 0) && (key[0] != '\0'))
+      {
+	char cs[1024];
+	ascii_header_get(header, key, "%s", cs);
+	cs[sizeof(cs)-1] = '\0';
+	std::string str(cs);
+	std::string::size_type pos, lastPos = 0, length = str.length();
+	while(lastPos < length + 1) {
+	  pos = str.find_first_of(",", lastPos);
+	  if(pos == std::string::npos) {
+	    pos = length;
+	  }
+	  if(pos != lastPos)
+	    val.push_back(std::string(str.data()+lastPos, pos-lastPos ));
+	  lastPos = pos + 1;
+	}
+      }
+  }
+
+  /*
+   * Each parameter can be specified as default value, program option and header value. If a command line option is given,
+   * it takes precedence over a header value which takes precedence over the default value.
+   * Only program parameters which have an influence on the behaviour can have a header key value and are stored in the
+   * header copied into the ringbuffer.
+   */
+  void options::apply_header()
+  {
+    std::size_t    ival;
+
+    /* Flags, therefore all default values are false */
+    set_opt(quiet,           QUIET_OPT, QUIET_KEY);
+    set_opt(descriptors,     DESCRIPTORS_OPT, DESCRIPTORS_KEY);
+    set_opt(pyspead,         PYSPEAD_OPT, PYSPEAD_KEY);
+    set_opt(joint,           JOINT_OPT, JOINT_KEY);
+    /* the following options should have sufficient default values */
+    set_opt(packet,          PACKET_OPT, PACKET_KEY);
+    set_opt(buffer,          BUFFER_OPT, BUFFER_KEY);
+    set_opt(threads,         NTHREADS_OPT, NTHREADS_KEY);
+    set_opt(heaps,           NHEAPS_OPT, NHEAPS_KEY);
+    /* The following options describe the DADA ringbuffer use */
+    set_opt(key,             DADA_KEY_OPT, DADA_KEY_KEY);
+    set_opt(dada_mode,       DADA_MODE_OPT, DADA_MODE_KEY);
+    /* The following options describe the connection to the F-Engines (network) */
+#if SPEAD2_USE_NETMAP
+    set_opt(netmap_if,       NETMAP_IF_OPT, NETMAP_IF_KEY);
+#endif
+#if SPEAD2_USE_IBV
+    set_opt(ibv_if,          IBV_IF_OPT, IBV_IF_KEY);
+    set_opt(ibv_comp_vector, IBV_VECTOR_OPT, IBV_VECTOR_KEY);
+    set_opt(ibv_max_poll,    IBV_MAX_POLL_OPT, IBV_MAX_POLL_KEY);
+#endif
+    set_opt(udp_if,          UDP_IF_OPT, UDP_IF_KEY);
+    set_opt(port,            PORT_OPT, PORT_KEY);
+    use_sources(sources,     SOURCES_OPT, SOURCES_KEY);
+    /* The following options influence directly the behaviour as heap filter */
+    set_opt(freq_first,      FREQ_FIRST_OPT, FREQ_FIRST_KEY);
+    set_opt(freq_step,       FREQ_STEP_OPT,  FREQ_STEP_KEY);
+    set_opt(freq_count,      FREQ_COUNT_OPT, FREQ_COUNT_KEY);
+    set_opt(feng_first,      FENG_FIRST_OPT, FENG_FIRST_KEY);
+    set_opt(feng_count,      FENG_COUNT_OPT, FENG_COUNT_KEY);
+    set_opt(sample_clock,    SAMPLE_CLOCK_OPT, SAMPLE_CLOCK_KEY);
+    set_opt(sync_epoch,      SYNC_EPOCH_OPT, SYNC_EPOCH_KEY);
+    set_opt(time_step,       TIME_STEP_OPT,  TIME_STEP_KEY);
+  }
+
+  bool options::check_header()
+  {
+    bool result = (header[DADA_DEFAULT_HEADER_SIZE+1] == ASCII_HEADER_SENTINEL);
+    header[DADA_DEFAULT_HEADER_SIZE] = '\0';
+    header[DADA_DEFAULT_HEADER_SIZE+1] = ASCII_HEADER_SENTINEL;
+    return result;
   }
 
 }

@@ -1,10 +1,13 @@
 
+#include "ascii_header.h"
+
 #include "mkrecv_ringbuffer_allocator.h"
 
 namespace mkrecv
 {
 
-ringbuffer_allocator::ringbuffer_allocator(key_t key, std::string mlname, const options &opts) :
+ringbuffer_allocator::ringbuffer_allocator(key_t key, std::string mlname, options *opts) :
+  opts(opts),
   mlog(mlname),
   dada(key, mlog),
   hdr(NULL)
@@ -12,7 +15,7 @@ ringbuffer_allocator::ringbuffer_allocator(key_t key, std::string mlname, const 
   int i;
 
   memallocator = std::make_shared<spead2::mmap_allocator>(0, true);
-  dada_mode = opts.dada_mode;
+  dada_mode = opts->dada_mode;
   if (dada_mode > 1)
     {
       hdr = &dada.header_stream().next();
@@ -58,12 +61,12 @@ ringbuffer_allocator::ringbuffer_allocator(key_t key, std::string mlname, const 
   std::cout << "dest[DATA_DEST].ptr.ptr()  = " << (std::size_t)(dest[DATA_DEST].ptr->ptr()) << std::endl;
   std::cout << "dest[TEMP_DEST].ptr.ptr()  = " << (std::size_t)(dest[TEMP_DEST].ptr->ptr()) << std::endl;
   std::cout << "dest[TRASH_DEST].ptr.ptr() = " << (std::size_t)(dest[TRASH_DEST].ptr->ptr()) << std::endl;
-  freq_first = opts.freq_first;  // the lowest frequency in all incomming heaps
-  freq_step  = opts.freq_step;   // the difference between consecutive frequencies
-  freq_count = opts.freq_count;  // the number of frequency bands
-  feng_first = opts.feng_first;  // the lowest fengine id
-  feng_count = opts.feng_count;  // the number of fengines
-  time_step  = opts.time_step;   // the difference between consecutive timestamps
+  freq_first = opts->freq_first;  // the lowest frequency in all incomming heaps
+  freq_step  = opts->freq_step;   // the difference between consecutive frequencies
+  freq_count = opts->freq_count;  // the number of frequency bands
+  feng_first = opts->feng_first;  // the lowest fengine id
+  feng_count = opts->feng_count;  // the number of fengines
+  time_step  = opts->time_step;   // the difference between consecutive timestamps
 }
 
 ringbuffer_allocator::~ringbuffer_allocator()
@@ -156,10 +159,21 @@ spead2::memory_allocator::pointer ringbuffer_allocator::allocate(std::size_t siz
     { // put some values in the header buffer
       if (dada_mode >= 2)
 	{
+	  /*
           header  h;
           h.timestamp = timestamp + 2*time_step;
           memcpy(hdr->ptr(), &h, sizeof(h));
           hdr->used_bytes(sizeof(h));
+          dada.header_stream().release();
+	  hdr = NULL;
+	  */
+	  opts->set_start_time(timestamp + 2*time_step);
+	  /*
+	  ascii_header_set(opts->header, SOURCES_KEY, "%s", opts->used_sources.c_str());
+	  opts->check_header();
+	  */
+          memcpy(hdr->ptr(), opts->header, (DADA_DEFAULT_HEADER_SIZE < hdr->total_bytes()) ? DADA_DEFAULT_HEADER_SIZE : hdr->total_bytes());
+          hdr->used_bytes(hdr->total_bytes());
           dada.header_stream().release();
 	  hdr = NULL;
 	}
