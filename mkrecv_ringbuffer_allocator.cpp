@@ -6,7 +6,7 @@
 namespace mkrecv
 {
 
-ringbuffer_allocator::ringbuffer_allocator(key_t key, std::string mlname, options *opts) :
+ringbuffer_allocator::ringbuffer_allocator(key_t key, std::string mlname, fengine_options *opts) :
   opts(opts),
   mlog(mlname),
   dada(key, mlog),
@@ -14,30 +14,6 @@ ringbuffer_allocator::ringbuffer_allocator(key_t key, std::string mlname, option
 {
   int i;
 
-  memallocator = std::make_shared<spead2::mmap_allocator>(0, true);
-  dada_mode = opts->dada_mode;
-  if (dada_mode > 1)
-    {
-      hdr = &dada.header_stream().next();
-      dest[DATA_DEST].set_buffer(&dada.data_stream().next(), dada.data_buffer_size());
-    }
-  else
-    {
-      dest[DATA_DEST].allocate_buffer(memallocator, MAX_DATA_SPACE);
-    }
-  tstat.ntotal = 0;
-  tstat.nskipped = 0;
-  tstat.noverrun = 0;
-  tstat.ncompleted = 0;
-  tstat.ndiscarded = 0;
-  tstat.nignored = 0;
-  tstat.nexpected = 0;
-  tstat.nreceived = 0;
-  tstat.ntserror = 0;
-  tstat.nbiskipped = 0;
-  tstat.nbierror = 0;
-  tstat.nfcskipped = 0;
-  tstat.nfcerror = 0;
   for (i = 0; i < 64; i++)
     {
       bstat[i].ntotal = 0;

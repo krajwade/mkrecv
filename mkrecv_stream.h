@@ -1,5 +1,5 @@
-#ifndef mkrecv_fengine_stream_h
-#define mkrecv_fengine_stream_h
+#ifndef mkrecv_stream_h
+#define mkrecv_stream_h
 
 #include <cstdint>
 #include <atomic>
@@ -10,20 +10,20 @@
 namespace mkrecv
 {
 
-  class fengine_stream : public spead2::recv::stream
+  class stream : public spead2::recv::stream
   {
   private:
-    std::int64_t                        n_complete = 0;
-    const options                      *opts;
-    std::promise<void>                  stop_promise;
-    std::shared_ptr<mkrecv::allocator>  rbuffer;
+    std::int64_t                            n_complete = 0;
+    const std::shared_ptr<mkrecv::options>  opts = NULL;
+    std::promise<void>                      stop_promise;
+    std::shared_ptr<mkrecv::allocator>      rbuffer = NULL;
     
     void show_heap(const spead2::recv::heap &fheap);
     virtual void heap_ready(spead2::recv::live_heap &&heap) override;
 
   public:
     template<typename... Args>
-      fengine_stream(const mkrecv::options *opts, Args&&... args)
+      stream(const std::shared_ptr<mkrecv::options> opts, Args&&... args)
       : spead2::recv::stream::stream(std::forward<Args>(args)...),
       opts(opts) {}
     
@@ -34,4 +34,4 @@ namespace mkrecv
 
 }
 
-#endif /* mkrecv_fengine_stream_h */
+#endif /* mkrecv_stream_h */

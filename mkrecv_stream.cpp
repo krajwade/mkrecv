@@ -8,7 +8,7 @@
 #include <memory>
 #include <atomic>
 
-#include "mkrecv_fengine_stream.h"
+#include "mkrecv_stream.h"
 
 namespace mkrecv
 {
@@ -17,7 +17,7 @@ namespace mkrecv
 
   static time_point start = std::chrono::high_resolution_clock::now();
 
-  void fengine_stream::show_heap(const spead2::recv::heap &fheap)
+  void stream::show_heap(const spead2::recv::heap &fheap)
   {
     if (opts->quiet)
       return;
@@ -70,7 +70,7 @@ namespace mkrecv
     std::cout << std::noshowbase;
   }
 
-  void fengine_stream::heap_ready(spead2::recv::live_heap &&heap)
+  void stream::heap_ready(spead2::recv::live_heap &&heap)
   {
     rbuffer->mark(heap.get_cnt(), heap.is_contiguous(), heap.get_received_length());
     if (heap.is_contiguous())
@@ -88,7 +88,7 @@ namespace mkrecv
     if (rbuffer->is_stopped()) stop();
   }
 
-  void fengine_stream::stop_received()
+  void stream::stop_received()
   {
     std::cout << "fengine::stop_received()" << std::endl;
     spead2::recv::stream::stop_received();
@@ -97,15 +97,15 @@ namespace mkrecv
     std::cout << "  after stop_promise.set_value()" << std::endl;
   }
 
-  std::int64_t fengine_stream::join()
+  std::int64_t stream::join()
   {
-    std::cout << "fengine_stream::join()" << std::endl;
+    std::cout << "stream::join()" << std::endl;
     std::future<void> future = stop_promise.get_future();
     future.get();
     return n_complete;
   }
 
-  void fengine_stream::set_ringbuffer(std::shared_ptr<mkrecv::allocator> rb)
+  void stream::set_ringbuffer(std::shared_ptr<mkrecv::allocator> rb)
   {
     rbuffer = rb;
     set_memory_allocator(rbuffer);

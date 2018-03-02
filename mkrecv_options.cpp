@@ -46,52 +46,6 @@ namespace mkrecv
     header = new char[DADA_DEFAULT_HEADER_SIZE + DADA_DEFAULT_HEADER_SIZE];
     for (i = 0; i < sizeof(header); i++) header[i] = '\0';
     header[DADA_DEFAULT_HEADER_SIZE+1] = ASCII_HEADER_SENTINEL;
-    desc.add_options()
-      ("help",           "show this text")
-      // optional header file contain configuration options and additional information
-      (HEADER_OPT,       make_opt(hdrname),         HEADER_DESC)
-      // some flags
-      (QUIET_OPT,        make_opt(quiet),           QUIET_DESC)
-      (DESCRIPTORS_OPT,  make_opt(descriptors),     DESCRIPTORS_DESC)
-      (PYSPEAD_OPT,      make_opt(pyspead),         PYSPEAD_DESC)
-      (JOINT_OPT,        make_opt(joint),           JOINT_DESC)
-      // some options, default values should be ok to use, will _not_ go into header
-      (PACKET_OPT,       make_opt(packet),          PACKET_DESC)
-      (BUFFER_OPT,       make_opt(buffer),          BUFFER_DESC)
-      (NTHREADS_OPT,     make_opt(threads),         NTHREADS_DESC)
-      (NHEAPS_OPT,       make_opt(heaps),           NHEAPS_DESC)
-      ("memcpy-nt",      make_opt(memcpy_nt),       "Use non-temporal memcpy")
-      // DADA ringbuffer related stuff
-      (DADA_KEY_OPT,     make_opt(key),             DADA_KEY_DESC)
-      (DADA_MODE_OPT,    make_opt(dada_mode),       DADA_MODE_DESC)
-      // network configuration
-#if SPEAD2_USE_NETMAP
-      (NETMAP_IF_OPT,    make_opt(netmap_if),       NETMAP_IF_DESC)
-#endif
-#if SPEAD2_USE_IBV
-      (IBV_IF_OPT,       make_opt(ibv_if),          IBV_IF_DESC)
-      (IBV_VECTOR_OPT,   make_opt(ibv_comp_vector), IBV_VECTOR_DESC)
-      (IBV_MAX_POLL_OPT, make_opt(ibv_max_poll),    IBV_MAX_POLL_DESC)
-#endif
-      (UDP_IF_OPT,       make_opt(udp_if),          UDP_IF_DESC)
-      (PORT_OPT,         make_opt(port),            PORT_DESC)
-      // heap filter mechanism
-      (FREQ_FIRST_OPT,   make_opt(freq_first),      FREQ_FIRST_DESC)
-      (FREQ_STEP_OPT,    make_opt(freq_step),       FREQ_STEP_DESC)
-      (FREQ_COUNT_OPT,   make_opt(freq_count),      FREQ_COUNT_DESC)
-      (FENG_FIRST_OPT,   make_opt(feng_first),      FENG_FIRST_DESC)
-      (FENG_COUNT_OPT,   make_opt(feng_count),      FENG_COUNT_DESC)
-      (SAMPLE_CLOCK_OPT, make_opt(sample_clock),    SAMPLE_CLOCK_DESC)
-      (SYNC_EPOCH_OPT,   make_opt(sync_epoch),      SYNC_EPOCH_DESC)
-      (TIME_STEP_OPT,    make_opt(time_step),       TIME_STEP_DESC)
-      ;
-    hidden.add_options()
-      // network configuration
-      (SOURCES_OPT,      po::value<std::vector<std::string>>()->composing(), SOURCES_DESC);
-    all.add(desc);
-    all.add(hidden);
-
-    positional.add("source", -1);
   }
 
   options::~options()
@@ -101,12 +55,24 @@ namespace mkrecv
 
   void options::usage(std::ostream &o)
   {
+    if (!ready)
+      {
+	ready = true;
+	create_args();
+      }
     o << "Usage: mkrecv [options] <port>\n";
     o << desc;
   }
   
   void options::parse_args(int argc, const char **argv)
   {
+    if (!ready)
+      {
+	ready = true;
+	create_args();
+      }
+    all.add(desc);
+    all.add(hidden);
     try
       {
 	po::store(po::command_line_parser(argc, argv)
@@ -330,35 +296,6 @@ namespace mkrecv
     }
   }
 
-  void options::set_start_time(int64_t timestamp)
-  {
-    double epoch = sync_epoch + timestamp / sample_clock;
-    double integral;
-    double fractional = modf(epoch, &integral);
-    struct timeval tv;
-    time_t start_utc;
-    struct tm *nowtm;
-    char tbuf[64];
-    char utc_string[64];
-
-    tv.tv_sec = integral;
-    tv.tv_usec = (int) (fractional*1e6);
-    start_utc = tv.tv_sec;
-    nowtm = gmtime(&start_utc);
-    strftime(tbuf, sizeof(tbuf), DADA_TIMESTR, nowtm);
-    snprintf(utc_string, sizeof(utc_string), "%s.%06ld", tbuf, tv.tv_usec);
-    ascii_header_set(header, SAMPLE_CLOCK_START_KEY, "%ld", timestamp);
-    if (!check_header())
-      {
-	std::cerr << "ERROR, storing " << SAMPLE_CLOCK_START_KEY << " with value " << timestamp << " in header failed due to size restrictions. -> incomplete header due to clipping" << std::endl;
-      }
-    ascii_header_set(header, UTC_START_KEY, "%s", utc_string);
-    if (!check_header())
-      {
-	std::cerr << "ERROR, storing " << UTC_START_KEY << " with value " << utc_string << " in header failed due to size restrictions. -> incomplete header due to clipping" << std::endl;
-      }
-  }
-
   void options::use_sources(std::vector<std::string> &val, const char *opt, const char *key)
   {
     if ((vm.count(opt) == 0) && (key[0] != '\0'))
@@ -378,6 +315,85 @@ namespace mkrecv
 	  lastPos = pos + 1;
 	}
       }
+  }
+
+  void options::update_sources()
+  {
+    for (auto it = sources.begin(); it != sources.end(); ++it)
+      {
+	std::string::size_type pos = (*it).find_first_of(":");
+	std::string            used_source;
+	if (pos == std::string::npos)
+	  { // no port number given in source string, use opts.port
+	    used_source = *it;
+	    used_source.append(":");
+	    used_source.append(port);
+	  }
+	else
+	  { // source string contains <ip>:<port> -> split in both parts
+	    std::string nwadr = std::string((*it).data(), pos);
+	    std::string nwport = std::string((*it).data() + pos + 1, (*it).length() - pos - 1);
+	    if (port != "")
+	      {
+		nwport = port;
+	      }
+	    used_source = nwadr;
+	    used_source.append(":");
+	    used_source.append(nwport);
+	  }
+	(*it).assign(used_source);
+	if (used_sources.length() != 0)
+	  {
+	    used_sources.append(",");
+	  }
+	used_sources.append(used_source);
+      }
+  }
+
+  bool options::check_header()
+  {
+    bool result = (header[DADA_DEFAULT_HEADER_SIZE+1] == ASCII_HEADER_SENTINEL);
+    header[DADA_DEFAULT_HEADER_SIZE] = '\0';
+    header[DADA_DEFAULT_HEADER_SIZE+1] = ASCII_HEADER_SENTINEL;
+    return result;
+  }
+
+  void options::create_args()
+  {
+    desc.add_options()
+      ("help",           "show this text")
+      // optional header file contain configuration options and additional information
+      (HEADER_OPT,       make_opt(hdrname),         HEADER_DESC)
+      // some flags
+      (QUIET_OPT,        make_opt(quiet),           QUIET_DESC)
+      (DESCRIPTORS_OPT,  make_opt(descriptors),     DESCRIPTORS_DESC)
+      (PYSPEAD_OPT,      make_opt(pyspead),         PYSPEAD_DESC)
+      (JOINT_OPT,        make_opt(joint),           JOINT_DESC)
+      // some options, default values should be ok to use, will _not_ go into header
+      (PACKET_OPT,       make_opt(packet),          PACKET_DESC)
+      (BUFFER_OPT,       make_opt(buffer),          BUFFER_DESC)
+      (NTHREADS_OPT,     make_opt(threads),         NTHREADS_DESC)
+      (NHEAPS_OPT,       make_opt(heaps),           NHEAPS_DESC)
+      ("memcpy-nt",      make_opt(memcpy_nt),       "Use non-temporal memcpy")
+      // DADA ringbuffer related stuff
+      (DADA_KEY_OPT,     make_opt(key),             DADA_KEY_DESC)
+      (DADA_MODE_OPT,    make_opt(dada_mode),       DADA_MODE_DESC)
+      // network configuration
+#if SPEAD2_USE_NETMAP
+      (NETMAP_IF_OPT,    make_opt(netmap_if),       NETMAP_IF_DESC)
+#endif
+#if SPEAD2_USE_IBV
+      (IBV_IF_OPT,       make_opt(ibv_if),          IBV_IF_DESC)
+      (IBV_VECTOR_OPT,   make_opt(ibv_comp_vector), IBV_VECTOR_DESC)
+      (IBV_MAX_POLL_OPT, make_opt(ibv_max_poll),    IBV_MAX_POLL_DESC)
+#endif
+      (UDP_IF_OPT,       make_opt(udp_if),          UDP_IF_DESC)
+      (PORT_OPT,         make_opt(port),            PORT_DESC)
+      ;
+    hidden.add_options()
+      // network configuration
+      (SOURCES_OPT,      po::value<std::vector<std::string>>()->composing(), SOURCES_DESC);
+    positional.add("source", -1);
   }
 
   /*
@@ -415,23 +431,17 @@ namespace mkrecv
     set_opt(udp_if,          UDP_IF_OPT, UDP_IF_KEY);
     set_opt(port,            PORT_OPT, PORT_KEY);
     use_sources(sources,     SOURCES_OPT, SOURCES_KEY);
-    /* The following options influence directly the behaviour as heap filter */
-    set_opt(freq_first,      FREQ_FIRST_OPT, FREQ_FIRST_KEY);
-    set_opt(freq_step,       FREQ_STEP_OPT,  FREQ_STEP_KEY);
-    set_opt(freq_count,      FREQ_COUNT_OPT, FREQ_COUNT_KEY);
-    set_opt(feng_first,      FENG_FIRST_OPT, FENG_FIRST_KEY);
-    set_opt(feng_count,      FENG_COUNT_OPT, FENG_COUNT_KEY);
-    set_opt(sample_clock,    SAMPLE_CLOCK_OPT, SAMPLE_CLOCK_KEY);
-    set_opt(sync_epoch,      SYNC_EPOCH_OPT, SYNC_EPOCH_KEY);
-    set_opt(time_step,       TIME_STEP_OPT,  TIME_STEP_KEY);
-  }
-
-  bool options::check_header()
-  {
-    bool result = (header[DADA_DEFAULT_HEADER_SIZE+1] == ASCII_HEADER_SENTINEL);
-    header[DADA_DEFAULT_HEADER_SIZE] = '\0';
-    header[DADA_DEFAULT_HEADER_SIZE+1] = ASCII_HEADER_SENTINEL;
-    return result;
+    update_sources();
+    if (used_sources.length() == 0) {
+      ascii_header_set(header, SOURCES_KEY, "unset");
+      std::cout << "  header becomes unset" << std::endl;
+    } else {
+      ascii_header_set(header, SOURCES_KEY, "%s", used_sources.c_str());
+      std::cout << "  header becomes " << used_sources << std::endl;
+    }
+    if (!check_header()) {
+      std::cerr << "ERROR, storing " << SOURCES_KEY << " with value " << used_sources << " in header failed due to size restrictions. -> incomplete header due to clipping" << std::endl;
+    }
   }
 
 }

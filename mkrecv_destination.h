@@ -11,19 +11,22 @@ namespace mkrecv
 
   class destination
   {
+  private:
+    bool    is_owner = false;
   public:
-    spead2::memory_allocator::pointer          mptr;
-    psrdada_cpp::RawBytes   *ptr;
+    spead2::memory_allocator::pointer          mptr = NULL;
+    psrdada_cpp::RawBytes   *ptr = NULL;
     std::size_t              size = 0;     // destination size in bytes
-    std::size_t              capacity = 0; // the number of timestamps which fits into the destination
-    std::size_t              first = 0;    // the first timestamp in a heap destination
+    std::size_t              capacity = 0; // number of groups which can go into this destination
     std::size_t              space = 0;    // number of heaps which can go into this destination
     std::size_t              needed = 0;   // number of heaps needed until the destination is full
     std::size_t              count = 0;    // number of heaps assigned to this destination
     std::size_t              cts = 0;      // number of completed heaps before switching from sequential to parallel
     destination();
+    ~destination();
     void set_buffer(psrdada_cpp::RawBytes *ptr, std::size_t size);
     void allocate_buffer(std::shared_ptr<spead2::mmap_allocator> memallocator, std::size_t size);
+    void set_heap_size(std::size_t heap_size, std::size_t heap_count, std::size_t nbgroups = 0);
   };
 
 }
