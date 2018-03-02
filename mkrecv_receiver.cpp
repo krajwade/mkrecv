@@ -110,7 +110,7 @@ namespace mkrecv
     opts = create_options();
     opts->parse_args(argc, argv);
     std::cout << opts->header << std::endl;
-    spead2::thread_pool thread_pool(opts->threads);
+    thread_pool.reset(new spead2::thread_pool(opts->threads));
     try
       {
 	allocator = create_allocator();
