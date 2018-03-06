@@ -110,10 +110,13 @@ namespace mkrecv
     // update header and first timestamp if in INIT_STATE
     if (state == INIT_STATE)
       {
-	group_first = timestamp + 2*group_step;
-	if (dada_mode >= 2)
+	if (group_first == 0)
 	  {
-	    fopts->set_start_time(group_first);
+	    group_first = timestamp + 2*group_step;
+	    if (dada_mode >= 2)
+	      {
+		fopts->set_start_time(group_first);
+	      }
 	  }
       }
     // apply filter
