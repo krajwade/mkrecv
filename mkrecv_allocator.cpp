@@ -222,7 +222,7 @@ namespace mkrecv
       {
 	memcpy(dest[DATA_DEST].ptr->ptr(), dest[TEMP_DEST].ptr->ptr(), dest[TEMP_DEST].space*heap_size);
       }
-    //std::lock_guard<std::mutex> lock(dest_mutex);
+    std::lock_guard<std::mutex> lock(dest_mutex);
     dest[TEMP_DEST].needed  = dest[TEMP_DEST].space;
     dest[DATA_DEST].needed -= dest[TEMP_DEST].space;
     dest[TEMP_DEST].cts = 1;
