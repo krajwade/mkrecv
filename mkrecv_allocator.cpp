@@ -117,7 +117,7 @@ namespace mkrecv
 	std::cout << "heap " << ph->heap_cnt << std::endl;
 	state = SEQUENTIAL_STATE;
       }
-    if (state == SEQUENTIAL_STATE)
+    if ((state == SEQUENTIAL_STATE) && (dest_index == DATA_DEST))
       {
 	if (heap_index >= (dest[DATA_DEST].space + dest[TEMP_DEST].space))
 	  {
@@ -134,7 +134,7 @@ namespace mkrecv
 	    dest_index = DATA_DEST;
 	  }
       }
-    else if (state == PARALLEL_STATE)
+    else if ((state == PARALLEL_STATE) && (dest_index == DATA_DEST))
       {
 	if (heap_index >= dest[DATA_DEST].space)
 	  {
@@ -206,12 +206,12 @@ namespace mkrecv
     dest[DATA_DEST].needed  = dest[DATA_DEST].space;
     group_first  += dest[DATA_DEST].capacity*group_step;
     dest[DATA_DEST].cts = heap_count;
-    /*
+    // /*
       std::cout << "-> parallel total " << tstat.ntotal << " completed " << tstat.ncompleted << " discarded " << tstat.ndiscarded << " skipped " << tstat.nskipped << " overrun " << tstat.noverrun
       << " assigned " << dest[DATA_DEST].count << " " << dest[TEMP_DEST].count << " " << dest[TRASH_DEST].count
       << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
       << " payload " << tstat.nexpected << " " << tstat.nreceived << std::endl;
-    */
+    // */
     // switch to parallel data/temp order
     state = PARALLEL_STATE;
   }
@@ -226,12 +226,12 @@ namespace mkrecv
     dest[TEMP_DEST].needed  = dest[TEMP_DEST].space;
     dest[DATA_DEST].needed -= dest[TEMP_DEST].space;
     dest[TEMP_DEST].cts = 1;
-    /*
+    // /*
       std::cout << "-> sequential total " << tstat.ntotal << " completed " << tstat.ncompleted << " discarded " << tstat.ndiscarded << " skipped " << tstat.nskipped << " overrun " << tstat.noverrun << " ignored " << tstat.nignored
       << " assigned " << dest[DATA_DEST].count << " " << dest[TEMP_DEST].count << " " << dest[TRASH_DEST].count
       << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
       << " payload " << tstat.nexpected << " " << tstat.nreceived << std::endl;
-    */
+    // */
     // switch to sequential data/temp order
     state = SEQUENTIAL_STATE;
   }
@@ -297,6 +297,7 @@ namespace mkrecv
 		    << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
 		    << " error " << tstat.ntserror << " " << tstat.nbierror << " " << tstat.nfcerror
 		    << " payload " << tstat.nexpected << " " << tstat.nreceived
+		    << " cts " << ctsd << " " << ctst
 		    << std::endl;
 	  mark_log();
 	}

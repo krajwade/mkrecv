@@ -145,7 +145,7 @@ namespace mkrecv
       }
 
     // calculate the heap index: Timestamp -> Engine/Board/Antenna -> Frequency -> Time -> Polarization -> Complex number
-    heap_index = (time_index*feng_count* + feng_index)*freq_count + freq_index;
+    heap_index = (time_index*feng_count + feng_index)*freq_count + freq_index;
     return DATA_DEST;
   }
 

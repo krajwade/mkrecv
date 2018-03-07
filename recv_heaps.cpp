@@ -253,7 +253,7 @@ int main(int argc, char *argv[])
     return 0;
   }
   do {
-    if (strcmp(argv[1], "-quiet") == 0) {
+    if (strcmp(argv[idx], "-quiet") == 0) {
       g_quiet = 1;
       idx++;
       continue;
