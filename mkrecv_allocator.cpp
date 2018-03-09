@@ -135,16 +135,22 @@ namespace mkrecv
 	dest[TEMP_DEST].set_heap_size(heap_size, heap_count, 2);
 	dest[TRASH_DEST].set_heap_size(heap_size, heap_count, 2);
 	dest[TEMP_DEST].cts = 1;
-	if (indices[0].first == 0)
-	  {
-	    // Set the first running index value (first item pointer used for indexing)
-	    indices[0].first = indices[0].value + 2*indices[0].step; // 2 is a safety margin to avoid incomplete heaps
-	    if (dada_mode >= 2)
-	      {
-		opts->set_start_time(indices[0].first);
-	      }
-	  }
 	state = SEQUENTIAL_STATE;
+	// Set the first running index value (first item pointer used for indexing)
+	indices[0].first = indices[0].value + 2*indices[0].step; // 2 is a safety margin to avoid incomplete heaps
+	if (dada_mode >= 2)
+	  {
+	    opts->set_start_time(indices[0].first);
+            memcpy(hdr->ptr(), opts->header, (DADA_DEFAULT_HEADER_SIZE < hdr->total_bytes()) ? DADA_DEFAULT_HEADER_SIZE : hdr->total_bytes());
+	    hdr->used_bytes(hdr->total_bytes());
+	    dada.header_stream().release();
+	    hdr = NULL;
+          }
+	std::cout << "sizes: heap size " << heap_size << " count " << heap_count << " first " << indices[0].first << " step " << indices[0].step << std::endl;
+	std::cout << "DATA_DEST:  capacity " << dest[DATA_DEST].capacity << " space " << dest[DATA_DEST].space << std::endl;
+	std::cout << "TEMP_DEST:  capacity " << dest[TEMP_DEST].capacity << " space " << dest[TEMP_DEST].space << std::endl;
+	std::cout << "TRASH_DEST: capacity " << dest[TRASH_DEST].capacity << " space " << dest[TRASH_DEST].space << std::endl;
+	std::cout << "heap " << ph->heap_cnt << " cts " << dest[DATA_DEST].cts << " " << dest[TEMP_DEST].cts << " " << dest[TRASH_DEST].cts << std::endl;
       }
     // Assume that this heap will go into a ringbuffer
     dest_index = DATA_DEST;
@@ -165,7 +171,7 @@ namespace mkrecv
 	    indices[0].nerror++;
 	    dest_index = TRASH_DEST;
 	  }
-	else if (indices[0].index < indices[0].first)
+	else if (indices[0].value < indices[0].first)
 	  {
 	    tstat.nskipped++;
 	    indices[0].nskipped++;
@@ -178,10 +184,10 @@ namespace mkrecv
 		tstat.noverrun++;
 		dest_index = TRASH_DEST;
 	      }
-	    else if (heap_index >= dest[DATA_DEST].capacity)
+	    else if (indices[0].index >= dest[DATA_DEST].capacity)
 	      {
 		dest_index = TEMP_DEST;
-		indices[0].index -= dest[DATA_DEST].space;
+		indices[0].index -= dest[DATA_DEST].capacity;
 	      }
 	  }
 	else if (state == PARALLEL_STATE)
@@ -216,14 +222,6 @@ namespace mkrecv
 	      }
 	  }
       }
-    if (dest_index == TRASH_DEST)
-      { // this heap goes into the trash can, do _not_ leave the INIT_STATE
-	mem_base = dest[TRASH_DEST].ptr->ptr();
-	dest[TRASH_DEST].count++;
-	heap2dest[ph->heap_cnt] = TRASH_DEST; // store the relation between heap counter and destination
-	tstat.nexpected += heap_size;
-	return pointer((std::uint8_t*)(mem_base), deleter(shared_from_this(), (void *) std::uintptr_t(size)));
-      }
     // calculate the heap index, for example Timestamp -> Engine/Board/Antenna -> Frequency -> Time -> Polarization -> Complex number
     heap_index = indices[0].index;
     for (i = 1; i < nindices; i++)
@@ -232,6 +230,7 @@ namespace mkrecv
 	heap_index += indices[i].index;
       }
     // It is the first heap packet after startup, update the header and send it via a ringbuffer
+    /*
     if (state == INIT_STATE)
       { 
 	if (dada_mode >= 2)
@@ -250,6 +249,7 @@ namespace mkrecv
 	std::cout << "heap " << ph->heap_cnt << std::endl;
 	state = SEQUENTIAL_STATE;
       }
+    */
     if (dada_mode == 0)
       {
 	dest_index = TRASH_DEST;
@@ -264,11 +264,11 @@ namespace mkrecv
     heap2dest[ph->heap_cnt] = dest_index; // store the relation between heap counter and destination
     tstat.nexpected += heap_size;
     /*
-      std::cout << "heap " << ph->heap_cnt << " timestamp " << timestamp << " feng_id " << feng_id << " frequency " << frequency << " size " << size
+      std::cout << "heap " << ph->heap_cnt << " items " << indices[0].value << " " << indices[1].value << " " << indices[2].value << " size " << size
       << " ->"
-      << " dest " << d << " indices " << time_index << " " << feng_index << " " << freq_index
+      << " dest " << dest_index << " indices " << indices[0].index << " " << indices[1].index << " " << indices[2].index
       << " offset " << mem_offset
-      << " ntotal " << ntotal << " noverrun " << noverrun << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
+      << " ntotal " << tstat.ntotal << " noverrun " << tstat.noverrun << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
       << std::endl;
     */
     return pointer((std::uint8_t*)(mem_base + mem_offset), deleter(shared_from_this(), (void *) std::uintptr_t(size)));
@@ -372,7 +372,7 @@ namespace mkrecv
 	{
 	  tstat.ncompleted++;
 	}
-      //std::cout << "mark " << cnt << " isok " << isok << " dest " << d << " needed " << nd << " " << nt << std::endl;
+      //std::cout << "mark " << cnt << " isok " << isok << " dest " << d << " needed " << nd << " " << nt << " cts " << ctsd << " " << ctst << std::endl;
       if ((tstat.ntotal - log_counter) >= LOG_FREQ)
 	{
 	  int i;
@@ -380,9 +380,13 @@ namespace mkrecv
 	  std::cout << "heaps:"
 		    << " total " << tstat.ntotal
 		    << " completed " << tstat.ncompleted
-		    << " discarded " << tstat.ndiscarded
-		    << " skipped " << tstat.nskipped
-		    << " overrun " << tstat.noverrun
+		    << " discarded " << tstat.ndiscarded;
+	  std::cout << " skipped " << tstat.nskipped;
+	  for (i = 0; i < nindices; i++)
+	    {
+	      std::cout << " " << indices[i].nskipped;
+	    }
+	  std::cout << " overrun " << tstat.noverrun
 		    << " ignored " << tstat.nignored
 		    << " assigned " << dest[DATA_DEST].count << " " << dest[TEMP_DEST].count << " " << dest[TRASH_DEST].count
 		    << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed;

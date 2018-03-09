@@ -10,6 +10,7 @@ namespace mkrecv {
 
   destination::~destination()
   {
+    /*
     if (is_owner)
       {
 	if (ptr != NULL)
@@ -19,6 +20,7 @@ namespace mkrecv {
 	    ptr = NULL;
 	  }
       }
+      */
   }
 
   void destination::set_buffer(psrdada_cpp::RawBytes *ptr, std::size_t size)
