@@ -3,23 +3,10 @@
 
 #include "mkrecv_options.h"
 
-#define SAMPLE_CLOCK_OPT   "sample_clock"
-#define SAMPLE_CLOCK_KEY   "SAMPLE_CLOCK"
-#define SAMPLE_CLOCK_DESC  "virtual sample clock used for calculations"
-#define SAMPLE_CLOCK_DEF   1750000000.0
-
-#define SYNC_EPOCH_OPT     "sync_epoch"
-#define SYNC_EPOCH_KEY     "SYNC_TIME"
-#define SYNC_EPOCH_DESC    "the ADC sync epoch"
-#define SYNC_EPOCH_DEF     0.0
-
 #define TIME_STEP_OPT      "time_step"
 #define TIME_STEP_KEY      "TIME_STEP"
 #define TIME_STEP_DESC     "difference between consecutive timestamps"
 #define TIME_STEP_DEF      0x200000   // 2^21
-
-#define SAMPLE_CLOCK_START_KEY  "SAMPLE_CLOCK_START"
-#define UTC_START_KEY           "UTC_START"
 
 /* The following options influence directly the behaviour as heap filter */
 #define FREQ_FIRST_OPT     "freq_first"
@@ -55,8 +42,6 @@ namespace mkrecv
   class fengine_options : public mkrecv::options
   {
   public:
-    double                    sample_clock    = SAMPLE_CLOCK_DEF;
-    double                    sync_epoch      = SYNC_EPOCH_DEF;
     std::size_t               time_step       = TIME_STEP_DEF;
     // heap filter mechanism
     std::size_t               freq_first      = FREQ_FIRST_DEF;
@@ -69,7 +54,6 @@ namespace mkrecv
   public:
     fengine_options();
     ~fengine_options();
-    void set_start_time(int64_t timestamp);
     void create_args();
     void apply_header();
   };

@@ -6,6 +6,24 @@
 namespace mkrecv
 {
 
+  index_part::index_part()
+  {
+    int i;
+
+    for (i = 0; i < MAX_VALUE; i++)
+      {
+	hcount[i] = 0;
+      }
+  }
+
+  void index_part::set(const index_options &opt)
+  {
+    item  = opt.item*sizeof(spead2::item_pointer_t);
+    first = opt.first;
+    step  = opt.step;
+    count = opt.count;
+  }
+
   allocator::allocator(key_t key, std::string mlname, std::shared_ptr<options> opts) :
     opts(opts),
     mlog(mlname),
@@ -30,22 +48,18 @@ namespace mkrecv
     std::cout << "dest[DATA_DEST].ptr.ptr()  = " << (std::size_t)(dest[DATA_DEST].ptr->ptr()) << std::endl;
     std::cout << "dest[TEMP_DEST].ptr.ptr()  = " << (std::size_t)(dest[TEMP_DEST].ptr->ptr()) << std::endl;
     std::cout << "dest[TRASH_DEST].ptr.ptr() = " << (std::size_t)(dest[TRASH_DEST].ptr->ptr()) << std::endl;
+    // copy index_option into a local index_part
+    nindices = opts->nindices;
     heap_count = 1;
+    for (i = 0; i < MAX_INDEXPARTS; i++)
+      {
+	indices[i].set(opts->indices[i]);
+	heap_count *= indices[i].count;
+      }
   }
 
   allocator::~allocator()
   {
-  }
-
-  void allocator::handle_dummy_heap(std::size_t size, void *hint)
-  {
-    spead2::recv::packet_header    *ph = (spead2::recv::packet_header*)hint;
-
-    tstat.ntotal++;
-    tstat.nignored++;
-    dest[TRASH_DEST].count++;
-    heap2dest[ph->heap_cnt] = TRASH_DEST;
-    tstat.nexpected += size;
   }
 
   int allocator::handle_data_heap(std::size_t size, void *hint, std::size_t &heap_index)
@@ -53,37 +67,152 @@ namespace mkrecv
     return TRASH_DEST;
   }
 
+  /*
+    direct access to the item pointers is used instead of the folowing piece of code:
+    int its = 0, ibi = 0, ifi = 0;
+    for (int i = 0; i < ph->n_items; i++)
+      {
+	spead2::item_pointer_t pointer = spead2::load_be<spead2::item_pointer_t>(ph->pointers + i * sizeof(spead2::item_pointer_t));
+	bool special;
+	if (decoder.is_immediate(pointer))
+	  {
+	    switch (decoder.get_id(pointer))
+	      {
+	      case TIMESTAMP_ID:
+		its = i;
+		otimestamp = timestamp = decoder.get_immediate(pointer);
+		break;
+	      case FENG_ID_ID:
+		ibi = i;
+		ofeng_id = feng_id = decoder.get_immediate(pointer);
+		break;
+	      case FREQUENCY_ID:
+		ifi = i;
+		ofrequency = frequency = decoder.get_immediate(pointer);
+		break;
+	      default:
+		break;
+	      }
+	  }
+      }
+   */
+
   spead2::memory_allocator::pointer allocator::allocate(std::size_t size, void *hint)
   {
     spead2::recv::packet_header    *ph = (spead2::recv::packet_header*)hint;
-    spead2::s_item_pointer_t        timestamp;
+    spead2::recv::pointer_decoder   decoder(ph->heap_address_bits);
+    int                             i;
     int                             dest_index;
-    std::size_t                     time_index;
     std::size_t                     heap_index;
     char*                           mem_base = NULL;
     std::size_t                     mem_offset;
 
     // Use semaphore to guard this method
     std::lock_guard<std::mutex> lock(dest_mutex);
-    // Ignore heaps with cnt == 1 (no data heaps!)
+    // Ignore heaps which have a id (cnt) equal to 1, these are no data heaps
     if (ph->heap_cnt == 1)
       {
-	handle_dummy_heap(size, hint);
-	return pointer((std::uint8_t*)(dest[dest_index].ptr->ptr()), deleter(shared_from_this(), (void *)std::uintptr_t(size)));
+	tstat.ntotal++;
+	tstat.nignored++;
+	dest[TRASH_DEST].count++;
+	heap2dest[ph->heap_cnt] = TRASH_DEST;
+	tstat.nexpected += size;
+	return pointer((std::uint8_t*)(dest[TRASH_DEST].ptr->ptr()), deleter(shared_from_this(), (void *)std::uintptr_t(size)));
       }
-    // Extract payload size and heap size as long as we are in INIT_STATE
+    // Extract all item pointer values used for index calculation
+    for (i = 0; i < nindices; i++)
+      {
+	spead2::item_pointer_t pts = spead2::load_be<spead2::item_pointer_t>(ph->pointers + indices[i].item);
+	indices[i].value = decoder.get_immediate(pts);
+      }
+    // If it is the first data heap, we have to setup some stuff
     if (state == INIT_STATE)
       {
+	// Extract payload size and heap size as long as we are in INIT_STATE
 	payload_size = ph->payload_length;
 	heap_size = size;
+	dest[DATA_DEST].set_heap_size(heap_size, heap_count);
+	dest[TEMP_DEST].set_heap_size(heap_size, heap_count, 2);
+	dest[TRASH_DEST].set_heap_size(heap_size, heap_count, 2);
+	if (indices[0].first == 0)
+	  {
+	    // Set the first running index value (first item pointer used for indexing)
+	    indices[0].first = indices[0].value + 2*indices[0].step; // 2 is a safety margin to avoid incomplete heaps
+	    if (dada_mode >= 2)
+	      {
+		opts->set_start_time(indices[0].first);
+	      }
+	  }
       }
-    // Extract important items and calculate the destination and heap index
-    dest_index = handle_data_heap(size, hint, heap_index);
+    // Assume that this heap will go into a ringbuffer
+    dest_index = DATA_DEST;
     tstat.ntotal++;
     if (hasStopped)
-      {
+      { // If the process has stopped, any heap will go into the trash
 	tstat.nskipped++;
 	dest_index = TRASH_DEST;
+      }
+    else
+      {
+	// Calculate all indices and check their value.
+	// The first index component is something special because it is unique
+	// and it is used to select between DATA_DEST and TEMP_DEST.
+	indices[0].index = (indices[0].value - indices[0].first)/indices[0].step;
+	if ((indices[0].value > indices[0].first) && (indices[0].index >= 4*dest[DATA_DEST].capacity))
+	  {
+	    indices[0].nerror++;
+	    dest_index = TRASH_DEST;
+	  }
+	else if (indices[0].index < indices[0].first)
+	  {
+	    tstat.nskipped++;
+	    indices[0].nskipped++;
+	    dest_index = TRASH_DEST;
+	  }
+	else if (state == SEQUENTIAL_STATE)
+	  {
+	    if (indices[0].index >= (dest[DATA_DEST].capacity + dest[TEMP_DEST].capacity))
+	      {
+		tstat.noverrun++;
+		dest_index = TRASH_DEST;
+	      }
+	    else if (heap_index >= dest[DATA_DEST].capacity)
+	      {
+		dest_index = TEMP_DEST;
+		indices[0].index -= dest[DATA_DEST].space;
+	      }
+	  }
+	else if (state == PARALLEL_STATE)
+	  {
+	    if (indices[0].index >= dest[DATA_DEST].capacity)
+	      {
+		tstat.noverrun++;
+		dest_index = TRASH_DEST;
+	      }
+	    else if (indices[0].index < dest[TEMP_DEST].capacity)
+	      {
+		dest_index = TEMP_DEST;
+	      }
+	  }
+	// All other index components are used in the same way
+	for (i = 1; i < nindices; i++)
+	  {
+	    indices[i].index = (indices[i].value - indices[i].first)/indices[i].step;
+	    if ((indices[i].value < indices[i].first) || (indices[i].index >= indices[i].count))
+	      {
+		tstat.nskipped++;
+		indices[i].nskipped++;
+		dest_index = TRASH_DEST;
+	      }
+	    if ((indices[i].value >= 0) && (indices[i].value < MAX_VALUE))
+	      {
+		indices[i].hcount[indices[i].value]++;
+	      }
+	    else
+	      {
+		indices[i].ocount++;
+	      }
+	  }
       }
     if (dest_index == TRASH_DEST)
       { // this heap goes into the trash can, do _not_ leave the INIT_STATE
@@ -93,11 +222,16 @@ namespace mkrecv
 	tstat.nexpected += heap_size;
 	return pointer((std::uint8_t*)(mem_base), deleter(shared_from_this(), (void *) std::uintptr_t(size)));
       }
-
-    
+    // calculate the heap index, for example Timestamp -> Engine/Board/Antenna -> Frequency -> Time -> Polarization -> Complex number
+    heap_index = indices[0].index;
+    for (i = 1; i < nindices; i++)
+      {
+	heap_index *= indices[i].count;
+	heap_index += indices[i].index;
+      }
+    // It is the first heap packet after startup, update the header and send it via a ringbuffer
     if (state == INIT_STATE)
-      { // It is the first heap packet after startup (excluding heaps with cnt == 1)
-	// Update the header and send it via a ringbuffer
+      { 
 	if (dada_mode >= 2)
 	  {
 	    memcpy(hdr->ptr(), opts->header, (DADA_DEFAULT_HEADER_SIZE < hdr->total_bytes()) ? DADA_DEFAULT_HEADER_SIZE : hdr->total_bytes());
@@ -106,49 +240,13 @@ namespace mkrecv
 	    hdr = NULL;
 	  }
 	// update internal bookkeeping numbers
-	dest[DATA_DEST].set_heap_size(heap_size, heap_count);
-	dest[TEMP_DEST].set_heap_size(heap_size, heap_count, 2);
-	dest[TRASH_DEST].set_heap_size(heap_size, heap_count, 2);
 	dest[TEMP_DEST].cts = 1;
-	std::cout << "sizes: heap size " << heap_size << " count " << heap_count << " group first " << group_first << " step " << group_step << std::endl;
+	std::cout << "sizes: heap size " << heap_size << " count " << heap_count << " group first " << indices[0].first << " step " << indices[0].step << std::endl;
 	std::cout << "DATA_DEST:  capacity " << dest[DATA_DEST].capacity << " space " << dest[DATA_DEST].space << std::endl;
 	std::cout << "TEMP_DEST:  capacity " << dest[TEMP_DEST].capacity << " space " << dest[TEMP_DEST].space << std::endl;
 	std::cout << "TRASH_DEST: capacity " << dest[TRASH_DEST].capacity << " space " << dest[TRASH_DEST].space << std::endl;
 	std::cout << "heap " << ph->heap_cnt << std::endl;
 	state = SEQUENTIAL_STATE;
-      }
-    if ((state == SEQUENTIAL_STATE) && (dest_index == DATA_DEST))
-      {
-	if (heap_index >= (dest[DATA_DEST].space + dest[TEMP_DEST].space))
-	  {
-	    tstat.noverrun++;
-	    dest_index = TRASH_DEST;
-	  }
-	else if (heap_index >= dest[DATA_DEST].space)
-	  {
-	    dest_index = TEMP_DEST;
-	    heap_index -= dest[DATA_DEST].space;
-	  }
-	else
-	  {
-	    dest_index = DATA_DEST;
-	  }
-      }
-    else if ((state == PARALLEL_STATE) && (dest_index == DATA_DEST))
-      {
-	if (heap_index >= dest[DATA_DEST].space)
-	  {
-	    tstat.noverrun++;
-	    dest_index = TRASH_DEST;
-	  }
-	else if (heap_index >= dest[TEMP_DEST].space)
-	  {
-	    dest_index = DATA_DEST;
-	  }
-	else
-	  {
-	    dest_index = TEMP_DEST;
-	  }
       }
     if (dada_mode == 0)
       {
@@ -204,7 +302,7 @@ namespace mkrecv
 	  }
       }
     dest[DATA_DEST].needed  = dest[DATA_DEST].space;
-    group_first  += dest[DATA_DEST].capacity*group_step;
+    indices[0].first  += dest[DATA_DEST].capacity*indices[0].step;
     dest[DATA_DEST].cts = heap_count;
     // /*
       std::cout << "-> parallel total " << tstat.ntotal << " completed " << tstat.ncompleted << " discarded " << tstat.ndiscarded << " skipped " << tstat.nskipped << " overrun " << tstat.noverrun
@@ -248,17 +346,9 @@ namespace mkrecv
     }
   */
 
-  void allocator::mark_heap(spead2::s_item_pointer_t cnt, bool isok, spead2::s_item_pointer_t reclen)
-  {
-  }
-
-  void allocator::mark_log()
-  {
-  }
-
   void allocator::mark(spead2::s_item_pointer_t cnt, bool isok, spead2::s_item_pointer_t reclen)
   {
-    std::size_t  nd, nt, rt, ctsd, ctst;
+    std::size_t  nd, nt, rt, ctsd, ctst, i, j;
 
     {
       std::lock_guard<std::mutex> lock(dest_mutex);
@@ -280,7 +370,6 @@ namespace mkrecv
 	{
 	  tstat.ncompleted++;
 	}
-      mark_heap(cnt, isok, reclen);
       //std::cout << "mark " << cnt << " isok " << isok << " dest " << d << " needed " << nd << " " << nt << std::endl;
       if ((tstat.ntotal - log_counter) >= LOG_FREQ)
 	{
@@ -294,12 +383,26 @@ namespace mkrecv
 		    << " overrun " << tstat.noverrun
 		    << " ignored " << tstat.nignored
 		    << " assigned " << dest[DATA_DEST].count << " " << dest[TEMP_DEST].count << " " << dest[TRASH_DEST].count
-		    << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
-		    << " error " << tstat.ntserror << " " << tstat.nbierror << " " << tstat.nfcerror
-		    << " payload " << tstat.nexpected << " " << tstat.nreceived
+		    << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed;
+	  std::cout << " error";
+	  for (i = 0; i < nindices; i++)
+	    {
+	      std::cout << " " << indices[i].nerror;
+	    }
+	  std::cout << " payload " << tstat.nexpected << " " << tstat.nreceived
 		    << " cts " << ctsd << " " << ctst
 		    << std::endl;
-	  mark_log();
+	  if (log_counter <= LOG_FREQ)
+	    {
+	      for (i = 1; i < nindices; i++)
+		{
+		  for (j = 0; j < MAX_VALUE; j++)
+		    {
+		      if (indices[i].hcount[j] == 0) continue;
+		      std::cout << "item " << i << ", value " << j << " count " << indices[i].hcount[j] << std::endl;
+		    }
+		}
+	    }
 	}
       /*
       if (nd > 100000)

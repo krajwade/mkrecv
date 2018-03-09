@@ -23,7 +23,7 @@
 
 #include "psrdada_cpp/dada_write_client.hpp"
 
-#include "mkrecv_fengine_options.h"
+#include "mkrecv_options.h"
 #include "mkrecv_destination.h"
 
 namespace mkrecv
@@ -42,6 +42,8 @@ namespace mkrecv
 
   static const int LOG_FREQ = 10000;
 
+  static const std::size_t MAX_VALUE = 4096;
+
   class statistics
   {
   public:
@@ -53,11 +55,20 @@ namespace mkrecv
     std::size_t    nignored = 0;   // number of ignored heaps (id == 1)
     std::size_t    nexpected = 0;  // number of expected payload bytes (ntotal*heapsize)
     std::size_t    nreceived = 0;  // number of received payload bytes
-    std::size_t    ntserror = 0;   // number of heaps which have a suspicious timestamp
-    std::size_t    nbiskipped = 0; // number of skipped heaps due to board ids outside range
-    std::size_t    nbierror = 0;   // number of heaps which have a suspicious board id
-    std::size_t    nfcskipped = 0; // number of skipped heaps due to frequency channels outside range
-    std::size_t    nfcerror = 0;   // number of heaps which have a suspicious frequency channel number
+    std::size_t    nerror = 0;     // number of heaps which have a suspicious item pointer value
+  };
+
+  class index_part : public index_options
+  {
+  public:
+    spead2::s_item_pointer_t  value    = 0; // value of the item inside the current heap
+    std::size_t               index    = 0;
+    std::size_t               nerror   = 0;
+    std::size_t               nskipped = 0;
+    std::size_t               ocount   = 0; // Number of heaps where the item pointer value is outside [0 .. MAX_VALUE[
+    std::size_t               hcount[MAX_VALUE];
+    index_part();
+    void set(const index_options &opt);
   };
 
   /*
@@ -78,6 +89,8 @@ namespace mkrecv
     std::mutex                         dest_mutex;
     destination                        dest[3];
     std::unordered_map<spead2::s_item_pointer_t, int> heap2dest;
+    int                                nindices = 0;
+    index_part                         indices[MAX_INDEXPARTS];
     std::size_t                        payload_size;// size of one packet payload (ph->payload_length
     std::size_t                        heap_size;   // size of a heap in bytes
     std::size_t                        heap_count;  // number of heaps inside one group (-> subclass!)
@@ -103,10 +116,7 @@ namespace mkrecv
   protected:
     void handle_data_full();
     void handle_temp_full();
-    virtual void handle_dummy_heap(std::size_t size, void *hint);
     virtual int handle_data_heap(std::size_t size, void *hint, std::size_t &heap_index);
-    virtual void mark_heap(spead2::s_item_pointer_t cnt, bool isok, spead2::s_item_pointer_t reclen);
-    virtual void mark_log();
   };
   
 }

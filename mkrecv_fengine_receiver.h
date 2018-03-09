@@ -12,15 +12,12 @@ namespace mkrecv
   class fengine_receiver : public mkrecv::receiver
   {
   protected:
-    std::shared_ptr<mkrecv::fengine_options>    fopts;
     std::shared_ptr<mkrecv::fengine_allocator>  fallocator;
 
   public:
     fengine_receiver();
     virtual ~fengine_receiver();
-    virtual std::shared_ptr<mkrecv::options> create_options();
     virtual std::shared_ptr<mkrecv::allocator> create_allocator();
-    virtual std::unique_ptr<mkrecv::stream> create_stream();
   };
 
 }

@@ -85,7 +85,7 @@ namespace mkrecv
 	//std::cout << "Discarding incomplete heap " << heap.get_cnt() << '\n';
 	//rbuffer->mark(heap.get_cnt(), false, heap.get_received_length());
       }
-    if (rbuffer->is_stopped()) stop();
+    //if (rbuffer->is_stopped()) stop();
   }
 
   void stream::stop_received()

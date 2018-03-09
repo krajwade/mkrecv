@@ -39,10 +39,7 @@ include_directories(..)
 include_directories(${PROJECT_BINARY_DIR})
 
 set(mkrecv_src
-  mkrecv_fengine_main.cpp
-  mkrecv_fengine_receiver.cpp
-  mkrecv_fengine_options.cpp
-  mkrecv_fengine_allocator.cpp
+  mkrecv_main.cpp
   mkrecv_receiver.cpp
   mkrecv_options.cpp
   mkrecv_allocator.cpp

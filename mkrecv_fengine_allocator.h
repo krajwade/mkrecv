@@ -31,33 +31,27 @@
 namespace mkrecv
 {
 
-  static const unsigned int TIMESTAMP_ID   = 0x1600;
-  static const unsigned int FENG_ID_ID     = 0x4101;
-  static const unsigned int FREQUENCY_ID   = 0x4103;
-  static const unsigned int FENG_RAW_ID    = 0x4300;
+  //static const unsigned int TIMESTAMP_ID   = 0x1600;
+  //static const unsigned int FENG_ID_ID     = 0x4101;
+  //static const unsigned int FREQUENCY_ID   = 0x4103;
+  //static const unsigned int FENG_RAW_ID    = 0x4300;
 
   class fengine_allocator : public mkrecv::allocator
   {
   protected:
-    std::shared_ptr<fengine_options>   fopts;
-    std::unordered_map<spead2::s_item_pointer_t, int> heap2board;
-    std::size_t                        freq_first;  // the lowest frequency in all incomming heaps
-    std::size_t                        freq_step;   // the difference between consecutive frequencies
-    std::size_t                        freq_count;  // the number of frequency bands
-    std::size_t                        feng_first;  // the lowest fengine id
-    std::size_t                        feng_count;  // the number of fengines
+    //std::unordered_map<spead2::s_item_pointer_t, int> heap2board;
+    //std::size_t                        freq_first;  // the lowest frequency in all incomming heaps
+    //std::size_t                        freq_step;   // the difference between consecutive frequencies
+    //std::size_t                        freq_count;  // the number of frequency bands
+    //std::size_t                        feng_first;  // the lowest fengine id
+    //std::size_t                        feng_count;  // the number of fengines
     statistics                         bstat[64];
-    std::size_t                        bcount[64];
-    std::size_t                        fcount[4096];
     
   public:
-    fengine_allocator(key_t key, std::string mlname, std::shared_ptr<mkrecv::fengine_options> opts);
+    fengine_allocator(key_t key, std::string mlname, std::shared_ptr<mkrecv::options> opts);
     ~fengine_allocator();
   protected:
-    void handle_dummy_heap(std::size_t size, void *hint);
     int handle_data_heap(std::size_t size, void *hint, std::size_t &heap_index);
-    void mark_heap(spead2::s_item_pointer_t cnt, bool isok, spead2::s_item_pointer_t reclen);
-    void mark_log();
   };
   
 }

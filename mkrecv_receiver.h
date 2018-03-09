@@ -2,6 +2,7 @@
 #define mkrecv_receiver_h
 
 #include <vector>
+#include <thread>
 
 #include <boost/asio.hpp>
 
@@ -22,7 +23,7 @@ namespace mkrecv
   class receiver
   {
   protected:
-    static receiver *instance;
+    static receiver     *instance;
   protected:
     std::shared_ptr<mkrecv::options>                opts = NULL;
     std::shared_ptr<mkrecv::allocator>              allocator = NULL;
@@ -33,9 +34,9 @@ namespace mkrecv
     receiver();
     virtual ~receiver();
     int execute(int argc, const char **argv);
-    virtual std::shared_ptr<mkrecv::options> create_options();
-    virtual std::shared_ptr<mkrecv::allocator> create_allocator();
-    virtual std::unique_ptr<mkrecv::stream> create_stream();
+    std::shared_ptr<mkrecv::options> create_options();
+    std::shared_ptr<mkrecv::allocator> create_allocator();
+    std::unique_ptr<mkrecv::stream> create_stream();
   public:
     static void request_stop();
   protected:

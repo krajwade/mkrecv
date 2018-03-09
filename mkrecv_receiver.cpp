@@ -8,6 +8,7 @@
 #include <memory>
 #include <signal.h>
 #include <atomic>
+#include <thread>
 
 #include <spead2/common_thread_pool.h>
 #include <spead2/recv_udp.h>
@@ -18,13 +19,17 @@
 # include <spead2/recv_udp_ibv.h>
 #endif
 
+#include "psrdada_cpp/cli_utils.hpp"
+
 #include "mkrecv_receiver.h"
 
 namespace mkrecv
 {
 
   mkrecv::receiver *receiver::instance = NULL;
-  static int g_stopped = 0;
+
+  static int          g_stopped = 0;
+  static std::thread  g_stop_thread;
 
   void signal_handler(int signalValue)
   {
@@ -32,7 +37,7 @@ namespace mkrecv
     g_stopped++;
     // 1. Set a flag on the memory allocator (we want to finish the current slot or we have to terminate (not sending!) the current slot)
     // 2. If the current slot is finished or terminated, terminate the streams (one for each multicast group)
-    mkrecv::receiver::request_stop();
+    g_stop_thread = std::thread(mkrecv::receiver::request_stop);
     if (g_stopped > 1)
       {
 	exit(-1);
@@ -143,22 +148,36 @@ namespace mkrecv
 
   std::shared_ptr<mkrecv::options> receiver::create_options()
   {
-    return std::shared_ptr<mkrecv::options>();
+    return std::shared_ptr<mkrecv::options>(new mkrecv::options());
   }
 
   std::shared_ptr<mkrecv::allocator> receiver::create_allocator()
   {
-    return std::shared_ptr<mkrecv::allocator>();
+    return std::shared_ptr<mkrecv::allocator>(new mkrecv::allocator(psrdada_cpp::string_to_key(opts->key), "recv", opts));
   }
 
   std::unique_ptr<mkrecv::stream> receiver::create_stream()
   {
-    return std::unique_ptr<mkrecv::stream>();
+    spead2::bug_compat_mask bug_compat = opts->pyspead ? spead2::BUG_COMPAT_PYSPEAD_0_5_2 : 0;
+
+    return std::unique_ptr<mkrecv::stream>(new mkrecv::stream(opts, thread_pool, bug_compat, opts->heaps));
   }
 
   void receiver::request_stop()
   {
+    // request a stop from the allocator (fill the current ringbuffer slot)
     instance->allocator->request_stop();
+    // test if the last ringbuffer slot was filled and the ringbuffer closed
+    do {
+      if (instance->allocator->is_stopped()) break;
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    } while (1);
+    // And now stop all streams
+    for (const auto &ptr : instance->streams)
+      {
+	auto &stream = dynamic_cast<mkrecv::stream &>(*ptr);
+	stream.stop();
+      }
   }
 
 }

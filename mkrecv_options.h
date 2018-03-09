@@ -16,8 +16,12 @@
 
 #include "dada_def.h"
 
-#define CLOCK_RATE 
+#define MAX_INDEXPARTS 4
+
 #define DADA_TIMESTR "%Y-%m-%d-%H:%M:%S"
+#define SAMPLE_CLOCK_START_KEY  "SAMPLE_CLOCK_START"
+#define UTC_START_KEY           "UTC_START"
+
 
 /* Configuration file option */
 #define HEADER_OPT         "header"
@@ -110,12 +114,113 @@
 #define SOURCES_KEY        "MCAST_SOURCES"
 #define SOURCES_DESC       "sources"
 
+/* The following options describe the timing information */
+#define SYNC_EPOCH_OPT     "sync_epoch"
+#define SYNC_EPOCH_KEY     "SYNC_TIME"
+#define SYNC_EPOCH_DESC    "the ADC sync epoch"
+#define SYNC_EPOCH_DEF     0.0
+
+#define SAMPLE_CLOCK_OPT   "sample_clock"
+#define SAMPLE_CLOCK_KEY   "SAMPLE_CLOCK"
+#define SAMPLE_CLOCK_DESC  "virtual sample clock used for calculations"
+#define SAMPLE_CLOCK_DEF   1750000000.0
+
+/* The following options describe the item -> index mapping */
+
+#define NINDICES_OPT       "nindices"
+#define NINDICES_KEY       "NINDICES"
+#define NINDICES_DESC      "Number of item pointers used as index"
+#define NINDICES_DEF       0
+
+/* The first item pointer is a running value, therefore no FIRST or COUNT value needed. */
+#define IDX1_ITEM_OPT      "idx1_item"
+#define IDX1_ITEM_KEY      "IDX1_ITEM"
+#define IDX1_ITEM_DESC     "Item pointer index for first index"
+#define IDX1_ITEM_DEF      0
+
+#define IDX1_STEP_OPT      "idx1_step"
+#define IDX1_STEP_KEY      "IDX1_STEP"
+#define IDX1_STEP_DESC     "The difference between successive item pointer values"
+#define IDX1_STEP_DEF      0x200000   // 2^21
+
+/* The second item pointer used as an index (inside the first index). */
+#define IDX2_ITEM_OPT      "idx2_item"
+#define IDX2_ITEM_KEY      "IDX2_ITEM"
+#define IDX2_ITEM_DESC     "Item pointer index for second index"
+#define IDX2_ITEM_DEF      0
+
+#define IDX2_STEP_OPT      "idx2_step"
+#define IDX2_STEP_KEY      "IDX2_STEP"
+#define IDX2_STEP_DESC     "The difference between successive item pointer values"
+#define IDX2_STEP_DEF      0
+
+#define IDX2_FIRST_OPT     "idx2_first"
+#define IDX2_FIRST_KEY     "IDX2_FIRST"
+#define IDX2_FIRST_DESC    "The first used item pointer value"
+#define IDX2_FIRST_DEF     0
+
+#define IDX2_COUNT_OPT     "idx2_count"
+#define IDX2_COUNT_KEY     "IDX2_COUNT"
+#define IDX2_COUNT_DESC    "The number of used item pointer values"
+#define IDX2_COUNT_DEF     0
+
+/* The third item pointer used as an index (inside the second index). */
+#define IDX3_ITEM_OPT      "idx3_item"
+#define IDX3_ITEM_KEY      "IDX3_ITEM"
+#define IDX3_ITEM_DESC     "Item pointer index for third index"
+#define IDX3_ITEM_DEF      0
+
+#define IDX3_STEP_OPT      "idx3_step"
+#define IDX3_STEP_KEY      "IDX3_STEP"
+#define IDX3_STEP_DESC     "The difference between successive item pointer values"
+#define IDX3_STEP_DEF      0
+
+#define IDX3_FIRST_OPT     "idx3_first"
+#define IDX3_FIRST_KEY     "IDX3_FIRST"
+#define IDX3_FIRST_DESC    "The first used item pointer value"
+#define IDX3_FIRST_DEF     0
+
+#define IDX3_COUNT_OPT     "idx3_count"
+#define IDX3_COUNT_KEY     "IDX3_COUNT"
+#define IDX3_COUNT_DESC    "The number of used item pointer values"
+#define IDX3_COUNT_DEF     0
+
+/* The fourth item pointer used as an index (inside the third index). */
+#define IDX4_ITEM_OPT      "idx4_item"
+#define IDX4_ITEM_KEY      "IDX4_ITEM"
+#define IDX4_ITEM_DESC     "Item pointer index for fourth index"
+#define IDX4_ITEM_DEF      0
+
+#define IDX4_STEP_OPT      "idx4_step"
+#define IDX4_STEP_KEY      "IDX4_STEP"
+#define IDX4_STEP_DESC     "The difference between successive item pointer values"
+#define IDX4_STEP_DEF      0
+
+#define IDX4_FIRST_OPT     "idx4_first"
+#define IDX4_FIRST_KEY     "IDX4_FIRST"
+#define IDX4_FIRST_DESC    "The first used item pointer value"
+#define IDX4_FIRST_DEF     0
+
+#define IDX4_COUNT_OPT     "idx4_count"
+#define IDX4_COUNT_KEY     "IDX4_COUNT"
+#define IDX4_COUNT_DESC    "The number of used item pointer values"
+#define IDX4_COUNT_DEF     0
+
 namespace po = boost::program_options;
 
 namespace mkrecv
 {
 
   static const char  ASCII_HEADER_SENTINEL = 4;
+
+  class index_options
+  {
+  public:
+    std::size_t               item   = 0; // IDXi_ITEM
+    std::size_t               step   = 1; // IDXi_STEP
+    std::size_t               first  = 0; // IDXi_FIRST
+    std::size_t               count  = 1; // IDXi_COUNT
+  };
 
   class options
   {
@@ -151,6 +256,11 @@ namespace mkrecv
     std::string               port            = PORT_DEF;
     std::vector<std::string>  sources;
     std::string               used_sources;
+    double                    sync_epoch      = SYNC_EPOCH_DEF;
+    double                    sample_clock    = SAMPLE_CLOCK_DEF;
+    // Index definitions for mapping a heap to an index
+    int                       nindices        = 0;
+    index_options             indices[MAX_INDEXPARTS];
     // heap filter mechanism
     char                     *header          = NULL;
   protected:
@@ -171,6 +281,7 @@ namespace mkrecv
     void set_opt(std::string &val, const char *opt, const char *key);
     void set_opt(bool &val, const char *opt, const char *key);
     void set_opt(double &val, const char *opt, const char *key);
+    void set_start_time(int64_t timestamp);
     void use_sources(std::vector<std::string> &val, const char *opt, const char *key);
     void update_sources();
     bool check_header();

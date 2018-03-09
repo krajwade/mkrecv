@@ -296,6 +296,35 @@ namespace mkrecv
     }
   }
 
+  void options::set_start_time(int64_t timestamp)
+  {
+    double epoch = sync_epoch + timestamp / sample_clock;
+    double integral;
+    double fractional = modf(epoch, &integral);
+    struct timeval tv;
+    time_t start_utc;
+    struct tm *nowtm;
+    char tbuf[64];
+    char utc_string[64];
+
+    tv.tv_sec = integral;
+    tv.tv_usec = (int) (fractional*1e6);
+    start_utc = tv.tv_sec;
+    nowtm = gmtime(&start_utc);
+    strftime(tbuf, sizeof(tbuf), DADA_TIMESTR, nowtm);
+    snprintf(utc_string, sizeof(utc_string), "%s.%06ld", tbuf, tv.tv_usec);
+    ascii_header_set(header, SAMPLE_CLOCK_START_KEY, "%ld", timestamp);
+    if (!check_header())
+      {
+	std::cerr << "ERROR, storing " << SAMPLE_CLOCK_START_KEY << " with value " << timestamp << " in header failed due to size restrictions. -> incomplete header due to clipping" << std::endl;
+      }
+    ascii_header_set(header, UTC_START_KEY, "%s", utc_string);
+    if (!check_header())
+      {
+	std::cerr << "ERROR, storing " << UTC_START_KEY << " with value " << utc_string << " in header failed due to size restrictions. -> incomplete header due to clipping" << std::endl;
+      }
+  }
+
   void options::use_sources(std::vector<std::string> &val, const char *opt, const char *key)
   {
     if ((vm.count(opt) == 0) && (key[0] != '\0'))
@@ -389,6 +418,24 @@ namespace mkrecv
 #endif
       (UDP_IF_OPT,       make_opt(udp_if),          UDP_IF_DESC)
       (PORT_OPT,         make_opt(port),            PORT_DESC)
+      (SYNC_EPOCH_OPT,   make_opt(sync_epoch),      SYNC_EPOCH_DESC)
+      (SAMPLE_CLOCK_OPT, make_opt(sample_clock),    SAMPLE_CLOCK_DESC)
+      // index calculation
+      (NINDICES_OPT,     make_opt(nindices),         NINDICES_DESC)
+      (IDX1_ITEM_OPT,    make_opt(indices[0].item),  IDX1_ITEM_DESC)
+      (IDX1_STEP_OPT,    make_opt(indices[0].step),  IDX1_STEP_DESC)
+      (IDX2_ITEM_OPT,    make_opt(indices[1].item),  IDX2_ITEM_DESC)
+      (IDX2_STEP_OPT,    make_opt(indices[1].step),  IDX2_STEP_DESC)
+      (IDX2_FIRST_OPT,   make_opt(indices[1].first), IDX2_FIRST_DESC)
+      (IDX2_COUNT_OPT,   make_opt(indices[1].count), IDX2_COUNT_DESC)
+      (IDX3_ITEM_OPT,    make_opt(indices[2].item),  IDX3_ITEM_DESC)
+      (IDX3_STEP_OPT,    make_opt(indices[2].step),  IDX3_STEP_DESC)
+      (IDX3_FIRST_OPT,   make_opt(indices[2].first), IDX3_FIRST_DESC)
+      (IDX3_COUNT_OPT,   make_opt(indices[2].count), IDX3_COUNT_DESC)
+      (IDX4_ITEM_OPT,    make_opt(indices[3].item),  IDX4_ITEM_DESC)
+      (IDX4_STEP_OPT,    make_opt(indices[3].step),  IDX4_STEP_DESC)
+      (IDX4_FIRST_OPT,   make_opt(indices[3].first), IDX4_FIRST_DESC)
+      (IDX4_COUNT_OPT,   make_opt(indices[3].count), IDX4_COUNT_DESC)
       ;
     hidden.add_options()
       // network configuration
@@ -430,6 +477,32 @@ namespace mkrecv
 #endif
     set_opt(udp_if,          UDP_IF_OPT, UDP_IF_KEY);
     set_opt(port,            PORT_OPT, PORT_KEY);
+    set_opt(sample_clock,    SAMPLE_CLOCK_OPT, SAMPLE_CLOCK_KEY);
+    set_opt(sync_epoch,      SYNC_EPOCH_OPT, SYNC_EPOCH_KEY);
+    set_opt(nindices,        NINDICES_OPT, NINDICES_KEY);
+    set_opt(indices[0].item, IDX1_ITEM_OPT, IDX1_ITEM_KEY);
+    set_opt(indices[0].step, IDX1_STEP_OPT, IDX1_STEP_KEY);
+    if (nindices >= 2)
+      {
+	set_opt(indices[1].item,  IDX2_ITEM_OPT,  IDX2_ITEM_KEY);
+	set_opt(indices[1].step,  IDX2_STEP_OPT,  IDX2_STEP_KEY);
+	set_opt(indices[1].first, IDX2_FIRST_OPT, IDX2_FIRST_KEY);
+	set_opt(indices[1].count, IDX2_COUNT_OPT, IDX2_COUNT_KEY);
+      }
+    if (nindices >= 3)
+      {
+	set_opt(indices[2].item,  IDX3_ITEM_OPT,  IDX3_ITEM_KEY);
+	set_opt(indices[2].step,  IDX3_STEP_OPT,  IDX3_STEP_KEY);
+	set_opt(indices[2].first, IDX3_FIRST_OPT, IDX3_FIRST_KEY);
+	set_opt(indices[2].count, IDX3_COUNT_OPT, IDX3_COUNT_KEY);
+      }
+    if (nindices >= 4)
+      {
+	set_opt(indices[3].item,  IDX4_ITEM_OPT,  IDX4_ITEM_KEY);
+	set_opt(indices[3].step,  IDX4_STEP_OPT,  IDX4_STEP_KEY);
+	set_opt(indices[3].first, IDX4_FIRST_OPT, IDX4_FIRST_KEY);
+	set_opt(indices[3].count, IDX4_COUNT_OPT, IDX4_COUNT_KEY);
+      }
     use_sources(sources,     SOURCES_OPT, SOURCES_KEY);
     update_sources();
     if (used_sources.length() == 0) {
