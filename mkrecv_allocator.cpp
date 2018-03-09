@@ -134,6 +134,7 @@ namespace mkrecv
 	dest[DATA_DEST].set_heap_size(heap_size, heap_count);
 	dest[TEMP_DEST].set_heap_size(heap_size, heap_count, 2);
 	dest[TRASH_DEST].set_heap_size(heap_size, heap_count, 2);
+	dest[TEMP_DEST].cts = 1;
 	if (indices[0].first == 0)
 	  {
 	    // Set the first running index value (first item pointer used for indexing)
@@ -143,6 +144,7 @@ namespace mkrecv
 		opts->set_start_time(indices[0].first);
 	      }
 	  }
+	state = SEQUENTIAL_STATE;
       }
     // Assume that this heap will go into a ringbuffer
     dest_index = DATA_DEST;
