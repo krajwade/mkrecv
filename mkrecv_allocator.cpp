@@ -25,6 +25,7 @@ namespace mkrecv
     item  = opt.item*sizeof(spead2::item_pointer_t);
     step  = opt.step;
     count = opt.values.size();
+    if (count == 0) count = 1;
     for (i = 0; i < opt.values.size(); i++)
       {
 	values.push_back(opt.values[i]);
@@ -62,7 +63,6 @@ namespace mkrecv
     for (i = 0; i < MAX_INDEXPARTS; i++)
       {
 	indices[i].set(opts->indices[i]);
-	if (i == 0) indices[i].count = 1;
 	heap_count *= indices[i].count;
       }
   }
@@ -75,36 +75,6 @@ namespace mkrecv
   {
     return TRASH_DEST;
   }
-
-  /*
-    direct access to the item pointers is used instead of the folowing piece of code:
-    int its = 0, ibi = 0, ifi = 0;
-    for (int i = 0; i < ph->n_items; i++)
-      {
-	spead2::item_pointer_t pointer = spead2::load_be<spead2::item_pointer_t>(ph->pointers + i * sizeof(spead2::item_pointer_t));
-	bool special;
-	if (decoder.is_immediate(pointer))
-	  {
-	    switch (decoder.get_id(pointer))
-	      {
-	      case TIMESTAMP_ID:
-		its = i;
-		otimestamp = timestamp = decoder.get_immediate(pointer);
-		break;
-	      case FENG_ID_ID:
-		ibi = i;
-		ofeng_id = feng_id = decoder.get_immediate(pointer);
-		break;
-	      case FREQUENCY_ID:
-		ifi = i;
-		ofrequency = frequency = decoder.get_immediate(pointer);
-		break;
-	      default:
-		break;
-	      }
-	  }
-      }
-   */
 
   spead2::memory_allocator::pointer allocator::allocate(std::size_t size, void *hint)
   {
@@ -143,6 +113,7 @@ namespace mkrecv
 	dest[DATA_DEST].set_heap_size(heap_size, heap_count);
 	dest[TEMP_DEST].set_heap_size(heap_size, heap_count, 2);
 	dest[TRASH_DEST].set_heap_size(heap_size, heap_count, 2);
+	dest[DATA_DEST].cts = heap_count;
 	dest[TEMP_DEST].cts = 1;
 	state = SEQUENTIAL_STATE;
 	// Set the first running index value (first item pointer used for indexing)
@@ -212,26 +183,6 @@ namespace mkrecv
 	      }
 	  }
 	// All other index components are used in the same way
-	/* old code
-	for (i = 1; i < nindices; i++)
-	  {
-	    indices[i].index = (indices[i].value - indices[i].first)/indices[i].step;
-	    if ((indices[i].value < indices[i].first) || (indices[i].index >= indices[i].count))
-	      {
-	        tstat.nskipped++;
-		indices[i].nskipped++;
-		dest_index = TRASH_DEST;
-	      }
-	    if ((indices[i].value >= 0) && (indices[i].value < MAX_VALUE))
-	      {
-		indices[i].hcount[indices[i].value]++;
-	      }
-	    else
-	      {
-		indices[i].ocount++;
-	      }
-	  }
-	 */
 	for (i = 1; i < nindices; i++)
 	  {
 	    try {
@@ -252,27 +203,6 @@ namespace mkrecv
 	heap_index *= indices[i].count;
 	heap_index += indices[i].index;
       }
-    // It is the first heap packet after startup, update the header and send it via a ringbuffer
-    /*
-    if (state == INIT_STATE)
-      { 
-	if (dada_mode >= 2)
-	  {
-	    memcpy(hdr->ptr(), opts->header, (DADA_DEFAULT_HEADER_SIZE < hdr->total_bytes()) ? DADA_DEFAULT_HEADER_SIZE : hdr->total_bytes());
-	    hdr->used_bytes(hdr->total_bytes());
-	    dada.header_stream().release();
-	    hdr = NULL;
-	  }
-	// update internal bookkeeping numbers
-	dest[TEMP_DEST].cts = 1;
-	std::cout << "sizes: heap size " << heap_size << " count " << heap_count << " group first " << indices[0].first << " step " << indices[0].step << std::endl;
-	std::cout << "DATA_DEST:  capacity " << dest[DATA_DEST].capacity << " space " << dest[DATA_DEST].space << std::endl;
-	std::cout << "TEMP_DEST:  capacity " << dest[TEMP_DEST].capacity << " space " << dest[TEMP_DEST].space << std::endl;
-	std::cout << "TRASH_DEST: capacity " << dest[TRASH_DEST].capacity << " space " << dest[TRASH_DEST].space << std::endl;
-	std::cout << "heap " << ph->heap_cnt << std::endl;
-	state = SEQUENTIAL_STATE;
-      }
-    */
     if (dada_mode == 0)
       {
 	dest_index = TRASH_DEST;
@@ -303,7 +233,7 @@ namespace mkrecv
 
   void allocator::handle_data_full()
   {
-    std::lock_guard<std::mutex> lock(dest_mutex);
+    //std::lock_guard<std::mutex> lock(dest_mutex);
     if (dada_mode >= 3)
       {
 	// release the current ringbuffer slot
@@ -345,7 +275,7 @@ namespace mkrecv
       {
 	memcpy(dest[DATA_DEST].ptr->ptr(), dest[TEMP_DEST].ptr->ptr(), dest[TEMP_DEST].space*heap_size);
       }
-    std::lock_guard<std::mutex> lock(dest_mutex);
+    //std::lock_guard<std::mutex> lock(dest_mutex);
     dest[TEMP_DEST].needed  = dest[TEMP_DEST].space;
     dest[DATA_DEST].needed -= dest[TEMP_DEST].space;
     dest[TEMP_DEST].cts = 1;
@@ -442,7 +372,7 @@ namespace mkrecv
 	  exit(0);
 	}
       */
-    }
+    //}
     //if ((nd == 0) || (ctst == 0))
     if ((state == SEQUENTIAL_STATE) && (ctst == 0))
       {
@@ -453,6 +383,7 @@ namespace mkrecv
       {
 	handle_temp_full(); // std::thread tfull(do_handle_temp_full, this); <- does not work, terminate
       }
+    }
   }
 
   void allocator::request_stop()
