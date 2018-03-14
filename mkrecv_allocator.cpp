@@ -8,20 +8,28 @@ namespace mkrecv
 
   index_part::index_part()
   {
+    /*
     int i;
 
     for (i = 0; i < MAX_VALUE; i++)
       {
 	hcount[i] = 0;
       }
+    */
   }
 
   void index_part::set(const index_options &opt)
   {
+    int  i;
+
     item  = opt.item*sizeof(spead2::item_pointer_t);
-    first = opt.first;
     step  = opt.step;
-    count = opt.count;
+    count = opt.values.size();
+    for (i = 0; i < opt.values.size(); i++)
+      {
+	values.push_back(opt.values[i]);
+	value2index[opt.values[i]] = i;
+      }
   }
 
   allocator::allocator(key_t key, std::string mlname, std::shared_ptr<options> opts) :
@@ -30,7 +38,7 @@ namespace mkrecv
     dada(key, mlog),
     hdr(NULL)
   {
-    int i;
+    int i, j;
 
     memallocator = std::make_shared<spead2::mmap_allocator>(0, true);
     dada_mode = opts->dada_mode;
@@ -54,7 +62,6 @@ namespace mkrecv
     for (i = 0; i < MAX_INDEXPARTS; i++)
       {
 	indices[i].set(opts->indices[i]);
-	heap_count *= indices[i].count;
       }
   }
 
@@ -203,12 +210,13 @@ namespace mkrecv
 	      }
 	  }
 	// All other index components are used in the same way
+	/* old code
 	for (i = 1; i < nindices; i++)
 	  {
 	    indices[i].index = (indices[i].value - indices[i].first)/indices[i].step;
 	    if ((indices[i].value < indices[i].first) || (indices[i].index >= indices[i].count))
 	      {
-		tstat.nskipped++;
+	        tstat.nskipped++;
 		indices[i].nskipped++;
 		dest_index = TRASH_DEST;
 	      }
@@ -220,6 +228,19 @@ namespace mkrecv
 	      {
 		indices[i].ocount++;
 	      }
+	  }
+	 */
+	for (i = 1; i < nindices; i++)
+	  {
+	    try {
+	      indices[i].index = indices[i].value2index.at(indices[i].value);
+	    }
+	    catch (const std::out_of_range& oor) {
+	      indices[i].index = 0;
+	      tstat.nskipped++;
+	      indices[i].nskipped++;
+	      dest_index = TRASH_DEST;
+	    }
 	  }
       }
     // calculate the heap index, for example Timestamp -> Engine/Board/Antenna -> Frequency -> Time -> Polarization -> Complex number
@@ -398,6 +419,7 @@ namespace mkrecv
 	  std::cout << " payload " << tstat.nexpected << " " << tstat.nreceived
 		    << " cts " << ctsd << " " << ctst
 		    << std::endl;
+	  /*
 	  if (log_counter <= LOG_FREQ)
 	    {
 	      for (i = 1; i < nindices; i++)
@@ -409,6 +431,7 @@ namespace mkrecv
 		    }
 		}
 	    }
+	  */
 	}
       /*
       if (nd > 100000)

@@ -4,6 +4,8 @@
 #include <iostream>
 #include <cstdint>
 #include <cstdlib>
+#include <vector>
+
 #include <boost/program_options.hpp>
 
 #include <spead2/recv_udp.h>
@@ -135,7 +137,7 @@
 /* The first item pointer is a running value, therefore no FIRST or COUNT value needed. */
 #define IDX1_ITEM_OPT      "idx1_item"
 #define IDX1_ITEM_KEY      "IDX1_ITEM"
-#define IDX1_ITEM_DESC     "Item pointer index for first index"
+#define IDX1_ITEM_DESC     "Item pointer index for the first index"
 #define IDX1_ITEM_DEF      0
 
 #define IDX1_STEP_OPT      "idx1_step"
@@ -146,9 +148,9 @@
 /* The second item pointer used as an index (inside the first index). */
 #define IDX2_ITEM_OPT      "idx2_item"
 #define IDX2_ITEM_KEY      "IDX2_ITEM"
-#define IDX2_ITEM_DESC     "Item pointer index for second index"
+#define IDX2_ITEM_DESC     "Item pointer index for the second index"
 #define IDX2_ITEM_DEF      0
-
+/*
 #define IDX2_STEP_OPT      "idx2_step"
 #define IDX2_STEP_KEY      "IDX2_STEP"
 #define IDX2_STEP_DESC     "The difference between successive item pointer values"
@@ -163,13 +165,18 @@
 #define IDX2_COUNT_KEY     "IDX2_COUNT"
 #define IDX2_COUNT_DESC    "The number of used item pointer values"
 #define IDX2_COUNT_DEF     0
+*/
+#define IDX2_LIST_OPT      "idx2_list"
+#define IDX2_LIST_KEY      "IDX2_LIST"
+#define IDX2_LIST_DESC     "A List of item pointer values for the second index"
+#define IDX2_LIST_DEF      ""
 
 /* The third item pointer used as an index (inside the second index). */
 #define IDX3_ITEM_OPT      "idx3_item"
 #define IDX3_ITEM_KEY      "IDX3_ITEM"
-#define IDX3_ITEM_DESC     "Item pointer index for third index"
+#define IDX3_ITEM_DESC     "Item pointer index for the third index"
 #define IDX3_ITEM_DEF      0
-
+/*
 #define IDX3_STEP_OPT      "idx3_step"
 #define IDX3_STEP_KEY      "IDX3_STEP"
 #define IDX3_STEP_DESC     "The difference between successive item pointer values"
@@ -184,13 +191,18 @@
 #define IDX3_COUNT_KEY     "IDX3_COUNT"
 #define IDX3_COUNT_DESC    "The number of used item pointer values"
 #define IDX3_COUNT_DEF     0
+*/
+#define IDX3_LIST_OPT      "idx3_list"
+#define IDX3_LIST_KEY      "IDX3_LIST"
+#define IDX3_LIST_DESC     "A List of item pointer values for the third index"
+#define IDX3_LIST_DEF      ""
 
 /* The fourth item pointer used as an index (inside the third index). */
 #define IDX4_ITEM_OPT      "idx4_item"
 #define IDX4_ITEM_KEY      "IDX4_ITEM"
-#define IDX4_ITEM_DESC     "Item pointer index for fourth index"
+#define IDX4_ITEM_DESC     "Item pointer index for the fourth index"
 #define IDX4_ITEM_DEF      0
-
+/*
 #define IDX4_STEP_OPT      "idx4_step"
 #define IDX4_STEP_KEY      "IDX4_STEP"
 #define IDX4_STEP_DESC     "The difference between successive item pointer values"
@@ -205,6 +217,11 @@
 #define IDX4_COUNT_KEY     "IDX4_COUNT"
 #define IDX4_COUNT_DESC    "The number of used item pointer values"
 #define IDX4_COUNT_DEF     0
+*/
+#define IDX4_LIST_OPT      "idx4_list"
+#define IDX4_LIST_KEY      "IDX4_LIST"
+#define IDX4_LIST_DESC     "A List of item pointer values for the fourth index"
+#define IDX4_LIST_DEF      ""
 
 namespace po = boost::program_options;
 
@@ -216,10 +233,12 @@ namespace mkrecv
   class index_options
   {
   public:
-    std::size_t               item   = 0; // IDXi_ITEM
-    std::size_t               step   = 1; // IDXi_STEP
-    std::size_t               first  = 0; // IDXi_FIRST
-    std::size_t               count  = 1; // IDXi_COUNT
+    std::size_t                           item   = 0;  // IDXi_ITEM
+    std::size_t                           step   = 1;  // IDXi_STEP
+    //std::size_t                           first  = 0;  // IDXi_FIRST
+    //std::size_t                           count  = 1;  // IDXi_COUNT
+    std::string                           list   = ""; // IDXi_LIST
+    std::vector<spead2::s_item_pointer_t> values;
   };
 
   class options
@@ -284,6 +303,7 @@ namespace mkrecv
     void set_start_time(int64_t timestamp);
     void use_sources(std::vector<std::string> &val, const char *opt, const char *key);
     void update_sources();
+    void extract_values(std::vector<spead2::s_item_pointer_t> &val, const std::string &str);
     bool check_header();
     virtual void create_args();
     virtual void apply_header();

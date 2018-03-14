@@ -379,6 +379,39 @@ namespace mkrecv
       }
   }
 
+  void options::extract_values(std::vector<spead2::s_item_pointer_t> &val, const std::string &str)
+  {
+    int i;
+    std::string::size_type pos, lastPos = 0, length = str.length();
+
+    val.clear();
+    while(lastPos < length + 1) {
+      pos = str.find_first_of(",", lastPos);
+      if(pos == std::string::npos) {
+	pos = length;
+      }
+      if(pos != lastPos)
+	{
+	  std::string el(str.data()+lastPos, pos-lastPos);
+	  if (el.compare(0,2,"0x") == 0)
+	    {
+	      val.push_back(std::stol(std::string(el.begin() + 2, el.end()), nullptr, 16));
+	    }
+	  else
+	    {
+	      val.push_back(std::stol(el, nullptr, 10));
+	    }
+	}
+      lastPos = pos + 1;
+    }
+    std::cout << "item value list:";
+    for (i = 0; i < val.size(); i++)
+      {
+	std::cout << " " << val.at(i) << "->" << i;
+      }
+    std::cout << std::endl;
+  }
+
   bool options::check_header()
   {
     bool result = (header[DADA_DEFAULT_HEADER_SIZE+1] == ASCII_HEADER_SENTINEL);
@@ -425,17 +458,20 @@ namespace mkrecv
       (IDX1_ITEM_OPT,    make_opt(indices[0].item),  IDX1_ITEM_DESC)
       (IDX1_STEP_OPT,    make_opt(indices[0].step),  IDX1_STEP_DESC)
       (IDX2_ITEM_OPT,    make_opt(indices[1].item),  IDX2_ITEM_DESC)
-      (IDX2_STEP_OPT,    make_opt(indices[1].step),  IDX2_STEP_DESC)
-      (IDX2_FIRST_OPT,   make_opt(indices[1].first), IDX2_FIRST_DESC)
-      (IDX2_COUNT_OPT,   make_opt(indices[1].count), IDX2_COUNT_DESC)
+      //(IDX2_STEP_OPT,    make_opt(indices[1].step),  IDX2_STEP_DESC)
+      //(IDX2_FIRST_OPT,   make_opt(indices[1].first), IDX2_FIRST_DESC)
+      //(IDX2_COUNT_OPT,   make_opt(indices[1].count), IDX2_COUNT_DESC)
+      (IDX2_LIST_OPT,    make_opt(indices[1].list),  IDX2_LIST_DESC)
       (IDX3_ITEM_OPT,    make_opt(indices[2].item),  IDX3_ITEM_DESC)
-      (IDX3_STEP_OPT,    make_opt(indices[2].step),  IDX3_STEP_DESC)
-      (IDX3_FIRST_OPT,   make_opt(indices[2].first), IDX3_FIRST_DESC)
-      (IDX3_COUNT_OPT,   make_opt(indices[2].count), IDX3_COUNT_DESC)
+      //(IDX3_STEP_OPT,    make_opt(indices[2].step),  IDX3_STEP_DESC)
+      //(IDX3_FIRST_OPT,   make_opt(indices[2].first), IDX3_FIRST_DESC)
+      //(IDX3_COUNT_OPT,   make_opt(indices[2].count), IDX3_COUNT_DESC)
+      (IDX3_LIST_OPT,    make_opt(indices[2].list),  IDX3_LIST_DESC)
       (IDX4_ITEM_OPT,    make_opt(indices[3].item),  IDX4_ITEM_DESC)
-      (IDX4_STEP_OPT,    make_opt(indices[3].step),  IDX4_STEP_DESC)
-      (IDX4_FIRST_OPT,   make_opt(indices[3].first), IDX4_FIRST_DESC)
-      (IDX4_COUNT_OPT,   make_opt(indices[3].count), IDX4_COUNT_DESC)
+      //(IDX4_STEP_OPT,    make_opt(indices[3].step),  IDX4_STEP_DESC)
+      //(IDX4_FIRST_OPT,   make_opt(indices[3].first), IDX4_FIRST_DESC)
+      //(IDX4_COUNT_OPT,   make_opt(indices[3].count), IDX4_COUNT_DESC)
+      (IDX4_LIST_OPT,    make_opt(indices[3].list),  IDX4_LIST_DESC)
       ;
     hidden.add_options()
       // network configuration
@@ -485,23 +521,29 @@ namespace mkrecv
     if (nindices >= 2)
       {
 	set_opt(indices[1].item,  IDX2_ITEM_OPT,  IDX2_ITEM_KEY);
-	set_opt(indices[1].step,  IDX2_STEP_OPT,  IDX2_STEP_KEY);
-	set_opt(indices[1].first, IDX2_FIRST_OPT, IDX2_FIRST_KEY);
-	set_opt(indices[1].count, IDX2_COUNT_OPT, IDX2_COUNT_KEY);
+	//set_opt(indices[1].step,  IDX2_STEP_OPT,  IDX2_STEP_KEY);
+	//set_opt(indices[1].first, IDX2_FIRST_OPT, IDX2_FIRST_KEY);
+	//set_opt(indices[1].count, IDX2_COUNT_OPT, IDX2_COUNT_KEY);
+	set_opt(indices[1].list,  IDX2_LIST_OPT,  IDX2_LIST_KEY);
+	extract_values(indices[1].values, indices[1].list);
       }
     if (nindices >= 3)
       {
 	set_opt(indices[2].item,  IDX3_ITEM_OPT,  IDX3_ITEM_KEY);
-	set_opt(indices[2].step,  IDX3_STEP_OPT,  IDX3_STEP_KEY);
-	set_opt(indices[2].first, IDX3_FIRST_OPT, IDX3_FIRST_KEY);
-	set_opt(indices[2].count, IDX3_COUNT_OPT, IDX3_COUNT_KEY);
+	//set_opt(indices[2].step,  IDX3_STEP_OPT,  IDX3_STEP_KEY);
+	//set_opt(indices[2].first, IDX3_FIRST_OPT, IDX3_FIRST_KEY);
+	//set_opt(indices[2].count, IDX3_COUNT_OPT, IDX3_COUNT_KEY);
+	set_opt(indices[2].list,  IDX3_LIST_OPT,  IDX3_LIST_KEY);
+	extract_values(indices[2].values, indices[2].list);
       }
     if (nindices >= 4)
       {
 	set_opt(indices[3].item,  IDX4_ITEM_OPT,  IDX4_ITEM_KEY);
-	set_opt(indices[3].step,  IDX4_STEP_OPT,  IDX4_STEP_KEY);
-	set_opt(indices[3].first, IDX4_FIRST_OPT, IDX4_FIRST_KEY);
-	set_opt(indices[3].count, IDX4_COUNT_OPT, IDX4_COUNT_KEY);
+	//set_opt(indices[3].step,  IDX4_STEP_OPT,  IDX4_STEP_KEY);
+	//set_opt(indices[3].first, IDX4_FIRST_OPT, IDX4_FIRST_KEY);
+	//set_opt(indices[3].count, IDX4_COUNT_OPT, IDX4_COUNT_KEY);
+	set_opt(indices[3].list,  IDX4_LIST_OPT,  IDX4_LIST_KEY);
+	extract_values(indices[3].values, indices[3].list);
       }
     use_sources(sources,     SOURCES_OPT, SOURCES_KEY);
     update_sources();
