@@ -62,6 +62,8 @@ namespace mkrecv
     for (i = 0; i < MAX_INDEXPARTS; i++)
       {
 	indices[i].set(opts->indices[i]);
+	if (i == 0) indices[i].count = 1;
+	heap_count *= indices[i].count;
       }
   }
 
