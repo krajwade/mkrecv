@@ -64,12 +64,8 @@ namespace mkrecv
     std::unordered_map<spead2::s_item_pointer_t, std::size_t> value2index;
     std::size_t               first    = 0;
     std::size_t               count    = 0;
-    spead2::s_item_pointer_t  value    = 0; // value of the item inside the current heap
-    std::size_t               index    = 0;
     std::size_t               nerror   = 0;
     std::size_t               nskipped = 0;
-    //std::size_t               ocount   = 0; // Number of heaps where the item pointer value is outside [0 .. MAX_VALUE[
-    //std::size_t               hcount[MAX_VALUE];
     index_part();
     void set(const index_options &opt);
   };

@@ -8,14 +8,6 @@ namespace mkrecv
 
   index_part::index_part()
   {
-    /*
-    int i;
-
-    for (i = 0; i < MAX_VALUE; i++)
-      {
-	hcount[i] = 0;
-      }
-    */
   }
 
   void index_part::set(const index_options &opt)
@@ -81,16 +73,18 @@ namespace mkrecv
     spead2::recv::packet_header    *ph = (spead2::recv::packet_header*)hint;
     spead2::recv::pointer_decoder   decoder(ph->heap_address_bits);
     int                             i;
+    spead2::s_item_pointer_t        item_value[MAX_INDEXPARTS];
+    std::size_t                     item_index[MAX_INDEXPARTS];
     int                             dest_index;
     std::size_t                     heap_index;
     char*                           mem_base = NULL;
     std::size_t                     mem_offset;
 
-    // Use semaphore to guard this method
-    std::lock_guard<std::mutex> lock(dest_mutex);
     // Ignore heaps which have a id (cnt) equal to 1, these are no data heaps
     if (ph->heap_cnt == 1)
       {
+	// **** GUARDED BY SEMAPHORE ****
+	std::lock_guard<std::mutex> lock(dest_mutex);
 	tstat.ntotal++;
 	tstat.nignored++;
 	dest[TRASH_DEST].count++;
@@ -98,12 +92,30 @@ namespace mkrecv
 	tstat.nexpected += size;
 	return pointer((std::uint8_t*)(dest[TRASH_DEST].ptr->ptr()), deleter(shared_from_this(), (void *)std::uintptr_t(size)));
       }
+    // Assume that this heap will go into a ringbuffer
+    dest_index = DATA_DEST;
     // Extract all item pointer values used for index calculation
     for (i = 0; i < nindices; i++)
       {
 	spead2::item_pointer_t pts = spead2::load_be<spead2::item_pointer_t>(ph->pointers + indices[i].item);
-	indices[i].value = decoder.get_immediate(pts);
+	item_value[i] = decoder.get_immediate(pts);
       }
+    // All other index components are used in the same way
+    for (i = 1; i < nindices; i++)
+      {
+	try {
+	  item_index[i] = indices[i].value2index.at(item_value[i]);
+	}
+	catch (const std::out_of_range& oor) {
+	  item_index[i] = 0;
+	  indices[i].nskipped++;
+	  dest_index = TRASH_DEST;
+	}
+      }
+    // **** GUARDED BY SEMAPHORE ****
+    std::lock_guard<std::mutex> lock(dest_mutex);
+    tstat.ntotal++;
+    if (dest_index == TRASH_DEST) tstat.nskipped++;
     // If it is the first data heap, we have to setup some stuff
     if (state == INIT_STATE)
       {
@@ -117,7 +129,7 @@ namespace mkrecv
 	dest[TEMP_DEST].cts = 1;
 	state = SEQUENTIAL_STATE;
 	// Set the first running index value (first item pointer used for indexing)
-	indices[0].first = indices[0].value + 2*indices[0].step; // 2 is a safety margin to avoid incomplete heaps
+	indices[0].first = item_value[0] + 2*indices[0].step; // 2 is a safety margin to avoid incomplete heaps
 	if (dada_mode >= 2)
 	  {
 	    opts->set_start_time(indices[0].first);
@@ -132,9 +144,6 @@ namespace mkrecv
 	std::cout << "TRASH_DEST: capacity " << dest[TRASH_DEST].capacity << " space " << dest[TRASH_DEST].space << std::endl;
 	std::cout << "heap " << ph->heap_cnt << " cts " << dest[DATA_DEST].cts << " " << dest[TEMP_DEST].cts << " " << dest[TRASH_DEST].cts << std::endl;
       }
-    // Assume that this heap will go into a ringbuffer
-    dest_index = DATA_DEST;
-    tstat.ntotal++;
     if (hasStopped)
       { // If the process has stopped, any heap will go into the trash
 	tstat.nskipped++;
@@ -145,13 +154,13 @@ namespace mkrecv
 	// Calculate all indices and check their value.
 	// The first index component is something special because it is unique
 	// and it is used to select between DATA_DEST and TEMP_DEST.
-	indices[0].index = (indices[0].value - indices[0].first)/indices[0].step;
-	if ((indices[0].value > indices[0].first) && (indices[0].index >= 4*dest[DATA_DEST].capacity))
+	item_index[0] = (item_value[0] - indices[0].first)/indices[0].step;
+	if ((item_value[0] > indices[0].first) && (item_index[0] >= 4*dest[DATA_DEST].capacity))
 	  {
 	    indices[0].nerror++;
 	    dest_index = TRASH_DEST;
 	  }
-	else if (indices[0].value < indices[0].first)
+	else if (item_value[0] < indices[0].first)
 	  {
 	    tstat.nskipped++;
 	    indices[0].nskipped++;
@@ -159,49 +168,36 @@ namespace mkrecv
 	  }
 	else if (state == SEQUENTIAL_STATE)
 	  {
-	    if (indices[0].index >= (dest[DATA_DEST].capacity + dest[TEMP_DEST].capacity))
+	    if (item_index[0] >= (dest[DATA_DEST].capacity + dest[TEMP_DEST].capacity))
 	      {
 		tstat.noverrun++;
 		dest_index = TRASH_DEST;
 	      }
-	    else if (indices[0].index >= dest[DATA_DEST].capacity)
+	    else if (item_index[0] >= dest[DATA_DEST].capacity)
 	      {
 		dest_index = TEMP_DEST;
-		indices[0].index -= dest[DATA_DEST].capacity;
+		item_index[0] -= dest[DATA_DEST].capacity;
 	      }
 	  }
 	else if (state == PARALLEL_STATE)
 	  {
-	    if (indices[0].index >= dest[DATA_DEST].capacity)
+	    if (item_index[0] >= dest[DATA_DEST].capacity)
 	      {
 		tstat.noverrun++;
 		dest_index = TRASH_DEST;
 	      }
-	    else if (indices[0].index < dest[TEMP_DEST].capacity)
+	    else if (item_index[0] < dest[TEMP_DEST].capacity)
 	      {
 		dest_index = TEMP_DEST;
 	      }
 	  }
-	// All other index components are used in the same way
-	for (i = 1; i < nindices; i++)
-	  {
-	    try {
-	      indices[i].index = indices[i].value2index.at(indices[i].value);
-	    }
-	    catch (const std::out_of_range& oor) {
-	      indices[i].index = 0;
-	      tstat.nskipped++;
-	      indices[i].nskipped++;
-	      dest_index = TRASH_DEST;
-	    }
-	  }
       }
     // calculate the heap index, for example Timestamp -> Engine/Board/Antenna -> Frequency -> Time -> Polarization -> Complex number
-    heap_index = indices[0].index;
+    heap_index = item_index[0];
     for (i = 1; i < nindices; i++)
       {
 	heap_index *= indices[i].count;
-	heap_index += indices[i].index;
+	heap_index += item_index[i];
       }
     if (dada_mode == 0)
       {
@@ -233,7 +229,6 @@ namespace mkrecv
 
   void allocator::handle_data_full()
   {
-    //std::lock_guard<std::mutex> lock(dest_mutex);
     if (dada_mode >= 3)
       {
 	// release the current ringbuffer slot
@@ -275,7 +270,6 @@ namespace mkrecv
       {
 	memcpy(dest[DATA_DEST].ptr->ptr(), dest[TEMP_DEST].ptr->ptr(), dest[TEMP_DEST].space*heap_size);
       }
-    //std::lock_guard<std::mutex> lock(dest_mutex);
     dest[TEMP_DEST].needed  = dest[TEMP_DEST].space;
     dest[DATA_DEST].needed -= dest[TEMP_DEST].space;
     dest[TEMP_DEST].cts = 1;
@@ -289,101 +283,64 @@ namespace mkrecv
     state = SEQUENTIAL_STATE;
   }
 
-  /*
-    void do_handle_data_full(allocator *rb)
-    {
-    rb->handle_data_full();
-    }
-
-    void do_handle_temp_full(allocator *rb)
-    {
-    rb->handle_temp_full();
-    }
-  */
-
   void allocator::mark(spead2::s_item_pointer_t cnt, bool isok, spead2::s_item_pointer_t reclen)
   {
     std::size_t  nd, nt, rt, ctsd, ctst, i, j;
 
-    {
-      std::lock_guard<std::mutex> lock(dest_mutex);
-      int d = heap2dest[cnt];
-      dest[d].needed--;
-      dest[d].cts--;
-      heap2dest.erase(cnt);
-      tstat.nreceived += reclen;
-      nd = dest[DATA_DEST].needed;
-      nt = dest[TEMP_DEST].needed;
-      rt = dest[TEMP_DEST].space - dest[TEMP_DEST].needed;
-      ctsd = dest[DATA_DEST].cts;
-      ctst = dest[TEMP_DEST].cts;
-      if (!isok)
-	{
-	  tstat.ndiscarded++;
-	}
-      else
-	{
-	  tstat.ncompleted++;
-	}
-      //std::cout << "mark " << cnt << " isok " << isok << " dest " << d << " needed " << nd << " " << nt << " cts " << ctsd << " " << ctst << std::endl;
-      if ((tstat.ntotal - log_counter) >= LOG_FREQ)
-	{
-	  int i;
-	  log_counter += LOG_FREQ;
-	  std::cout << "heaps:"
-		    << " total " << tstat.ntotal
-		    << " completed " << tstat.ncompleted
-		    << " discarded " << tstat.ndiscarded;
-	  std::cout << " skipped " << tstat.nskipped;
-	  for (i = 0; i < nindices; i++)
-	    {
-	      std::cout << " " << indices[i].nskipped;
-	    }
-	  std::cout << " overrun " << tstat.noverrun
-		    << " ignored " << tstat.nignored
-		    << " assigned " << dest[DATA_DEST].count << " " << dest[TEMP_DEST].count << " " << dest[TRASH_DEST].count
-		    << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed;
-	  std::cout << " error";
-	  for (i = 0; i < nindices; i++)
-	    {
-	      std::cout << " " << indices[i].nerror;
-	    }
-	  std::cout << " payload " << tstat.nexpected << " " << tstat.nreceived
-		    << " cts " << ctsd << " " << ctst
-		    << std::endl;
-	  /*
-	  if (log_counter <= LOG_FREQ)
-	    {
-	      for (i = 1; i < nindices; i++)
-		{
-		  for (j = 0; j < MAX_VALUE; j++)
-		    {
-		      if (indices[i].hcount[j] == 0) continue;
-		      std::cout << "item " << i << ", value " << j << " count " << indices[i].hcount[j] << std::endl;
-		    }
-		}
-	    }
-	  */
-	}
-      /*
-      if (nd > 100000)
-	{
-	  std::cout << "mark " << cnt << " isok " << isok << " dest " << d << " needed " << nd << " " << nt << std::endl;
-	  exit(0);
-	}
-      */
-    //}
-    //if ((nd == 0) || (ctst == 0))
+    std::lock_guard<std::mutex> lock(dest_mutex);
+    int d = heap2dest[cnt];
+    dest[d].needed--;
+    dest[d].cts--;
+    heap2dest.erase(cnt);
+    tstat.nreceived += reclen;
+    nd = dest[DATA_DEST].needed;
+    nt = dest[TEMP_DEST].needed;
+    rt = dest[TEMP_DEST].space - dest[TEMP_DEST].needed;
+    ctsd = dest[DATA_DEST].cts;
+    ctst = dest[TEMP_DEST].cts;
+    if (!isok)
+      {
+	tstat.ndiscarded++;
+      }
+    else
+      {
+	tstat.ncompleted++;
+      }
+    //std::cout << "mark " << cnt << " isok " << isok << " dest " << d << " needed " << nd << " " << nt << " cts " << ctsd << " " << ctst << std::endl;
+    if ((tstat.ntotal - log_counter) >= LOG_FREQ)
+      {
+	int i;
+	log_counter += LOG_FREQ;
+	std::cout << "heaps:"
+		  << " total " << tstat.ntotal
+		  << " completed " << tstat.ncompleted
+		  << " discarded " << tstat.ndiscarded;
+	std::cout << " skipped " << tstat.nskipped;
+	for (i = 0; i < nindices; i++)
+	  {
+	    std::cout << " " << indices[i].nskipped;
+	  }
+	std::cout << " overrun " << tstat.noverrun
+		  << " ignored " << tstat.nignored
+		  << " assigned " << dest[DATA_DEST].count << " " << dest[TEMP_DEST].count << " " << dest[TRASH_DEST].count
+		  << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed;
+	std::cout << " error";
+	for (i = 0; i < nindices; i++)
+	  {
+	    std::cout << " " << indices[i].nerror;
+	  }
+	std::cout << " payload " << tstat.nexpected << " " << tstat.nreceived
+		  << " cts " << ctsd << " " << ctst
+		  << std::endl;
+      }
     if ((state == SEQUENTIAL_STATE) && (ctst == 0))
       {
-	handle_data_full(); // std::thread dfull(do_handle_data_full, this); <- does not work, terminate
+	handle_data_full();
       }
-    //else if ((nt == 0) || (ctsd == 0))
     else if ((state == PARALLEL_STATE) && (ctsd == 0))
       {
-	handle_temp_full(); // std::thread tfull(do_handle_temp_full, this); <- does not work, terminate
+	handle_temp_full();
       }
-    }
   }
 
   void allocator::request_stop()
