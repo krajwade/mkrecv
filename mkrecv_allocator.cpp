@@ -57,6 +57,8 @@ namespace mkrecv
 	indices[i].set(opts->indices[i]);
 	heap_count *= indices[i].count;
       }
+    cts_data = heap_count*opts->sources.size();
+    cts_temp = opts->sources.size();
   }
 
   allocator::~allocator()
@@ -123,10 +125,10 @@ namespace mkrecv
 	payload_size = ph->payload_length;
 	heap_size = size;
 	dest[DATA_DEST].set_heap_size(heap_size, heap_count);
-	dest[TEMP_DEST].set_heap_size(heap_size, heap_count, 2);
-	dest[TRASH_DEST].set_heap_size(heap_size, heap_count, 2);
-	dest[DATA_DEST].cts = heap_count;
-	dest[TEMP_DEST].cts = 1;
+	dest[TEMP_DEST].set_heap_size(heap_size, heap_count, 20);
+	dest[TRASH_DEST].set_heap_size(heap_size, heap_count, 20);
+	dest[DATA_DEST].cts = cts_data;
+	dest[TEMP_DEST].cts = cts_temp;
 	state = SEQUENTIAL_STATE;
 	// Set the first running index value (first item pointer used for indexing)
 	indices[0].first = item_value[0] + 2*indices[0].step; // 2 is a safety margin to avoid incomplete heaps
@@ -253,12 +255,13 @@ namespace mkrecv
       }
     dest[DATA_DEST].needed  = dest[DATA_DEST].space;
     indices[0].first  += dest[DATA_DEST].capacity*indices[0].step;
-    dest[DATA_DEST].cts = heap_count;
+    dest[DATA_DEST].cts = cts_data;
     // /*
       std::cout << "-> parallel total " << tstat.ntotal << " completed " << tstat.ncompleted << " discarded " << tstat.ndiscarded << " skipped " << tstat.nskipped << " overrun " << tstat.noverrun
       << " assigned " << dest[DATA_DEST].count << " " << dest[TEMP_DEST].count << " " << dest[TRASH_DEST].count
       << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
-      << " payload " << tstat.nexpected << " " << tstat.nreceived << std::endl;
+      << " payload " << tstat.nexpected << " " << tstat.nreceived
+      << " cts " << dest[DATA_DEST].cts << " " << dest[TEMP_DEST].cts << std::endl;
     // */
     // switch to parallel data/temp order
     state = PARALLEL_STATE;
@@ -272,12 +275,13 @@ namespace mkrecv
       }
     dest[TEMP_DEST].needed  = dest[TEMP_DEST].space;
     dest[DATA_DEST].needed -= dest[TEMP_DEST].space;
-    dest[TEMP_DEST].cts = 1;
+    dest[TEMP_DEST].cts = cts_temp;
     // /*
       std::cout << "-> sequential total " << tstat.ntotal << " completed " << tstat.ncompleted << " discarded " << tstat.ndiscarded << " skipped " << tstat.nskipped << " overrun " << tstat.noverrun << " ignored " << tstat.nignored
       << " assigned " << dest[DATA_DEST].count << " " << dest[TEMP_DEST].count << " " << dest[TRASH_DEST].count
       << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
-      << " payload " << tstat.nexpected << " " << tstat.nreceived << std::endl;
+      << " payload " << tstat.nexpected << " " << tstat.nreceived
+      << " cts " << dest[DATA_DEST].cts << " " << dest[TEMP_DEST].cts << std::endl;
     // */
     // switch to sequential data/temp order
     state = SEQUENTIAL_STATE;
@@ -285,7 +289,7 @@ namespace mkrecv
 
   void allocator::mark(spead2::s_item_pointer_t cnt, bool isok, spead2::s_item_pointer_t reclen)
   {
-    std::size_t  nd, nt, rt, ctsd, ctst, i, j;
+    std::size_t  nd, nt, ctsd, ctst, i, j;
 
     std::lock_guard<std::mutex> lock(dest_mutex);
     int d = heap2dest[cnt];
@@ -295,7 +299,6 @@ namespace mkrecv
     tstat.nreceived += reclen;
     nd = dest[DATA_DEST].needed;
     nt = dest[TEMP_DEST].needed;
-    rt = dest[TEMP_DEST].space - dest[TEMP_DEST].needed;
     ctsd = dest[DATA_DEST].cts;
     ctst = dest[TEMP_DEST].cts;
     if (!isok)

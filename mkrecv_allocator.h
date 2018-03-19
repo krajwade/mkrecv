@@ -95,6 +95,8 @@ namespace mkrecv
     std::size_t                        heap_count;  // number of heaps inside one group (-> subclass!)
     std::size_t                        group_first = 0;  // serial number of the first group (needed for index calculation)
     std::size_t                        group_step = 0;   // the serial number difference between consecutive groups
+    std::size_t                        cts_data;
+    std::size_t                        cts_temp;
     int                                state = INIT_STATE;
     statistics                         tstat;
     std::size_t                        dada_mode = 4;
