@@ -21,9 +21,9 @@
 
 #define MAX_THREADS           4
 #define MAX_HEAPS          8192
-#define HEAP_HEADER_SIZE        sizeof(uint64_t)
-#define HEAP_ITEM_SIZE       11*sizeof(uint64_t)
-#define HEAP_PAYLOAD_SIZE  1024*sizeof(uint8_t)
+#define HEAP_HEADER_SIZE               sizeof(uint64_t)
+#define HEAP_ITEM_SIZE                 sizeof(uint64_t)
+#define MAX_HEAP_PAYLOAD_SIZE  16*1024*sizeof(uint8_t)
 
 typedef struct {
   int                 isok;
@@ -80,7 +80,7 @@ static int create_connection(mcast_context_t *context)
     fprintf(stderr, "ERROR: cannot set IP_MULTICAST_LOOP: %s\n", strerror(errno));
     return 0;
   }
-  context->available = HEAP_HEADER_SIZE + HEAP_ITEM_SIZE + HEAP_PAYLOAD_SIZE;
+  context->available = HEAP_HEADER_SIZE + 15*HEAP_ITEM_SIZE + MAX_HEAP_PAYLOAD_SIZE;
   context->data = (uint8_t *)malloc(context->available);
   if (context->data == NULL) {
     fprintf(stderr, "ERROR: cannot allocate buffer for a SPEAD heap packet: %s\n", strerror(errno));
@@ -217,12 +217,7 @@ static void *receive_heaps(void *arg)
   }
   while (1) {
     uint8_t   *ptr = context->data;
-    size_t     needed = HEAP_HEADER_SIZE + HEAP_ITEM_SIZE + HEAP_PAYLOAD_SIZE;
-    while (needed != 0) {
-      ssize_t count = recvfrom(context->sock, ptr, needed, 0, NULL, NULL);
-      needed -= count;
-      ptr    += count;
-    }
+    ssize_t count = recvfrom(context->sock, ptr, context->available, 0, NULL, NULL);
     //if (!g_quiet) printf("packet\n");
     process_heap(context);
     if (context->heap_count == MAX_HEAPS) return NULL;

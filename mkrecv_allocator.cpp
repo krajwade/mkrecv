@@ -125,13 +125,13 @@ namespace mkrecv
 	payload_size = ph->payload_length;
 	heap_size = size;
 	dest[DATA_DEST].set_heap_size(heap_size, heap_count);
-	dest[TEMP_DEST].set_heap_size(heap_size, heap_count, 4*opts->sources.size()/heap_count);
-	dest[TRASH_DEST].set_heap_size(heap_size, heap_count, 4*opts->sources.size()/heap_count);
+	dest[TEMP_DEST].set_heap_size(heap_size, heap_count, 4*opts->sources.size());
+	dest[TRASH_DEST].set_heap_size(heap_size, heap_count, 4*opts->sources.size());
 	dest[DATA_DEST].cts = cts_data;
 	dest[TEMP_DEST].cts = cts_temp;
 	state = SEQUENTIAL_STATE;
 	// Set the first running index value (first item pointer used for indexing)
-	indices[0].first = item_value[0] + 2*indices[0].step; // 2 is a safety margin to avoid incomplete heaps
+	indices[0].first = item_value[0] + 256*indices[0].step; // 2 is a safety margin to avoid incomplete heaps
 	if (dada_mode >= 2)
 	  {
 	    opts->set_start_time(indices[0].first);
@@ -174,6 +174,8 @@ namespace mkrecv
 	      {
 		tstat.noverrun++;
 		dest_index = TRASH_DEST;
+		std::cout << "SEQ overrun: " << ph->heap_cnt << " " << item_value[0] << " " << item_index[0] << " " << indices[0].first << " " << indices[0].step << std::endl;
+		if (tstat.noverrun == 100) exit(1);
 	      }
 	    else if (item_index[0] >= dest[DATA_DEST].capacity)
 	      {
