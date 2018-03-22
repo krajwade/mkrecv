@@ -98,6 +98,7 @@ namespace mkrecv
     std::size_t                        cts_data;
     std::size_t                        cts_temp;
     int                                state = INIT_STATE;
+    bool                               hasStarted = false;
     statistics                         tstat;
     std::size_t                        dada_mode = 4;
     std::size_t                        log_counter = 0;

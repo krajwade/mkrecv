@@ -80,7 +80,7 @@
 #define DADA_MODE_DESC     "dada mode (0 = no, 1 = huge trash, 2 = dada, 3 = dada+slot, 4 = full dada"
 #define DADA_MODE_DEF      4
 
-/* The following options describe the connection to the F-Engines (network) */
+/* The following options describe the connection to the network */
 
 #define NETMAP_IF_OPT      "netmap"
 #define NETMAP_IF_KEY      "NETMAP_IF"
@@ -150,22 +150,12 @@
 #define IDX2_ITEM_KEY      "IDX2_ITEM"
 #define IDX2_ITEM_DESC     "Item pointer index for the second index"
 #define IDX2_ITEM_DEF      0
-/*
-#define IDX2_STEP_OPT      "idx2_step"
-#define IDX2_STEP_KEY      "IDX2_STEP"
-#define IDX2_STEP_DESC     "The difference between successive item pointer values"
-#define IDX2_STEP_DEF      0
 
-#define IDX2_FIRST_OPT     "idx2_first"
-#define IDX2_FIRST_KEY     "IDX2_FIRST"
-#define IDX2_FIRST_DESC    "The first used item pointer value"
-#define IDX2_FIRST_DEF     0
+#define IDX2_MASK_OPT      "idx2_mask"
+#define IDX2_MASK_KEY      "IDX2_MASK"
+#define IDX2_MASK_DESC     "Mask for using only a part of an item value"
+#define IDX2_MASK_DEF      0xffffffffffff
 
-#define IDX2_COUNT_OPT     "idx2_count"
-#define IDX2_COUNT_KEY     "IDX2_COUNT"
-#define IDX2_COUNT_DESC    "The number of used item pointer values"
-#define IDX2_COUNT_DEF     0
-*/
 #define IDX2_LIST_OPT      "idx2_list"
 #define IDX2_LIST_KEY      "IDX2_LIST"
 #define IDX2_LIST_DESC     "A List of item pointer values for the second index"
@@ -176,22 +166,12 @@
 #define IDX3_ITEM_KEY      "IDX3_ITEM"
 #define IDX3_ITEM_DESC     "Item pointer index for the third index"
 #define IDX3_ITEM_DEF      0
-/*
-#define IDX3_STEP_OPT      "idx3_step"
-#define IDX3_STEP_KEY      "IDX3_STEP"
-#define IDX3_STEP_DESC     "The difference between successive item pointer values"
-#define IDX3_STEP_DEF      0
 
-#define IDX3_FIRST_OPT     "idx3_first"
-#define IDX3_FIRST_KEY     "IDX3_FIRST"
-#define IDX3_FIRST_DESC    "The first used item pointer value"
-#define IDX3_FIRST_DEF     0
+#define IDX3_MASK_OPT      "idx3_mask"
+#define IDX3_MASK_KEY      "IDX3_MASK"
+#define IDX3_MASK_DESC     "Mask for using only a part of an item value"
+#define IDX3_MASK_DEF      0xffffffffffff
 
-#define IDX3_COUNT_OPT     "idx3_count"
-#define IDX3_COUNT_KEY     "IDX3_COUNT"
-#define IDX3_COUNT_DESC    "The number of used item pointer values"
-#define IDX3_COUNT_DEF     0
-*/
 #define IDX3_LIST_OPT      "idx3_list"
 #define IDX3_LIST_KEY      "IDX3_LIST"
 #define IDX3_LIST_DESC     "A List of item pointer values for the third index"
@@ -202,26 +182,22 @@
 #define IDX4_ITEM_KEY      "IDX4_ITEM"
 #define IDX4_ITEM_DESC     "Item pointer index for the fourth index"
 #define IDX4_ITEM_DEF      0
-/*
-#define IDX4_STEP_OPT      "idx4_step"
-#define IDX4_STEP_KEY      "IDX4_STEP"
-#define IDX4_STEP_DESC     "The difference between successive item pointer values"
-#define IDX4_STEP_DEF      0
 
-#define IDX4_FIRST_OPT     "idx4_first"
-#define IDX4_FIRST_KEY     "IDX4_FIRST"
-#define IDX4_FIRST_DESC    "The first used item pointer value"
-#define IDX4_FIRST_DEF     0
+#define IDX4_MASK_OPT      "idx4_mask"
+#define IDX4_MASK_KEY      "IDX4_MASK"
+#define IDX4_MASK_DESC     "Mask for using only a part on an item value"
+#define IDX4_MASK_DEF      0xffffffffffff
 
-#define IDX4_COUNT_OPT     "idx4_count"
-#define IDX4_COUNT_KEY     "IDX4_COUNT"
-#define IDX4_COUNT_DESC    "The number of used item pointer values"
-#define IDX4_COUNT_DEF     0
-*/
 #define IDX4_LIST_OPT      "idx4_list"
 #define IDX4_LIST_KEY      "IDX4_LIST"
 #define IDX4_LIST_DESC     "A List of item pointer values for the fourth index"
 #define IDX4_LIST_DEF      ""
+
+/* It is possible to specify the heap size and use it as a filter, otherwise the first heap is used to determine this size. */
+#define HEAP_SIZE_OPT      "heap_size"
+#define HEAP_SIZE_KEY      "HEAP_SIZE"
+#define HEAP_SIZE_DESC     "The heap sizp used for checking incomming heaps."
+#define HEAP_SIZE_DEF      0
 
 namespace po = boost::program_options;
 
@@ -233,11 +209,10 @@ namespace mkrecv
   class index_options
   {
   public:
-    std::size_t                           item   = 0;  // IDXi_ITEM
-    std::size_t                           step   = 1;  // IDXi_STEP
-    //std::size_t                           first  = 0;  // IDXi_FIRST
-    //std::size_t                           count  = 1;  // IDXi_COUNT
-    std::string                           list   = ""; // IDXi_LIST
+    std::size_t                           item   = 0;               // IDXi_ITEM
+    std::size_t                           mask   = 0xffffffffffff;  // IDXi_MASK
+    std::size_t                           step   = 1;               // IDXi_STEP
+    std::string                           list   = "";              // IDXi_LIST
     std::vector<spead2::s_item_pointer_t> values;
   };
 
@@ -280,6 +255,7 @@ namespace mkrecv
     // Index definitions for mapping a heap to an index
     int                       nindices        = 0;
     index_options             indices[MAX_INDEXPARTS];
+    std::size_t               heap_size       = HEAP_SIZE_DEF;
     // heap filter mechanism
     char                     *header          = NULL;
   protected:

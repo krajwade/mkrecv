@@ -15,6 +15,7 @@ namespace mkrecv
     int  i;
 
     item  = opt.item*sizeof(spead2::item_pointer_t);
+    mask  = opt.mask;
     step  = opt.step;
     count = opt.values.size();
     if (count == 0) count = 1;
@@ -57,8 +58,9 @@ namespace mkrecv
 	indices[i].set(opts->indices[i]);
 	heap_count *= indices[i].count;
       }
-    cts_data = heap_count*opts->sources.size();
+    cts_data = opts->sources.size();
     cts_temp = opts->sources.size();
+    heap_size = opts->heap_size;
   }
 
   allocator::~allocator()
@@ -83,7 +85,7 @@ namespace mkrecv
     std::size_t                     mem_offset;
 
     // Ignore heaps which have a id (cnt) equal to 1, these are no data heaps
-    if (ph->heap_cnt == 1)
+    if ((dada_mode == 0) || (ph->heap_cnt == 1)) //|| ((heap_size != HEAP_SIZE_DEF) && (heap_size != size)))
       {
 	// **** GUARDED BY SEMAPHORE ****
 	std::lock_guard<std::mutex> lock(dest_mutex);
@@ -100,7 +102,7 @@ namespace mkrecv
     for (i = 0; i < nindices; i++)
       {
 	spead2::item_pointer_t pts = spead2::load_be<spead2::item_pointer_t>(ph->pointers + indices[i].item);
-	item_value[i] = decoder.get_immediate(pts);
+	item_value[i] = decoder.get_immediate(pts); // & indices[i].mask; // a mask is used to restrict the used bits of an item value (default -> use all bits)
       }
     // All other index components are used in the same way
     for (i = 1; i < nindices; i++)
@@ -123,15 +125,15 @@ namespace mkrecv
       {
 	// Extract payload size and heap size as long as we are in INIT_STATE
 	payload_size = ph->payload_length;
-	heap_size = size;
+	if (heap_size == HEAP_SIZE_DEF) heap_size = size;
 	dest[DATA_DEST].set_heap_size(heap_size, heap_count);
-	dest[TEMP_DEST].set_heap_size(heap_size, heap_count, 4*opts->sources.size());
-	dest[TRASH_DEST].set_heap_size(heap_size, heap_count, 4*opts->sources.size());
+	dest[TEMP_DEST].set_heap_size(heap_size, heap_count, 4*opts->sources.size()/heap_count);
+	dest[TRASH_DEST].set_heap_size(heap_size, heap_count, 4*opts->sources.size()/heap_count);
 	dest[DATA_DEST].cts = cts_data;
 	dest[TEMP_DEST].cts = cts_temp;
 	state = SEQUENTIAL_STATE;
 	// Set the first running index value (first item pointer used for indexing)
-	indices[0].first = item_value[0] + 256*indices[0].step; // 2 is a safety margin to avoid incomplete heaps
+	indices[0].first = item_value[0] + 2*indices[0].step; // 2 is a safety margin to avoid incomplete heaps
 	if (dada_mode >= 2)
 	  {
 	    opts->set_start_time(indices[0].first);
@@ -174,8 +176,13 @@ namespace mkrecv
 	      {
 		tstat.noverrun++;
 		dest_index = TRASH_DEST;
-		std::cout << "SEQ overrun: " << ph->heap_cnt << " " << item_value[0] << " " << item_index[0] << " " << indices[0].first << " " << indices[0].step << std::endl;
-		if (tstat.noverrun == 100) exit(1);
+		/*
+		if (hasStarted)
+		  {
+		    std::cout << "SEQ overrun: " << ph->heap_cnt << " " << item_value[0] << " " << item_index[0] << " " << indices[0].first << " " << indices[0].step << std::endl;
+		    if (tstat.noverrun == 1000) exit(1);
+		  }
+		*/
 	      }
 	    else if (item_index[0] >= dest[DATA_DEST].capacity)
 	      {
@@ -189,6 +196,10 @@ namespace mkrecv
 	      {
 		tstat.noverrun++;
 		dest_index = TRASH_DEST;
+		/*
+		std::cout << "PAR overrun: " << ph->heap_cnt << " " << item_value[0] << " " << item_index[0] << " " << indices[0].first << " " << indices[0].step << std::endl;
+		if (tstat.noverrun == 100) exit(1);
+		*/
 	      }
 	    else if (item_index[0] < dest[TEMP_DEST].capacity)
 	      {
@@ -203,13 +214,13 @@ namespace mkrecv
 	heap_index *= indices[i].count;
 	heap_index += item_index[i];
       }
-    if (dada_mode == 0)
-      {
-	dest_index = TRASH_DEST;
-      }
     if (dest_index == TRASH_DEST)
       {
 	heap_index = 0;
+      }
+    else if (dest_index == DATA_DEST)
+      {
+	hasStarted = true;
       }
     mem_offset = heap_size*heap_index;
     mem_base = dest[dest_index].ptr->ptr();
