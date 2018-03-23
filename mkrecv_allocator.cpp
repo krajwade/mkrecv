@@ -167,13 +167,11 @@ namespace mkrecv
 	  {
 	    tstat.noverrun++;
 	    dest_index = TRASH_DEST;
-	    /*
 	      if (hasStarted)
 	      {
 	      std::cout << "SEQ overrun: " << ph->heap_cnt << " " << item_value[0] << " " << item_index[0] << " " << indices[0].first << " " << indices[0].step << std::endl;
-	      if (tstat.noverrun == 1000) exit(1);
+	      //if (tstat.noverrun == 1000) exit(1);
 	      }
-	    */
 	  }
 	else if (item_index[0] >= dest[DATA_DEST].capacity)
 	  {
@@ -187,10 +185,8 @@ namespace mkrecv
 	  {
 	    tstat.noverrun++;
 	    dest_index = TRASH_DEST;
-	    /*
 	      std::cout << "PAR overrun: " << ph->heap_cnt << " " << item_value[0] << " " << item_index[0] << " " << indices[0].first << " " << indices[0].step << std::endl;
 	      if (tstat.noverrun == 100) exit(1);
-	    */
 	  }
 	else if (item_index[0] < dest[TEMP_DEST].capacity)
 	  {
@@ -282,10 +278,10 @@ namespace mkrecv
   void allocator::mark(spead2::s_item_pointer_t cnt, bool isok, spead2::s_item_pointer_t reclen)
   {
     std::size_t  nd, nt, ctsd, ctst, i, j;
-    int          d = heap2dest[cnt];
 
     // **** GUARDED BY SEMAPHORE ****
     std::lock_guard<std::mutex> lock(dest_mutex);
+    int d = heap2dest[cnt];
     dest[d].needed--;
     dest[d].cts--;
     heap2dest.erase(cnt);
