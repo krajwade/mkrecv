@@ -67,11 +67,6 @@ namespace mkrecv
   {
   }
 
-  int allocator::handle_data_heap(std::size_t size, void *hint, std::size_t &heap_index)
-  {
-    return TRASH_DEST;
-  }
-
   spead2::memory_allocator::pointer allocator::allocate(std::size_t size, void *hint)
   {
     spead2::recv::packet_header    *ph = (spead2::recv::packet_header*)hint;
@@ -79,31 +74,39 @@ namespace mkrecv
     int                             i;
     spead2::s_item_pointer_t        item_value[MAX_INDEXPARTS];
     std::size_t                     item_index[MAX_INDEXPARTS];
-    int                             dest_index;
+    int                             dest_index = DATA_DEST;
     std::size_t                     heap_index;
     char*                           mem_base = NULL;
     std::size_t                     mem_offset;
 
-    // Ignore heaps which have a id (cnt) equal to 1, these are no data heaps
-    if ((dada_mode == 0) || (ph->heap_cnt == 1)) //|| ((heap_size != HEAP_SIZE_DEF) && (heap_size != size)))
+    // **** GUARDED BY SEMAPHORE ****
+    std::lock_guard<std::mutex> lock(dest_mutex);
+    tstat.ntotal++;
+    // Ignore heaps which have a id (cnt) equal to 1, the wrong heap size or if we have stopped
+    bool ignore_heap = hasStopped;
+    ignore_heap |= (ph->heap_cnt == 1);
+    ignore_heap |= ((heap_size != HEAP_SIZE_DEF) && (heap_size != size));
+    if (ignore_heap)
       {
-	// **** GUARDED BY SEMAPHORE ****
-	std::lock_guard<std::mutex> lock(dest_mutex);
-	tstat.ntotal++;
 	tstat.nignored++;
 	dest[TRASH_DEST].count++;
 	heap2dest[ph->heap_cnt] = TRASH_DEST;
 	tstat.nexpected += size;
 	return pointer((std::uint8_t*)(dest[TRASH_DEST].ptr->ptr()), deleter(shared_from_this(), (void *)std::uintptr_t(size)));
       }
-    // Assume that this heap will go into a ringbuffer
-    dest_index = DATA_DEST;
     // Extract all item pointer values used for index calculation
     for (i = 0; i < nindices; i++)
       {
 	spead2::item_pointer_t pts = spead2::load_be<spead2::item_pointer_t>(ph->pointers + indices[i].item);
-	item_value[i] = decoder.get_immediate(pts); // & indices[i].mask; // a mask is used to restrict the used bits of an item value (default -> use all bits)
+	// a mask is used to restrict the used bits of an item value (default -> use all bits)
+	item_value[i] = decoder.get_immediate(pts) & indices[i].mask;
       }
+    // calculate the index from the timestamp (first index component)
+    if (state == INIT_STATE)
+      { // Set the first running index value (first item pointer used for indexing)
+	indices[0].first = item_value[0] + 2*indices[0].step; // 2 is a safety margin to avoid incomplete heaps
+      }
+    item_index[0] = (item_value[0] - indices[0].first)/indices[0].step;
     // All other index components are used in the same way
     for (i = 1; i < nindices; i++)
       {
@@ -116,9 +119,6 @@ namespace mkrecv
 	  dest_index = TRASH_DEST;
 	}
       }
-    // **** GUARDED BY SEMAPHORE ****
-    std::lock_guard<std::mutex> lock(dest_mutex);
-    tstat.ntotal++;
     if (dest_index == TRASH_DEST) tstat.nskipped++;
     // If it is the first data heap, we have to setup some stuff
     if (state == INIT_STATE)
@@ -132,8 +132,7 @@ namespace mkrecv
 	dest[DATA_DEST].cts = cts_data;
 	dest[TEMP_DEST].cts = cts_temp;
 	state = SEQUENTIAL_STATE;
-	// Set the first running index value (first item pointer used for indexing)
-	indices[0].first = item_value[0] + 2*indices[0].step; // 2 is a safety margin to avoid incomplete heaps
+	
 	if (dada_mode >= 2)
 	  {
 	    opts->set_start_time(indices[0].first);
@@ -148,80 +147,66 @@ namespace mkrecv
 	std::cout << "TRASH_DEST: capacity " << dest[TRASH_DEST].capacity << " space " << dest[TRASH_DEST].space << std::endl;
 	std::cout << "heap " << ph->heap_cnt << " cts " << dest[DATA_DEST].cts << " " << dest[TEMP_DEST].cts << " " << dest[TRASH_DEST].cts << std::endl;
       }
-    if (hasStopped)
-      { // If the process has stopped, any heap will go into the trash
-	tstat.nskipped++;
+    // Calculate all indices and check their value.
+    // The first index component is something special because it is unique
+    // and it is used to select between DATA_DEST and TEMP_DEST.
+    if ((item_value[0] > indices[0].first) && (item_index[0] >= 4*dest[DATA_DEST].capacity))
+      {
+	indices[0].nerror++;
 	dest_index = TRASH_DEST;
       }
-    else
+    else if (item_value[0] < indices[0].first)
       {
-	// Calculate all indices and check their value.
-	// The first index component is something special because it is unique
-	// and it is used to select between DATA_DEST and TEMP_DEST.
-	item_index[0] = (item_value[0] - indices[0].first)/indices[0].step;
-	if ((item_value[0] > indices[0].first) && (item_index[0] >= 4*dest[DATA_DEST].capacity))
+	tstat.nskipped++;
+	indices[0].nskipped++;
+	dest_index = TRASH_DEST;
+      }
+    else if (state == SEQUENTIAL_STATE)
+      {
+	if (item_index[0] >= (dest[DATA_DEST].capacity + dest[TEMP_DEST].capacity))
 	  {
-	    indices[0].nerror++;
+	    tstat.noverrun++;
 	    dest_index = TRASH_DEST;
+	    /*
+	      if (hasStarted)
+	      {
+	      std::cout << "SEQ overrun: " << ph->heap_cnt << " " << item_value[0] << " " << item_index[0] << " " << indices[0].first << " " << indices[0].step << std::endl;
+	      if (tstat.noverrun == 1000) exit(1);
+	      }
+	    */
 	  }
-	else if (item_value[0] < indices[0].first)
+	else if (item_index[0] >= dest[DATA_DEST].capacity)
 	  {
-	    tstat.nskipped++;
-	    indices[0].nskipped++;
+	    dest_index = TEMP_DEST;
+	    item_index[0] -= dest[DATA_DEST].capacity;
+	  }
+      }
+    else if (state == PARALLEL_STATE)
+      {
+	if (item_index[0] >= dest[DATA_DEST].capacity)
+	  {
+	    tstat.noverrun++;
 	    dest_index = TRASH_DEST;
+	    /*
+	      std::cout << "PAR overrun: " << ph->heap_cnt << " " << item_value[0] << " " << item_index[0] << " " << indices[0].first << " " << indices[0].step << std::endl;
+	      if (tstat.noverrun == 100) exit(1);
+	    */
 	  }
-	else if (state == SEQUENTIAL_STATE)
+	else if (item_index[0] < dest[TEMP_DEST].capacity)
 	  {
-	    if (item_index[0] >= (dest[DATA_DEST].capacity + dest[TEMP_DEST].capacity))
-	      {
-		tstat.noverrun++;
-		dest_index = TRASH_DEST;
-		/*
-		if (hasStarted)
-		  {
-		    std::cout << "SEQ overrun: " << ph->heap_cnt << " " << item_value[0] << " " << item_index[0] << " " << indices[0].first << " " << indices[0].step << std::endl;
-		    if (tstat.noverrun == 1000) exit(1);
-		  }
-		*/
-	      }
-	    else if (item_index[0] >= dest[DATA_DEST].capacity)
-	      {
-		dest_index = TEMP_DEST;
-		item_index[0] -= dest[DATA_DEST].capacity;
-	      }
-	  }
-	else if (state == PARALLEL_STATE)
-	  {
-	    if (item_index[0] >= dest[DATA_DEST].capacity)
-	      {
-		tstat.noverrun++;
-		dest_index = TRASH_DEST;
-		/*
-		std::cout << "PAR overrun: " << ph->heap_cnt << " " << item_value[0] << " " << item_index[0] << " " << indices[0].first << " " << indices[0].step << std::endl;
-		if (tstat.noverrun == 100) exit(1);
-		*/
-	      }
-	    else if (item_index[0] < dest[TEMP_DEST].capacity)
-	      {
-		dest_index = TEMP_DEST;
-	      }
+	    dest_index = TEMP_DEST;
 	  }
       }
     // calculate the heap index, for example Timestamp -> Engine/Board/Antenna -> Frequency -> Time -> Polarization -> Complex number
+    if (dada_mode == 0) dest_index = TRASH_DEST;
+    if (dest_index == TRASH_DEST) item_index[0] = 0;
     heap_index = item_index[0];
     for (i = 1; i < nindices; i++)
       {
 	heap_index *= indices[i].count;
 	heap_index += item_index[i];
       }
-    if (dest_index == TRASH_DEST)
-      {
-	heap_index = 0;
-      }
-    else if (dest_index == DATA_DEST)
-      {
-	hasStarted = true;
-      }
+    if (dest_index == DATA_DEST) hasStarted = true;
     mem_offset = heap_size*heap_index;
     mem_base = dest[dest_index].ptr->ptr();
     dest[dest_index].count++;
@@ -242,87 +227,8 @@ namespace mkrecv
   {
   }
 
-  void allocator::handle_data_full()
+  void allocator::show_mark_log()
   {
-    if (dada_mode >= 3)
-      {
-	// release the current ringbuffer slot
-	if (!hasStopped)
-	  {
-	    dest[DATA_DEST].ptr->used_bytes(dest[DATA_DEST].ptr->total_bytes());
-	    dada.data_stream().release();
-	  }
-	// get a new ringbuffer slot
-	if (stop)
-	  {
-	    hasStopped = true;
-	    std::cout << "request to stop the transfer into the ringbuffer received." << std::endl;
-	    dest[DATA_DEST].ptr     = &dada.data_stream().next();
-	    dada.data_stream().release();
-	    stop = false;
-	  }
-	if (!hasStopped)
-	  {
-	    dest[DATA_DEST].ptr     = &dada.data_stream().next();
-	  }
-      }
-    dest[DATA_DEST].needed  = dest[DATA_DEST].space;
-    indices[0].first  += dest[DATA_DEST].capacity*indices[0].step;
-    dest[DATA_DEST].cts = cts_data;
-    // /*
-      std::cout << "-> parallel total " << tstat.ntotal << " completed " << tstat.ncompleted << " discarded " << tstat.ndiscarded << " skipped " << tstat.nskipped << " overrun " << tstat.noverrun
-      << " assigned " << dest[DATA_DEST].count << " " << dest[TEMP_DEST].count << " " << dest[TRASH_DEST].count
-      << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
-      << " payload " << tstat.nexpected << " " << tstat.nreceived
-      << " cts " << dest[DATA_DEST].cts << " " << dest[TEMP_DEST].cts << std::endl;
-    // */
-    // switch to parallel data/temp order
-    state = PARALLEL_STATE;
-  }
-
-  void allocator::handle_temp_full()
-  {
-    if ((dada_mode >= 4) && !hasStopped)
-      {
-	memcpy(dest[DATA_DEST].ptr->ptr(), dest[TEMP_DEST].ptr->ptr(), dest[TEMP_DEST].space*heap_size);
-      }
-    dest[TEMP_DEST].needed  = dest[TEMP_DEST].space;
-    dest[DATA_DEST].needed -= dest[TEMP_DEST].space;
-    dest[TEMP_DEST].cts = cts_temp;
-    // /*
-      std::cout << "-> sequential total " << tstat.ntotal << " completed " << tstat.ncompleted << " discarded " << tstat.ndiscarded << " skipped " << tstat.nskipped << " overrun " << tstat.noverrun << " ignored " << tstat.nignored
-      << " assigned " << dest[DATA_DEST].count << " " << dest[TEMP_DEST].count << " " << dest[TRASH_DEST].count
-      << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
-      << " payload " << tstat.nexpected << " " << tstat.nreceived
-      << " cts " << dest[DATA_DEST].cts << " " << dest[TEMP_DEST].cts << std::endl;
-    // */
-    // switch to sequential data/temp order
-    state = SEQUENTIAL_STATE;
-  }
-
-  void allocator::mark(spead2::s_item_pointer_t cnt, bool isok, spead2::s_item_pointer_t reclen)
-  {
-    std::size_t  nd, nt, ctsd, ctst, i, j;
-
-    std::lock_guard<std::mutex> lock(dest_mutex);
-    int d = heap2dest[cnt];
-    dest[d].needed--;
-    dest[d].cts--;
-    heap2dest.erase(cnt);
-    tstat.nreceived += reclen;
-    nd = dest[DATA_DEST].needed;
-    nt = dest[TEMP_DEST].needed;
-    ctsd = dest[DATA_DEST].cts;
-    ctst = dest[TEMP_DEST].cts;
-    if (!isok)
-      {
-	tstat.ndiscarded++;
-      }
-    else
-      {
-	tstat.ncompleted++;
-      }
-    //std::cout << "mark " << cnt << " isok " << isok << " dest " << d << " needed " << nd << " " << nt << " cts " << ctsd << " " << ctst << std::endl;
     if ((tstat.ntotal - log_counter) >= LOG_FREQ)
       {
 	int i;
@@ -340,22 +246,101 @@ namespace mkrecv
 		  << " ignored " << tstat.nignored
 		  << " assigned " << dest[DATA_DEST].count << " " << dest[TEMP_DEST].count << " " << dest[TRASH_DEST].count
 		  << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed;
-	std::cout << " error";
+	std::cout << " error " << tstat.nerror;
 	for (i = 0; i < nindices; i++)
 	  {
 	    std::cout << " " << indices[i].nerror;
 	  }
 	std::cout << " payload " << tstat.nexpected << " " << tstat.nreceived
-		  << " cts " << ctsd << " " << ctst
+		  << " cts " << dest[DATA_DEST].cts << " " << dest[TEMP_DEST].cts
 		  << std::endl;
       }
+  }
+
+  void allocator::show_state_log()
+  {
+    if (state == SEQUENTIAL_STATE)
+      {
+	std::cout << "-> sequential";
+      }
+    else
+      {
+	std::cout << "-> parallel";
+      }
+    std::cout << " total " << tstat.ntotal
+	      << " completed " << tstat.ncompleted
+	      << " discarded " << tstat.ndiscarded
+	      << " skipped " << tstat.nskipped
+	      << " overrun " << tstat.noverrun
+	      << " ignored " << tstat.nignored
+	      << " assigned " << dest[DATA_DEST].count << " " << dest[TEMP_DEST].count << " " << dest[TRASH_DEST].count
+	      << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
+	      << " payload " << tstat.nexpected << " " << tstat.nreceived
+	      << " cts " << dest[DATA_DEST].cts << " " << dest[TEMP_DEST].cts << std::endl;
+  }
+
+  void allocator::mark(spead2::s_item_pointer_t cnt, bool isok, spead2::s_item_pointer_t reclen)
+  {
+    std::size_t  nd, nt, ctsd, ctst, i, j;
+    int          d = heap2dest[cnt];
+
+    // **** GUARDED BY SEMAPHORE ****
+    std::lock_guard<std::mutex> lock(dest_mutex);
+    dest[d].needed--;
+    dest[d].cts--;
+    heap2dest.erase(cnt);
+    tstat.nreceived += reclen;
+    nd = dest[DATA_DEST].needed;
+    nt = dest[TEMP_DEST].needed;
+    ctsd = dest[DATA_DEST].cts;
+    ctst = dest[TEMP_DEST].cts;
+    if (!isok)
+      {
+	tstat.ndiscarded++;
+      }
+    else
+      {
+	tstat.ncompleted++;
+      }
+    show_mark_log();
+    //std::cout << "mark " << cnt << " isok " << isok << " dest " << d << " needed " << nd << " " << nt << " cts " << ctsd << " " << ctst << std::endl;
     if ((state == SEQUENTIAL_STATE) && (ctst == 0))
       {
-	handle_data_full();
+	if (!hasStopped && (dada_mode >= 3))
+	  { // Release the current slot and get a new one
+	    dest[DATA_DEST].ptr->used_bytes(dest[DATA_DEST].ptr->total_bytes());
+	    dada.data_stream().release();
+	    dest[DATA_DEST].ptr = &dada.data_stream().next();
+	  }
+	if (stop)
+	  {
+	    hasStopped = true;
+	    std::cout << "request to stop the transfer into the ringbuffer received." << std::endl;
+	    if (dada_mode >= 3)
+	      { // release the previously allocated slot without any data -> used as end signal
+		dada.data_stream().release();
+	      }
+	    stop = false;
+	  }
+	dest[DATA_DEST].needed  = dest[DATA_DEST].space;
+	indices[0].first  += dest[DATA_DEST].capacity*indices[0].step;
+	dest[DATA_DEST].cts = cts_data;
+	// switch to parallel data/temp order
+	state = PARALLEL_STATE;
+	show_state_log();
       }
     else if ((state == PARALLEL_STATE) && (ctsd == 0))
       {
-	handle_temp_full();
+	if (!hasStopped && (dada_mode >= 4))
+	  {
+	    memcpy(dest[DATA_DEST].ptr->ptr(), dest[TEMP_DEST].ptr->ptr(), dest[TEMP_DEST].space*heap_size);
+	  }
+	dest[TEMP_DEST].needed  = dest[TEMP_DEST].space;
+	dest[DATA_DEST].needed -= dest[TEMP_DEST].space;
+	dest[TEMP_DEST].cts = cts_temp;
+	// switch to sequential data/temp order
+	state = SEQUENTIAL_STATE;
+	show_state_log();
       }
   }
 

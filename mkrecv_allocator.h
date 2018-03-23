@@ -116,9 +116,8 @@ namespace mkrecv
     void request_stop();
     bool is_stopped();
   protected:
-    void handle_data_full();
-    void handle_temp_full();
-    virtual int handle_data_heap(std::size_t size, void *hint, std::size_t &heap_index);
+    void show_mark_log();
+    void show_state_log();
   };
   
 }
