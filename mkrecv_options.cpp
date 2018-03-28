@@ -104,7 +104,7 @@ namespace mkrecv
 	if (vm.count(HEADER_OPT) != 0)
 	  { // read the given template header file and adapt some configuration parameters
 	    //hdrname = vm[HEADER_OPT].as<std::string>();
-	    std::cout << "try to load file " << hdrname << std::endl;
+	    //std::cout << "try to load file " << hdrname << std::endl;
 	    load_header();
 	  }
 	apply_header(); // use values from header or default values
@@ -133,7 +133,7 @@ namespace mkrecv
 	    std::cerr << "options::load_header(), given file " << hdrname << " contains more than " << DADA_DEFAULT_HEADER_SIZE << " characters, ognoring this file." << std::endl;
 	    return;
 	  }
-	std::cout << "options::load_header(), loading file " << hdrname << std::endl;
+	//std::cout << "options::load_header(), loading file " << hdrname << std::endl;
 	is.read(header, length);
 	if (!is)
 	  {
@@ -145,21 +145,21 @@ namespace mkrecv
 
   void options::set_opt(int &val, const char *opt, const char *key)
   {
-    std::cout << "set_opt(" << val << ", " << opt << ", " << key << ")" << std::endl;
-    std::cout << "  count() = " << vm.count(opt) << std::endl;
+    //std::cout << "set_opt(" << val << ", " << opt << ", " << key << ")" << std::endl;
+    //std::cout << "  count() = " << vm.count(opt) << std::endl;
     if ((vm.count(opt) == 0) && (key[0] != '\0')) {
       // no option specified, try to get a value from the header
       char sval[1024];
       if (ascii_header_get(header, key, "%s", sval) == -1) {
-	std::cout << "  header does not contain a value for " << key << std::endl;
+	//std::cout << "  header does not contain a value for " << key << std::endl;
       } else {
 	if (strcmp(sval, "unset") == 0) {
-	  std::cout << "  header does contain unset for " << key << std::endl;
+	  //std::cout << "  header does contain unset for " << key << std::endl;
 	} else {
 	  if (sscanf(sval, "%d", &val) != 1) {
 	    std::cerr << "header contains no integer or unset for key " << key << std::endl;
 	  } else {
-	    std::cout << "  header contains " << val << std::endl;
+	    //std::cout << "  header contains " << val << std::endl;
 	  }
 	}
       }
@@ -174,28 +174,28 @@ namespace mkrecv
 
   void options::set_opt(std::size_t &val, const char *opt, const char *key)
   {
-    std::cout << "set_opt(" << val << ", " << opt << ", " << key << ")" << std::endl;
-    std::cout << "  count() = " << vm.count(opt) << std::endl;
+    //std::cout << "set_opt(" << val << ", " << opt << ", " << key << ")" << std::endl;
+    //std::cout << "  count() = " << vm.count(opt) << std::endl;
     if ((vm.count(opt) == 0) && (key[0] != '\0')) {
       // no option specified, try to get a value from the header
       char sval[1024];
       if (ascii_header_get(header, key, "%s", sval) == -1) {
-	std::cout << "  header does not contain a value for " << key << std::endl;
+	//std::cout << "  header does not contain a value for " << key << std::endl;
       } else {
 	if (strcmp(sval, "unset") == 0) {
-	  std::cout << "  header does contain unset for " << key << std::endl;
+	  //std::cout << "  header does contain unset for " << key << std::endl;
 	} else {
 	  if (sscanf(sval, "%ld", &val) != 1) {
 	    std::cerr << "header contains no integer or unset for key " << key << std::endl;
 	  } else {
-	    std::cout << "  header contains " << val << std::endl;
+	    //std::cout << "  header contains " << val << std::endl;
 	  }
 	}
       }
     }
     if (key[0] != '\0') {
       ascii_header_set(header, key, "%ld", val);
-      std::cout << "  header becomes " << val << std::endl;
+      //std::cout << "  header becomes " << val << std::endl;
       if (!check_header()) {
 	std::cerr << "ERROR, storing " << key << " with value " << val << " in header failed due to size restrictions. -> incomplete header due to clipping" << std::endl;
       }
@@ -204,29 +204,29 @@ namespace mkrecv
 
   void options::set_opt(std::string &val, const char *opt, const char *key)
   {
-    std::cout << "set_opt(" << val << ", " << opt << ", " << key << ")" << std::endl;
-    std::cout << "  count() = " << vm.count(opt) << " val = " << val << std::endl;
+    //std::cout << "set_opt(" << val << ", " << opt << ", " << key << ")" << std::endl;
+    //std::cout << "  count() = " << vm.count(opt) << " val = " << val << std::endl;
     if ((vm.count(opt) == 0) && (key[0] != '\0')) {
       // no option specified, try to get a value from the header
       char sval[1024];
       if (ascii_header_get(header, key, "%s", sval) == -1) {
-	std::cout << "  header does not contain a value for " << key << std::endl;
+	//std::cout << "  header does not contain a value for " << key << std::endl;
       } else {
 	if (strcmp(sval, "unset") == 0) {
-	  std::cout << "  header does contain unset for " << key << std::endl;
+	  //std::cout << "  header does contain unset for " << key << std::endl;
 	} else {
 	  val = sval;
-	  std::cout << "  header contains " << val << std::endl;
+	  //std::cout << "  header contains " << val << std::endl;
 	}
       }
     }
     if (key[0] != '\0') {
       if (val.length() == 0) {
 	ascii_header_set(header, key, "unset");
-	std::cout << "  header becomes unset" << std::endl;
+	//std::cout << "  header becomes unset" << std::endl;
       } else {
 	ascii_header_set(header, key, "%s", val.c_str());
-	std::cout << "  header becomes " << val << std::endl;
+	//std::cout << "  header becomes " << val << std::endl;
       }
       if (!check_header()) {
 	std::cerr << "ERROR, storing " << key << " with value " << val << " in header failed due to size restrictions. -> incomplete header due to clipping" << std::endl;
@@ -236,22 +236,22 @@ namespace mkrecv
 
   void options::set_opt(bool &val, const char *opt, const char *key)
   {
-    std::cout << "set_opt(" << val << ", " << opt << ", " << key << ")" << std::endl;
-    std::cout << "  count() = " << vm.count(opt) << std::endl;
+    //std::cout << "set_opt(" << val << ", " << opt << ", " << key << ")" << std::endl;
+    //std::cout << "  count() = " << vm.count(opt) << std::endl;
     if ((vm.count(opt) == 0) && (key[0] != '\0')) {
       // no option specified, try to get a value from the header
       char sval[1024];
       if (ascii_header_get(header, key, "%s", sval) == -1) {
-	std::cout << "  header does not contain a value for " << key << std::endl;
+	//std::cout << "  header does not contain a value for " << key << std::endl;
       } else {
 	if (strcmp(sval, "unset") == 0) {
-	  std::cout << "  header does contain unset for " << key << std::endl;
+	  //std::cout << "  header does contain unset for " << key << std::endl;
 	} else {
 	  if (sval[0] == 'F') val = false;
 	  if (sval[0] == 'f') val = false;
 	  if (sval[0] == 'T') val = true;
 	  if (sval[0] == 't') val = true;
-	  std::cout << "  header contains " << val << std::endl;
+	  //std::cout << "  header contains " << val << std::endl;
 	}
       }
     }
@@ -269,21 +269,21 @@ namespace mkrecv
 
   void options::set_opt(double &val, const char *opt, const char *key)
   {
-    std::cout << "set_opt(" << val << ", " << opt << ", " << key << ")" << std::endl;
-    std::cout << "  count() = " << vm.count(opt) << std::endl;
+    //std::cout << "set_opt(" << val << ", " << opt << ", " << key << ")" << std::endl;
+    //std::cout << "  count() = " << vm.count(opt) << std::endl;
     if ((vm.count(opt) == 0) && (key[0] != '\0')) {
       // no option specified, try to get a value from the header
       char sval[1024];
       if (ascii_header_get(header, key, "%s", sval) == -1) {
-	std::cout << "  header does not contain a value for " << key << std::endl;
+	//std::cout << "  header does not contain a value for " << key << std::endl;
       } else {
 	if (strcmp(sval, "unset") == 0) {
-	  std::cout << "  header does contain unset for " << key << std::endl;
+	  //std::cout << "  header does contain unset for " << key << std::endl;
 	} else {
 	  if (sscanf(sval, "%lf", &val) != 1) {
 	    std::cerr << "header contains no float or unset for key " << key << std::endl;
 	  } else {
-	    std::cout << "  header contains " << val << std::endl;
+	    //std::cout << "  header contains " << val << std::endl;
 	  }
 	}
       }
@@ -404,12 +404,14 @@ namespace mkrecv
 	}
       lastPos = pos + 1;
     }
+    /*
     std::cout << "item value list:";
     for (i = 0; i < val.size(); i++)
       {
 	std::cout << " " << val.at(i) << "->" << i;
       }
     std::cout << std::endl;
+    */
   }
 
   bool options::check_header()
@@ -539,10 +541,10 @@ namespace mkrecv
     update_sources();
     if (used_sources.length() == 0) {
       ascii_header_set(header, SOURCES_KEY, "unset");
-      std::cout << "  header becomes unset" << std::endl;
+      //std::cout << "  sources becomes unset" << std::endl;
     } else {
       ascii_header_set(header, SOURCES_KEY, "%s", used_sources.c_str());
-      std::cout << "  header becomes " << used_sources << std::endl;
+      //std::cout << "  sources becomes " << used_sources << std::endl;
     }
     if (!check_header()) {
       std::cerr << "ERROR, storing " << SOURCES_KEY << " with value " << used_sources << " in header failed due to size restrictions. -> incomplete header due to clipping" << std::endl;
