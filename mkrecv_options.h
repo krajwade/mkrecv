@@ -77,7 +77,7 @@
 
 #define DADA_MODE_OPT      "dada"
 #define DADA_MODE_KEY      "DADA_MODE"
-#define DADA_MODE_DESC     "dada mode (0 = no, 1 = huge trash, 2 = dada, 3 = dada+slot, 4 = full dada"
+#define DADA_MODE_DESC     "dada mode (0 = no, 1 = huge trash, 2 = dada, 3 = dada+slot, 4 = full dada)"
 #define DADA_MODE_DEF      4
 
 /* The following options describe the connection to the network */
@@ -196,7 +196,7 @@
 /* It is possible to specify the heap size and use it as a filter, otherwise the first heap is used to determine this size. */
 #define HEAP_SIZE_OPT      "heap_size"
 #define HEAP_SIZE_KEY      "HEAP_SIZE"
-#define HEAP_SIZE_DESC     "The heap sizp used for checking incomming heaps."
+#define HEAP_SIZE_DESC     "The heap size used for checking incomming heaps."
 #define HEAP_SIZE_DEF      0
 
 namespace po = boost::program_options;
