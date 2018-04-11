@@ -48,46 +48,46 @@
 #define JOINT_DESC         "Treat all sources as a single stream"
 
 /* the following options should have sufficient default values */
-#define PACKET_OPT         "packet"
-#define PACKET_KEY         ""
+#define PACKET_OPT         "packet-size"
+#define PACKET_KEY         "PACKET_SIZE"
 #define PACKET_DESC        "Maximum packet size to use for UDP"
 #define PACKET_DEF         spead2::recv::udp_reader::default_max_size
 
-#define BUFFER_OPT         "buffer"
-#define BUFFER_KEY         ""
+#define BUFFER_OPT         "buffer-size"
+#define BUFFER_KEY         "BUFFER_SIZE"
 #define BUFFER_DESC        "Socket buffer size"
 #define BUFFER_DEF         spead2::recv::udp_reader::default_buffer_size
 
-#define NTHREADS_OPT       "threads"
-#define NTHREADS_KEY       ""
+#define NTHREADS_OPT       "nthreads"
+#define NTHREADS_KEY       "NTHREADS"
 #define NTHREADS_DESC      "Number of worker threads"
 #define NTHREADS_DEF       1
 
-#define NHEAPS_OPT         "heaps"
-#define NHEAPS_KEY         ""
+#define NHEAPS_OPT         "nheaps"
+#define NHEAPS_KEY         "NHEAPS"
 #define NHEAPS_DESC        "Maximum number of in-flight heaps"
 #define NHEAPS_DEF         spead2::recv::stream::default_max_heaps
 
 /* The following options describe the DADA ringbuffer use */
 
-#define DADA_KEY_OPT       "key"
+#define DADA_KEY_OPT       "dada-key"
 #define DADA_KEY_KEY       "DADA_KEY"
 #define DADA_KEY_DESC      "PSRDADA ring buffer key"
 #define DADA_KEY_DEF       "dada"
 
-#define DADA_MODE_OPT      "dada"
+#define DADA_MODE_OPT      "dada-mode"
 #define DADA_MODE_KEY      "DADA_MODE"
 #define DADA_MODE_DESC     "dada mode (0 = no, 1 = huge trash, 2 = dada, 3 = dada+slot, 4 = full dada)"
 #define DADA_MODE_DEF      4
 
 /* The following options describe the connection to the network */
 
-#define NETMAP_IF_OPT      "netmap"
+#define NETMAP_IF_OPT      "netmap-if"
 #define NETMAP_IF_KEY      "NETMAP_IF"
 #define NETMAP_IF_DESC     "Netmap interface"
 #define NETMAP_IF_DEF      ""
 
-#define IBV_IF_OPT         "ibv"
+#define IBV_IF_OPT         "ibv-if"
 #define IBV_IF_KEY         "IBV_IF"
 #define IBV_IF_DESC        "Interface address for ibverbs"
 #define IBV_IF_DEF         ""
@@ -102,7 +102,7 @@
 #define IBV_MAX_POLL_DESC  "Maximum number of times to poll in a row"
 #define IBV_MAX_POLL_DEF   spead2::recv::udp_ibv_reader::default_max_poll
 
-#define UDP_IF_OPT         "udp_if"
+#define UDP_IF_OPT         "udp-if"
 #define UDP_IF_KEY         "UDP_IF"
 #define UDP_IF_DESC        "UDP interface"
 #define UDP_IF_DEF         ""
@@ -117,12 +117,12 @@
 #define SOURCES_DESC       "sources"
 
 /* The following options describe the timing information */
-#define SYNC_EPOCH_OPT     "sync_epoch"
+#define SYNC_EPOCH_OPT     "sync-epoch"
 #define SYNC_EPOCH_KEY     "SYNC_TIME"
 #define SYNC_EPOCH_DESC    "the ADC sync epoch"
 #define SYNC_EPOCH_DEF     0.0
 
-#define SAMPLE_CLOCK_OPT   "sample_clock"
+#define SAMPLE_CLOCK_OPT   "sample-clock"
 #define SAMPLE_CLOCK_KEY   "SAMPLE_CLOCK"
 #define SAMPLE_CLOCK_DESC  "virtual sample clock used for calculations"
 #define SAMPLE_CLOCK_DEF   1750000000.0
@@ -135,66 +135,66 @@
 #define NINDICES_DEF       0
 
 /* The first item pointer is a running value, therefore no FIRST or COUNT value needed. */
-#define IDX1_ITEM_OPT      "idx1_item"
+#define IDX1_ITEM_OPT      "idx1-item"
 #define IDX1_ITEM_KEY      "IDX1_ITEM"
 #define IDX1_ITEM_DESC     "Item pointer index for the first index"
 #define IDX1_ITEM_DEF      0
 
-#define IDX1_STEP_OPT      "idx1_step"
+#define IDX1_STEP_OPT      "idx1-step"
 #define IDX1_STEP_KEY      "IDX1_STEP"
 #define IDX1_STEP_DESC     "The difference between successive item pointer values"
 #define IDX1_STEP_DEF      0x200000   // 2^21
 
 /* The second item pointer used as an index (inside the first index). */
-#define IDX2_ITEM_OPT      "idx2_item"
+#define IDX2_ITEM_OPT      "idx2-item"
 #define IDX2_ITEM_KEY      "IDX2_ITEM"
 #define IDX2_ITEM_DESC     "Item pointer index for the second index"
 #define IDX2_ITEM_DEF      0
 
-#define IDX2_MASK_OPT      "idx2_mask"
+#define IDX2_MASK_OPT      "idx2-mask"
 #define IDX2_MASK_KEY      "IDX2_MASK"
 #define IDX2_MASK_DESC     "Mask for using only a part of an item value"
 #define IDX2_MASK_DEF      0xffffffffffff
 
-#define IDX2_LIST_OPT      "idx2_list"
+#define IDX2_LIST_OPT      "idx2-list"
 #define IDX2_LIST_KEY      "IDX2_LIST"
 #define IDX2_LIST_DESC     "A List of item pointer values for the second index"
 #define IDX2_LIST_DEF      ""
 
 /* The third item pointer used as an index (inside the second index). */
-#define IDX3_ITEM_OPT      "idx3_item"
+#define IDX3_ITEM_OPT      "idx3-item"
 #define IDX3_ITEM_KEY      "IDX3_ITEM"
 #define IDX3_ITEM_DESC     "Item pointer index for the third index"
 #define IDX3_ITEM_DEF      0
 
-#define IDX3_MASK_OPT      "idx3_mask"
+#define IDX3_MASK_OPT      "idx3-mask"
 #define IDX3_MASK_KEY      "IDX3_MASK"
 #define IDX3_MASK_DESC     "Mask for using only a part of an item value"
 #define IDX3_MASK_DEF      0xffffffffffff
 
-#define IDX3_LIST_OPT      "idx3_list"
+#define IDX3_LIST_OPT      "idx3-list"
 #define IDX3_LIST_KEY      "IDX3_LIST"
 #define IDX3_LIST_DESC     "A List of item pointer values for the third index"
 #define IDX3_LIST_DEF      ""
 
 /* The fourth item pointer used as an index (inside the third index). */
-#define IDX4_ITEM_OPT      "idx4_item"
+#define IDX4_ITEM_OPT      "idx4-item"
 #define IDX4_ITEM_KEY      "IDX4_ITEM"
 #define IDX4_ITEM_DESC     "Item pointer index for the fourth index"
 #define IDX4_ITEM_DEF      0
 
-#define IDX4_MASK_OPT      "idx4_mask"
+#define IDX4_MASK_OPT      "idx4-mask"
 #define IDX4_MASK_KEY      "IDX4_MASK"
 #define IDX4_MASK_DESC     "Mask for using only a part on an item value"
 #define IDX4_MASK_DEF      0xffffffffffff
 
-#define IDX4_LIST_OPT      "idx4_list"
+#define IDX4_LIST_OPT      "idx4-list"
 #define IDX4_LIST_KEY      "IDX4_LIST"
 #define IDX4_LIST_DESC     "A List of item pointer values for the fourth index"
 #define IDX4_LIST_DEF      ""
 
 /* It is possible to specify the heap size and use it as a filter, otherwise the first heap is used to determine this size. */
-#define HEAP_SIZE_OPT      "heap_size"
+#define HEAP_SIZE_OPT      "heap-size"
 #define HEAP_SIZE_KEY      "HEAP_SIZE"
 #define HEAP_SIZE_DESC     "The heap size used for checking incomming heaps."
 #define HEAP_SIZE_DEF      0
