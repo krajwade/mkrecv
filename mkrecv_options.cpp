@@ -469,6 +469,7 @@ namespace mkrecv
       (IDX4_MASK_OPT,    make_opt(indices[3].mask),  IDX4_MASK_DESC)
       (IDX4_LIST_OPT,    make_opt(indices[3].list),  IDX4_LIST_DESC)
       (HEAP_SIZE_OPT,    make_opt(heap_size),        HEAP_SIZE_DESC)
+      (NGROUPS_TEMP_OPT, make_opt(ngroups_temp),     NGROUPS_TEMP_DESC)
       ;
     hidden.add_options()
       // network configuration
@@ -537,6 +538,7 @@ namespace mkrecv
 	extract_values(indices[3].values, indices[3].list);
       }
     set_opt(heap_size,       HEAP_SIZE_OPT, HEAP_SIZE_KEY);
+    set_opt(ngroups_temp,    NGROUPS_TEMP_OPT, NGROUPS_TEMP_KEY);
     use_sources(sources,     SOURCES_OPT, SOURCES_KEY);
     update_sources();
     if (used_sources.length() == 0) {

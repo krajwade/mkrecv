@@ -199,6 +199,12 @@
 #define HEAP_SIZE_DESC     "The heap size used for checking incomming heaps."
 #define HEAP_SIZE_DEF      0
 
+#define NGROUPS_TEMP_OPT   "ngroups-temp"
+#define NGROUPS_TEMP_KEY   "NGROUPS_TEMP"
+#define NGROUPS_TEMP_DESC  "Number of groups (heaps with the same timestamp) going into the temporary space."
+#define NGROUPS_TEMP_DEF   64
+
+
 namespace po = boost::program_options;
 
 namespace mkrecv
@@ -256,6 +262,7 @@ namespace mkrecv
     int                       nindices        = 0;
     index_options             indices[MAX_INDEXPARTS];
     std::size_t               heap_size       = HEAP_SIZE_DEF;
+    std::size_t               ngroups_temp    = NGROUPS_TEMP_DEF;
     // heap filter mechanism
     char                     *header          = NULL;
   protected:

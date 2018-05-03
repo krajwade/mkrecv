@@ -46,9 +46,12 @@ namespace mkrecv {
 
   void destination::set_heap_size(std::size_t heap_size, std::size_t heap_count, std::size_t nbgroups)
   {
-    if (nbgroups == 0)
+    std::size_t max_nbgroups;
+
+    max_nbgroups = size/(heap_size*heap_count);
+    if ((nbgroups == 0) || (nbgroups > max_nbgroups))
       {
-	nbgroups = size/(heap_size*heap_count);
+	nbgroups = max_nbgroups;
       }
     capacity = nbgroups;
     space = capacity*heap_count;
