@@ -86,6 +86,7 @@ namespace mkrecv
     bool ignore_heap = hasStopped;
     ignore_heap |= (ph->heap_cnt == 1);
     ignore_heap |= ((heap_size != HEAP_SIZE_DEF) && (heap_size != size));
+    ignore_heap |= (ph->n_items < nindices);
     if (ignore_heap)
       {
 	tstat.nignored++;

@@ -60,7 +60,7 @@ namespace mkrecv
 	ready = true;
 	create_args();
       }
-    o << "Usage: mkrecv [options] <port>\n";
+    o << "Usage: mkrecv [options] { Multicast-IP }\n";
     o << desc;
   }
   
@@ -94,12 +94,6 @@ namespace mkrecv
 	  {
 	    sources = vm["source"].as<std::vector<std::string>>();
 	  }
-#if SPEAD2_USE_NETMAP
-	if (sources.size() > 1 && netmap_if != "")
-	  {
-	    throw po::error("--netmap cannot be used with multiple sources");
-	  }
-#endif
 	//if (hdrname != "")
 	if (vm.count(HEADER_OPT) != 0)
 	  { // read the given template header file and adapt some configuration parameters
@@ -296,6 +290,66 @@ namespace mkrecv
     }
   }
 
+  void options::set_opt(std::vector<std::size_t> &val, const char *opt, const char *key)
+  {
+    int i;
+    std::string::size_type pos, lastPos = 0, length;
+    std::string sval;
+
+    //std::cout << "set_opt(" << val << ", " << opt << ", " << key << ")" << std::endl;
+    //std::cout << "  count() = " << vm.count(opt) << " val = " << val << std::endl;
+    if ((vm.count(opt) == 0) && (key[0] != '\0')) {
+      // no option specified, try to get a value from the header
+      char hsval[1024];
+      if (ascii_header_get(header, key, "%s", hsval) == -1) {
+	//std::cout << "  header does not contain a value for " << key << std::endl;
+      } else {
+	if (strcmp(hsval, "unset") == 0) {
+	  //std::cout << "  header does contain unset for " << key << std::endl;
+	} else {
+	  sval = hsval;
+	  //std::cout << "  header contains " << val << std::endl;
+	}
+      }
+    }
+    // extract the list of item pointer indices
+    length = sval.length();
+    val.clear();
+    while(lastPos < length + 1) {
+      pos = sval.find_first_of(",", lastPos);
+      if (pos == std::string::npos)
+	{
+	  pos = length;
+	}
+      if (pos != lastPos)
+	{
+	  std::string el(sval.data()+lastPos, pos-lastPos);
+	  if (el.compare(0,2,"0x") == 0)
+	    {
+	      val.push_back(std::stol(std::string(el.begin() + 2, el.end()), nullptr, 16));
+	    }
+	  else
+	    {
+	      val.push_back(std::stol(el, nullptr, 10));
+	    }
+	}
+      lastPos = pos + 1;
+    }
+
+    if (key[0] != '\0') {
+      if (sval.length() == 0) {
+	ascii_header_set(header, key, "unset");
+	//std::cout << "  header becomes unset" << std::endl;
+      } else {
+	ascii_header_set(header, key, "%s", sval.c_str());
+	//std::cout << "  header becomes " << val << std::endl;
+      }
+      if (!check_header()) {
+	std::cerr << "ERROR, storing " << key << " with value " << sval << " in header failed due to size restrictions. -> incomplete header due to clipping" << std::endl;
+      }
+    }
+  }
+
   void options::set_start_time(int64_t timestamp)
   {
     double epoch = sync_epoch + timestamp / sample_clock;
@@ -330,19 +384,21 @@ namespace mkrecv
     if ((vm.count(opt) == 0) && (key[0] != '\0'))
       {
 	char cs[1024];
-	ascii_header_get(header, key, "%s", cs);
-	cs[sizeof(cs)-1] = '\0';
-	std::string str(cs);
-	std::string::size_type pos, lastPos = 0, length = str.length();
-	while(lastPos < length + 1) {
-	  pos = str.find_first_of(",", lastPos);
-	  if(pos == std::string::npos) {
-	    pos = length;
+	if (ascii_header_get(header, key, "%s", cs) == 1)
+	  {
+	    cs[sizeof(cs)-1] = '\0';
+	    std::string str(cs);
+	    std::string::size_type pos, lastPos = 0, length = str.length();
+	    while(lastPos < length + 1) {
+	      pos = str.find_first_of(",", lastPos);
+	      if(pos == std::string::npos) {
+		pos = length;
+	      }
+	      if(pos != lastPos)
+		val.push_back(std::string(str.data()+lastPos, pos-lastPos ));
+	      lastPos = pos + 1;
+	    }
 	  }
-	  if(pos != lastPos)
-	    val.push_back(std::string(str.data()+lastPos, pos-lastPos ));
-	  lastPos = pos + 1;
-	}
       }
   }
 
@@ -424,6 +480,8 @@ namespace mkrecv
 
   void options::create_args()
   {
+    int i;
+
     desc.add_options()
       ("help",           "show this text")
       // optional header file contain configuration options and additional information
@@ -443,9 +501,6 @@ namespace mkrecv
       (DADA_KEY_OPT,     make_opt(key),             DADA_KEY_DESC)
       (DADA_MODE_OPT,    make_opt(dada_mode),       DADA_MODE_DESC)
       // network configuration
-#if SPEAD2_USE_NETMAP
-      (NETMAP_IF_OPT,    make_opt(netmap_if),       NETMAP_IF_DESC)
-#endif
 #if SPEAD2_USE_IBV
       (IBV_IF_OPT,       make_opt(ibv_if),          IBV_IF_DESC)
       (IBV_VECTOR_OPT,   make_opt(ibv_comp_vector), IBV_VECTOR_DESC)
@@ -455,22 +510,36 @@ namespace mkrecv
       (PORT_OPT,         make_opt(port),            PORT_DESC)
       (SYNC_EPOCH_OPT,   make_opt(sync_epoch),      SYNC_EPOCH_DESC)
       (SAMPLE_CLOCK_OPT, make_opt(sample_clock),    SAMPLE_CLOCK_DESC)
-      // index calculation
-      (NINDICES_OPT,     make_opt(nindices),         NINDICES_DESC)
-      (IDX1_ITEM_OPT,    make_opt(indices[0].item),  IDX1_ITEM_DESC)
-      (IDX1_STEP_OPT,    make_opt(indices[0].step),  IDX1_STEP_DESC)
-      (IDX2_ITEM_OPT,    make_opt(indices[1].item),  IDX2_ITEM_DESC)
-      (IDX2_MASK_OPT,    make_opt(indices[1].mask),  IDX2_MASK_DESC)
-      (IDX2_LIST_OPT,    make_opt(indices[1].list),  IDX2_LIST_DESC)
-      (IDX3_ITEM_OPT,    make_opt(indices[2].item),  IDX3_ITEM_DESC)
-      (IDX3_MASK_OPT,    make_opt(indices[2].mask),  IDX3_MASK_DESC)
-      (IDX3_LIST_OPT,    make_opt(indices[2].list),  IDX3_LIST_DESC)
-      (IDX4_ITEM_OPT,    make_opt(indices[3].item),  IDX4_ITEM_DESC)
-      (IDX4_MASK_OPT,    make_opt(indices[3].mask),  IDX4_MASK_DESC)
-      (IDX4_LIST_OPT,    make_opt(indices[3].list),  IDX4_LIST_DESC)
       (HEAP_SIZE_OPT,    make_opt(heap_size),        HEAP_SIZE_DESC)
       (NGROUPS_TEMP_OPT, make_opt(ngroups_temp),     NGROUPS_TEMP_DESC)
       ;
+    // index calculation
+    desc.add_options()
+      (NINDICES_OPT,     make_opt(nindices),         NINDICES_DESC)
+      ;
+    for (i = 0; i < MAX_INDEXPARTS; i++)
+      {
+	char olabel[32];
+	char odesc[255];
+	snprintf(olabel, sizeof(olabel) - 1, IDX_ITEM_OPT,  i+1);
+	snprintf(odesc,  sizeof(odesc) - 1,  IDX_ITEM_DESC, i+1);
+	desc.add_options()(olabel, make_opt(indices[i].item), odesc);
+	if (i == 0)
+	  {
+	    snprintf(olabel, sizeof(olabel) - 1, IDX_STEP_OPT,  i+1);
+	    snprintf(odesc,  sizeof(odesc) - 1,  IDX_STEP_DESC, i+1);
+	    desc.add_options()(olabel, make_opt(indices[i].step), odesc);
+	  }
+	else
+	  {
+	    snprintf(olabel, sizeof(olabel) - 1, IDX_MASK_OPT, i+1);
+	    snprintf(odesc,  sizeof(odesc) - 1,  IDX_MASK_DESC, i+1);
+	    desc.add_options()(olabel, make_opt(indices[i].mask), odesc);
+	    snprintf(olabel, sizeof(olabel) - 1, IDX_LIST_OPT, i+1);
+	    snprintf(odesc,  sizeof(odesc) - 1,  IDX_LIST_DESC, i+1);
+	    desc.add_options()(olabel, make_opt(indices[i].list), odesc);
+	  }
+      }
     hidden.add_options()
       // network configuration
       (SOURCES_OPT,      po::value<std::vector<std::string>>()->composing(), SOURCES_DESC);
@@ -486,6 +555,7 @@ namespace mkrecv
   void options::apply_header()
   {
     std::size_t    ival;
+    int            i;
 
     /* Flags, therefore all default values are false */
     set_opt(quiet,           QUIET_OPT, QUIET_KEY);
@@ -501,9 +571,6 @@ namespace mkrecv
     set_opt(key,             DADA_KEY_OPT, DADA_KEY_KEY);
     set_opt(dada_mode,       DADA_MODE_OPT, DADA_MODE_KEY);
     /* The following options describe the connection to the F-Engines (network) */
-#if SPEAD2_USE_NETMAP
-    set_opt(netmap_if,       NETMAP_IF_OPT, NETMAP_IF_KEY);
-#endif
 #if SPEAD2_USE_IBV
     set_opt(ibv_if,          IBV_IF_OPT, IBV_IF_KEY);
     set_opt(ibv_comp_vector, IBV_VECTOR_OPT, IBV_VECTOR_KEY);
@@ -513,32 +580,34 @@ namespace mkrecv
     set_opt(port,            PORT_OPT, PORT_KEY);
     set_opt(sample_clock,    SAMPLE_CLOCK_OPT, SAMPLE_CLOCK_KEY);
     set_opt(sync_epoch,      SYNC_EPOCH_OPT, SYNC_EPOCH_KEY);
-    set_opt(nindices,        NINDICES_OPT, NINDICES_KEY);
-    set_opt(indices[0].item, IDX1_ITEM_OPT, IDX1_ITEM_KEY);
-    set_opt(indices[0].step, IDX1_STEP_OPT, IDX1_STEP_KEY);
-    if (nindices >= 2)
-      {
-	set_opt(indices[1].item,  IDX2_ITEM_OPT,  IDX2_ITEM_KEY);
-	set_opt(indices[1].mask,  IDX2_MASK_OPT,  IDX2_MASK_KEY);
-	set_opt(indices[1].list,  IDX2_LIST_OPT,  IDX2_LIST_KEY);
-	extract_values(indices[1].values, indices[1].list);
-      }
-    if (nindices >= 3)
-      {
-	set_opt(indices[2].item,  IDX3_ITEM_OPT,  IDX3_ITEM_KEY);
-	set_opt(indices[2].mask,  IDX3_MASK_OPT,  IDX3_MASK_KEY);
-	set_opt(indices[2].list,  IDX3_LIST_OPT,  IDX3_LIST_KEY);
-	extract_values(indices[2].values, indices[2].list);
-      }
-    if (nindices >= 4)
-      {
-	set_opt(indices[3].item,  IDX4_ITEM_OPT,  IDX4_ITEM_KEY);
-	set_opt(indices[3].mask,  IDX4_MASK_OPT,  IDX4_MASK_KEY);
-	set_opt(indices[3].list,  IDX4_LIST_OPT,  IDX4_LIST_KEY);
-	extract_values(indices[3].values, indices[3].list);
-      }
     set_opt(heap_size,       HEAP_SIZE_OPT, HEAP_SIZE_KEY);
     set_opt(ngroups_temp,    NGROUPS_TEMP_OPT, NGROUPS_TEMP_KEY);
+    set_opt(nindices,        NINDICES_OPT, NINDICES_KEY);
+    if (nindices >= MAX_INDEXPARTS) nindices = MAX_INDEXPARTS-1;
+    for (i = 0; i < nindices; i++)
+      {
+	char iopt[32];
+	char ikey[32];
+	snprintf(iopt, sizeof(iopt) - 1, IDX_ITEM_OPT, i+1);
+	snprintf(ikey, sizeof(ikey) - 1, IDX_ITEM_KEY, i+1);
+	set_opt(indices[i].item, iopt, ikey);
+	if (i == 0)
+	  {
+	    snprintf(iopt, sizeof(iopt) - 1, IDX_STEP_OPT, i+1);
+	    snprintf(ikey, sizeof(ikey) - 1, IDX_STEP_KEY, i+1);
+	    set_opt(indices[i].step, iopt, ikey);
+	  }
+	else
+	  {
+	    snprintf(iopt, sizeof(iopt) - 1, IDX_MASK_OPT, i+1);
+	    snprintf(ikey, sizeof(ikey) - 1, IDX_MASK_KEY, i+1);
+	    set_opt(indices[i].mask, iopt, ikey);
+	    snprintf(iopt, sizeof(iopt) - 1, IDX_LIST_OPT, i+1);
+	    snprintf(ikey, sizeof(ikey) - 1, IDX_LIST_KEY, i+1);
+	    set_opt(indices[i].list, iopt, ikey);
+	    extract_values(indices[i].values, indices[i].list);
+	  }
+      }
     use_sources(sources,     SOURCES_OPT, SOURCES_KEY);
     update_sources();
     if (used_sources.length() == 0) {

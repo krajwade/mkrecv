@@ -14,9 +14,6 @@
 #include <boost/lexical_cast.hpp>
 #include <spead2/common_thread_pool.h>
 #include <spead2/recv_udp.h>
-#if SPEAD2_USE_NETMAP
-# include <spead2/recv_netmap.h>
-#endif
 #if SPEAD2_USE_IBV
 # include <spead2/recv_udp_ibv.h>
 #endif

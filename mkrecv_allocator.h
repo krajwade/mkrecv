@@ -6,9 +6,6 @@
 
 #include <spead2/common_thread_pool.h>
 #include <spead2/recv_udp.h>
-#if SPEAD2_USE_NETMAP
-# include <spead2/recv_netmap.h>
-#endif
 #if SPEAD2_USE_IBV
 # include <spead2/recv_udp_ibv.h>
 #endif
@@ -92,7 +89,7 @@ namespace mkrecv
     index_part                         indices[MAX_INDEXPARTS];
     std::size_t                        payload_size;// size of one packet payload (ph->payload_length
     std::size_t                        heap_size;   // size of a heap in bytes
-    std::size_t                        heap_count;  // number of heaps inside one group (-> subclass!)
+    std::size_t                        heap_count;  // number of heaps inside one group
     std::size_t                        group_first = 0;  // serial number of the first group (needed for index calculation)
     std::size_t                        group_step = 0;   // the serial number difference between consecutive groups
     std::size_t                        cts_data;

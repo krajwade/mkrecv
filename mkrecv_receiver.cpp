@@ -12,9 +12,6 @@
 
 #include <spead2/common_thread_pool.h>
 #include <spead2/recv_udp.h>
-#if SPEAD2_USE_NETMAP
-# include <spead2/recv_netmap.h>
-#endif
 #if SPEAD2_USE_IBV
 # include <spead2/recv_udp_ibv.h>
 #endif
@@ -87,23 +84,14 @@ namespace mkrecv
 #else
     for (std::vector<boost::asio::ip::udp::endpoint>::iterator it = endpoints.begin() ; it != endpoints.end(); ++it)
       {
-#if SPEAD2_USE_NETMAP
-        if (opts->netmap_if != "")
+	if (opts->udp_if != "")
 	  {
-            stream->emplace_reader<spead2::recv::netmap_udp_reader>(opts->netmap_if, (*it).port());
+	    boost::asio::ip::address interface_address = boost::asio::ip::address::from_string(opts->udp_if);
+	    stream->emplace_reader<spead2::recv::udp_reader>(*it, opts->packet, opts->buffer, interface_address);
 	  }
-        else
-#endif
+	else
 	  {
-	    if (opts->udp_if != "")
-	      {
-		boost::asio::ip::address interface_address = boost::asio::ip::address::from_string(opts->udp_if);
-		stream->emplace_reader<spead2::recv::udp_reader>(*it, opts->packet, opts->buffer, interface_address);
-	      }
-	    else
-	      {
-		stream->emplace_reader<spead2::recv::udp_reader>(*it, opts->packet, opts->buffer);
-	      }
+	    stream->emplace_reader<spead2::recv::udp_reader>(*it, opts->packet, opts->buffer);
 	  }
       }
 #endif

@@ -9,9 +9,6 @@
 #include <boost/program_options.hpp>
 
 #include <spead2/recv_udp.h>
-#if SPEAD2_USE_NETMAP
-# include <spead2/recv_netmap.h>
-#endif
 #if SPEAD2_USE_IBV
 # include <spead2/recv_udp_ibv.h>
 #endif
@@ -82,11 +79,6 @@
 
 /* The following options describe the connection to the network */
 
-#define NETMAP_IF_OPT      "netmap-if"
-#define NETMAP_IF_KEY      "NETMAP_IF"
-#define NETMAP_IF_DESC     "Netmap interface"
-#define NETMAP_IF_DEF      ""
-
 #define IBV_IF_OPT         "ibv-if"
 #define IBV_IF_KEY         "IBV_IF"
 #define IBV_IF_DESC        "Interface address for ibverbs"
@@ -134,64 +126,25 @@
 #define NINDICES_DESC      "Number of item pointers used as index"
 #define NINDICES_DEF       0
 
-/* The first item pointer is a running value, therefore no FIRST or COUNT value needed. */
-#define IDX1_ITEM_OPT      "idx1-item"
-#define IDX1_ITEM_KEY      "IDX1_ITEM"
-#define IDX1_ITEM_DESC     "Item pointer index for the first index"
-#define IDX1_ITEM_DEF      0
+#define IDX_ITEM_OPT      "idx%d-item"
+#define IDX_ITEM_KEY      "IDX%d_ITEM"
+#define IDX_ITEM_DESC     "Item pointer index for index component %d"
+#define IDX_ITEM_DEF      0
 
-#define IDX1_STEP_OPT      "idx1-step"
-#define IDX1_STEP_KEY      "IDX1_STEP"
-#define IDX1_STEP_DESC     "The difference between successive item pointer values"
-#define IDX1_STEP_DEF      0x200000   // 2^21
+#define IDX_STEP_OPT      "idx%d-step"
+#define IDX_STEP_KEY      "IDX%d_STEP"
+#define IDX_STEP_DESC     "The difference between successive item pointer values for index component %d"
+#define IDX_STEP_DEF      0x200000   // 2^21
 
-/* The second item pointer used as an index (inside the first index). */
-#define IDX2_ITEM_OPT      "idx2-item"
-#define IDX2_ITEM_KEY      "IDX2_ITEM"
-#define IDX2_ITEM_DESC     "Item pointer index for the second index"
-#define IDX2_ITEM_DEF      0
+#define IDX_MASK_OPT      "idx%d-mask"
+#define IDX_MASK_KEY      "IDX%d_MASK"
+#define IDX_MASK_DESC     "Mask for using only a part of an item value for index component %d"
+#define IDX_MASK_DEF      0xffffffffffff
 
-#define IDX2_MASK_OPT      "idx2-mask"
-#define IDX2_MASK_KEY      "IDX2_MASK"
-#define IDX2_MASK_DESC     "Mask for using only a part of an item value"
-#define IDX2_MASK_DEF      0xffffffffffff
-
-#define IDX2_LIST_OPT      "idx2-list"
-#define IDX2_LIST_KEY      "IDX2_LIST"
-#define IDX2_LIST_DESC     "A List of item pointer values for the second index"
-#define IDX2_LIST_DEF      ""
-
-/* The third item pointer used as an index (inside the second index). */
-#define IDX3_ITEM_OPT      "idx3-item"
-#define IDX3_ITEM_KEY      "IDX3_ITEM"
-#define IDX3_ITEM_DESC     "Item pointer index for the third index"
-#define IDX3_ITEM_DEF      0
-
-#define IDX3_MASK_OPT      "idx3-mask"
-#define IDX3_MASK_KEY      "IDX3_MASK"
-#define IDX3_MASK_DESC     "Mask for using only a part of an item value"
-#define IDX3_MASK_DEF      0xffffffffffff
-
-#define IDX3_LIST_OPT      "idx3-list"
-#define IDX3_LIST_KEY      "IDX3_LIST"
-#define IDX3_LIST_DESC     "A List of item pointer values for the third index"
-#define IDX3_LIST_DEF      ""
-
-/* The fourth item pointer used as an index (inside the third index). */
-#define IDX4_ITEM_OPT      "idx4-item"
-#define IDX4_ITEM_KEY      "IDX4_ITEM"
-#define IDX4_ITEM_DESC     "Item pointer index for the fourth index"
-#define IDX4_ITEM_DEF      0
-
-#define IDX4_MASK_OPT      "idx4-mask"
-#define IDX4_MASK_KEY      "IDX4_MASK"
-#define IDX4_MASK_DESC     "Mask for using only a part on an item value"
-#define IDX4_MASK_DEF      0xffffffffffff
-
-#define IDX4_LIST_OPT      "idx4-list"
-#define IDX4_LIST_KEY      "IDX4_LIST"
-#define IDX4_LIST_DESC     "A List of item pointer values for the fourth index"
-#define IDX4_LIST_DEF      ""
+#define IDX_LIST_OPT      "idx%d-list"
+#define IDX_LIST_KEY      "IDX%d_LIST"
+#define IDX_LIST_DESC     "A List of item pointer values for index component %d"
+#define IDX_LIST_DEF      ""
 
 /* It is possible to specify the heap size and use it as a filter, otherwise the first heap is used to determine this size. */
 #define HEAP_SIZE_OPT      "heap-size"
@@ -204,6 +157,12 @@
 #define NGROUPS_TEMP_DESC  "Number of groups (heaps with the same timestamp) going into the temporary space."
 #define NGROUPS_TEMP_DEF   64
 
+/* It is possible to put a list of item pointer values into some kind of side-channel inside a ringbuffer slot */
+#define SCI_LIST_OPT       "sci-list"
+#define SCI_LIST_KEY       "SCI_LIST"
+#define SCI_LIST_DESC      "list of item pointers going into a side-channel inside a ringbuffer slot"
+#define SCI_LIST_DEF       ""
+
 
 namespace po = boost::program_options;
 
@@ -215,10 +174,10 @@ namespace mkrecv
   class index_options
   {
   public:
-    std::size_t                           item   = 0;               // IDXi_ITEM
-    std::size_t                           mask   = 0xffffffffffff;  // IDXi_MASK
-    std::size_t                           step   = 1;               // IDXi_STEP
-    std::string                           list   = "";              // IDXi_LIST
+    std::size_t                           item   = IDX_ITEM_DEF;  // IDXi_ITEM
+    std::size_t                           mask   = IDX_MASK_DEF;  // IDXi_MASK
+    std::size_t                           step   = IDX_STEP_DEF;  // IDXi_STEP
+    std::string                           list   = IDX_LIST_DEF;  // IDXi_LIST
     std::vector<spead2::s_item_pointer_t> values;
   };
 
@@ -244,9 +203,6 @@ namespace mkrecv
     std::string               key             = DADA_KEY_DEF;
     std::size_t               dada_mode       = DADA_MODE_DEF;
     // network configuration
-#if SPEAD2_USE_NETMAP
-    std::string               netmap_if       = NETMAP_IF_DEF;
-#endif
 #if SPEAD2_USE_IBV
     std::string               ibv_if          = IBV_IF_DEF;
     int                       ibv_comp_vector = IBV_VECTOR_DEF;
@@ -263,6 +219,7 @@ namespace mkrecv
     index_options             indices[MAX_INDEXPARTS];
     std::size_t               heap_size       = HEAP_SIZE_DEF;
     std::size_t               ngroups_temp    = NGROUPS_TEMP_DEF;
+    std::vector<std::size_t>  sci_list;
     // heap filter mechanism
     char                     *header          = NULL;
   protected:
@@ -283,6 +240,7 @@ namespace mkrecv
     void set_opt(std::string &val, const char *opt, const char *key);
     void set_opt(bool &val, const char *opt, const char *key);
     void set_opt(double &val, const char *opt, const char *key);
+    void set_opt(std::vector<std::size_t> &val, const char *opt, const char *key);
     void set_start_time(int64_t timestamp);
     void use_sources(std::vector<std::string> &val, const char *opt, const char *key);
     void update_sources();
