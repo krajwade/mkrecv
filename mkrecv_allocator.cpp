@@ -89,6 +89,7 @@ namespace mkrecv
     ignore_heap |= (ph->n_items < nindices);
     if (ignore_heap)
       {
+	std::cout << "heap ignored heap_cnt " << ph->heap_cnt << " size " << size << " n_items " << ph->n_items << std::endl;
 	tstat.nignored++;
 	dest[TRASH_DEST].count++;
 	heap2dest[ph->heap_cnt] = TRASH_DEST;
