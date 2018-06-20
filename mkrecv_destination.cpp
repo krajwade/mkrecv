@@ -21,6 +21,11 @@ namespace mkrecv {
 	  }
       }
       */
+    if (sci != NULL)
+      {
+	delete sci;
+	sci = NULL;
+      }
   }
 
   void destination::set_buffer(psrdada_cpp::RawBytes *ptr, std::size_t size)
@@ -44,11 +49,12 @@ namespace mkrecv {
       }
   }
 
-  void destination::set_heap_size(std::size_t heap_size, std::size_t heap_count, std::size_t nbgroups)
+  void destination::set_heap_size(std::size_t heap_size, std::size_t heap_count, std::size_t nbgroups, std::size_t nbsci)
   {
     std::size_t max_nbgroups;
+    std::size_t i;
 
-    max_nbgroups = size/(heap_size*heap_count);
+    max_nbgroups = size/((heap_size + nbsci*sizeof(spead2::s_item_pointer_t))*heap_count);
     if ((nbgroups == 0) || (nbgroups > max_nbgroups))
       {
 	nbgroups = max_nbgroups;
@@ -58,6 +64,15 @@ namespace mkrecv {
     needed = space;
     count = 0;
     cts = 0;
+    if (nbsci != 0)
+      {
+	if (sci != NULL) delete sci;
+	sci = new spead2::s_item_pointer_t[space*nbsci];
+	for (i = 0; i < space*nbsci; i++)
+	  {
+	    sci[i] = 0;
+	  }
+      }
   }
 
 }

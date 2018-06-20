@@ -94,6 +94,8 @@ namespace mkrecv
     std::size_t                        group_step = 0;   // the serial number difference between consecutive groups
     std::size_t                        cts_data;
     std::size_t                        cts_temp;
+    std::size_t                        nsci;
+    std::vector<std::size_t>           scis;
     int                                state = INIT_STATE;
     bool                               hasStarted = false;
     statistics                         tstat;

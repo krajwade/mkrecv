@@ -61,6 +61,8 @@ namespace mkrecv
     cts_data = opts->sources.size();
     cts_temp = opts->sources.size();
     heap_size = opts->heap_size;
+    nsci = opts->nsci;
+    scis = opts->scis;
   }
 
   allocator::~allocator()
@@ -78,6 +80,7 @@ namespace mkrecv
     std::size_t                     heap_index;
     char*                           mem_base = NULL;
     std::size_t                     mem_offset;
+    spead2::s_item_pointer_t       *sci_base = NULL;
 
     // **** GUARDED BY SEMAPHORE ****
     std::lock_guard<std::mutex> lock(dest_mutex);
@@ -128,9 +131,9 @@ namespace mkrecv
 	// Extract payload size and heap size as long as we are in INIT_STATE
 	payload_size = ph->payload_length;
 	if (heap_size == HEAP_SIZE_DEF) heap_size = size;
-	dest[DATA_DEST].set_heap_size(heap_size, heap_count);
-	dest[TEMP_DEST].set_heap_size(heap_size, heap_count, opts->ngroups_temp);
-	dest[TRASH_DEST].set_heap_size(heap_size, heap_count, 4*opts->sources.size()/heap_count);
+	dest[DATA_DEST].set_heap_size(heap_size, heap_count, 0, nsci);
+	dest[TEMP_DEST].set_heap_size(heap_size, heap_count, opts->ngroups_temp, nsci);
+	dest[TRASH_DEST].set_heap_size(heap_size, heap_count, 4*opts->sources.size()/heap_count, nsci);
 	dest[DATA_DEST].cts = cts_data;
 	dest[TEMP_DEST].cts = cts_temp;
 	state = SEQUENTIAL_STATE;
@@ -207,6 +210,12 @@ namespace mkrecv
     if (dest_index == DATA_DEST) hasStarted = true;
     mem_offset = heap_size*heap_index;
     mem_base = dest[dest_index].ptr->ptr();
+    sci_base = dest[dest_index].sci;
+    for (i = 0; i < nsci; i++)
+      {
+	spead2::item_pointer_t pts = spead2::load_be<spead2::item_pointer_t>(ph->pointers + scis.at(i));
+	sci_base[heap_index*nsci + i] = decoder.get_immediate(pts);
+      }
     dest[dest_index].count++;
     heap2dest[ph->heap_cnt] = dest_index; // store the relation between heap counter and destination
     tstat.nexpected += heap_size;
@@ -305,7 +314,14 @@ namespace mkrecv
     if ((state == SEQUENTIAL_STATE) && (ctst == 0))
       {
 	if (!hasStopped && (dada_mode >= 3))
-	  { // Release the current slot and get a new one
+	  { // copy the optional side-channel items at the correct position
+	    // sci_base = buffer + size - (scape *nsci)
+	    spead2::s_item_pointer_t  *sci_base = (spead2::s_item_pointer_t*)(dest[DATA_DEST].ptr->ptr()
+									      + dest[DATA_DEST].size
+									      - dest[DATA_DEST].space*nsci*sizeof(spead2::s_item_pointer_t));
+	    memcpy(sci_base, dest[DATA_DEST].sci, dest[DATA_DEST].space*nsci*sizeof(spead2::s_item_pointer_t));
+	    memset(dest[DATA_DEST].sci, 0, dest[DATA_DEST].space*nsci*sizeof(spead2::s_item_pointer_t));
+	    // Release the current slot and get a new one
 	    dest[DATA_DEST].ptr->used_bytes(dest[DATA_DEST].ptr->total_bytes());
 	    dada.data_stream().release();
 	    dest[DATA_DEST].ptr = &dada.data_stream().next();
@@ -330,8 +346,13 @@ namespace mkrecv
     else if ((state == PARALLEL_STATE) && (ctsd == 0))
       {
 	if (!hasStopped && (dada_mode >= 4))
-	  {
+	  { // copy the heaps in temporary space into data space
 	    memcpy(dest[DATA_DEST].ptr->ptr(), dest[TEMP_DEST].ptr->ptr(), dest[TEMP_DEST].space*heap_size);
+	    if (nsci != 0)
+	      { // copy the side-channel items in temporary space into data space and clear the source
+		memcpy(dest[DATA_DEST].sci, dest[TEMP_DEST].sci, dest[TEMP_DEST].space*nsci*sizeof(spead2::s_item_pointer_t));
+		memset(dest[TEMP_DEST].sci, 0, dest[TEMP_DEST].space*nsci*sizeof(spead2::s_item_pointer_t));
+	      }
 	  }
 	dest[TEMP_DEST].needed  = dest[TEMP_DEST].space;
 	dest[DATA_DEST].needed -= dest[TEMP_DEST].space;

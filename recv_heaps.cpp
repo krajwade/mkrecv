@@ -94,6 +94,7 @@ static int add_connection(mcast_context_t *context, const char *interface_ip, co
 {
   int     rc;
 
+  printf("add_connection(.., %s, %s)\n", interface_ip, multicast_ip);
   // join the multicast group:
   context->mreq.imr_multiaddr.s_addr = inet_addr(multicast_ip);
   if(context->mreq.imr_multiaddr.s_addr == -1) {

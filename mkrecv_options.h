@@ -219,7 +219,9 @@ namespace mkrecv
     index_options             indices[MAX_INDEXPARTS];
     std::size_t               heap_size       = HEAP_SIZE_DEF;
     std::size_t               ngroups_temp    = NGROUPS_TEMP_DEF;
-    std::vector<std::size_t>  sci_list;
+    std::string               sci_list        = SCI_LIST_DEF;
+    std::size_t               nsci            = 0;
+    std::vector<std::size_t>  scis;
     // heap filter mechanism
     char                     *header          = NULL;
   protected:
@@ -245,6 +247,7 @@ namespace mkrecv
     void use_sources(std::vector<std::string> &val, const char *opt, const char *key);
     void update_sources();
     void extract_values(std::vector<spead2::s_item_pointer_t> &val, const std::string &str);
+    void extract_values(std::vector<std::size_t> &val, const std::string &str);
     bool check_header();
     virtual void create_args();
     virtual void apply_header();

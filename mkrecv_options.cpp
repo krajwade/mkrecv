@@ -470,6 +470,41 @@ namespace mkrecv
     */
   }
 
+  void options::extract_values(std::vector<std::size_t> &val, const std::string &str)
+  {
+    int i;
+    std::string::size_type pos, lastPos = 0, length = str.length();
+
+    val.clear();
+    while(lastPos < length + 1) {
+      pos = str.find_first_of(",", lastPos);
+      if(pos == std::string::npos) {
+	pos = length;
+      }
+      if(pos != lastPos)
+	{
+	  std::string el(str.data()+lastPos, pos-lastPos);
+	  if (el.compare(0,2,"0x") == 0)
+	    {
+	      val.push_back(std::stol(std::string(el.begin() + 2, el.end()), nullptr, 16));
+	    }
+	  else
+	    {
+	      val.push_back(std::stol(el, nullptr, 10));
+	    }
+	}
+      lastPos = pos + 1;
+    }
+    /*
+    std::cout << "item value list:";
+    for (i = 0; i < val.size(); i++)
+      {
+	std::cout << " " << val.at(i) << "->" << i;
+      }
+    std::cout << std::endl;
+    */
+  }
+
   bool options::check_header()
   {
     bool result = (header[DADA_DEFAULT_HEADER_SIZE+1] == ASCII_HEADER_SENTINEL);
@@ -540,6 +575,9 @@ namespace mkrecv
 	    desc.add_options()(olabel, make_opt(indices[i].list), odesc);
 	  }
       }
+    desc.add_options()
+      (SCI_LIST_OPT,  make_opt(sci_list), SCI_LIST_DESC)
+      ;
     hidden.add_options()
       // network configuration
       (SOURCES_OPT,      po::value<std::vector<std::string>>()->composing(), SOURCES_DESC);
@@ -608,6 +646,9 @@ namespace mkrecv
 	    extract_values(indices[i].values, indices[i].list);
 	  }
       }
+    set_opt(sci_list, SCI_LIST_OPT, SCI_LIST_KEY);
+    extract_values(scis, sci_list);
+    nsci = scis.size();
     use_sources(sources,     SOURCES_OPT, SOURCES_KEY);
     update_sources();
     if (used_sources.length() == 0) {
