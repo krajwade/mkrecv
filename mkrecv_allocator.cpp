@@ -213,7 +213,7 @@ namespace mkrecv
     sci_base = dest[dest_index].sci;
     for (i = 0; i < nsci; i++)
       {
-	spead2::item_pointer_t pts = spead2::load_be<spead2::item_pointer_t>(ph->pointers + scis.at(i));
+	spead2::item_pointer_t pts = spead2::load_be<spead2::item_pointer_t>(ph->pointers + scis.at(i)*sizeof(spead2::item_pointer_t));
 	sci_base[heap_index*nsci + i] = decoder.get_immediate(pts);
       }
     dest[dest_index].count++;
