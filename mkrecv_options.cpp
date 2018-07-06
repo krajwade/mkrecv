@@ -533,8 +533,8 @@ namespace mkrecv
       (NHEAPS_OPT,       make_opt(heaps),           NHEAPS_DESC)
       ("memcpy-nt",      make_opt(memcpy_nt),       "Use non-temporal memcpy")
       // DADA ringbuffer related stuff
-      (DADA_KEY_OPT,     make_opt(key),             DADA_KEY_DESC)
       (DADA_MODE_OPT,    make_opt(dada_mode),       DADA_MODE_DESC)
+      (DADA_KEY_OPT,     make_opt(key),             DADA_KEY_DESC)
       // network configuration
 #if SPEAD2_USE_IBV
       (IBV_IF_OPT,       make_opt(ibv_if),          IBV_IF_DESC)
@@ -606,8 +606,8 @@ namespace mkrecv
     set_opt(threads,         NTHREADS_OPT, NTHREADS_KEY);
     set_opt(heaps,           NHEAPS_OPT, NHEAPS_KEY);
     /* The following options describe the DADA ringbuffer use */
-    set_opt(key,             DADA_KEY_OPT, DADA_KEY_KEY);
     set_opt(dada_mode,       DADA_MODE_OPT, DADA_MODE_KEY);
+    set_opt(key,             DADA_KEY_OPT, DADA_KEY_KEY);
     /* The following options describe the connection to the F-Engines (network) */
 #if SPEAD2_USE_IBV
     set_opt(ibv_if,          IBV_IF_OPT, IBV_IF_KEY);

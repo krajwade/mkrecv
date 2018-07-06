@@ -81,18 +81,22 @@ namespace mkrecv
         boost::asio::ip::address interface_address = boost::asio::ip::address::from_string(opts->ibv_if);
         stream->emplace_reader<spead2::recv::udp_ibv_reader>(endpoints, interface_address, opts->packet, opts->buffer, opts->ibv_comp_vector, opts->ibv_max_poll);
       }
-#else
-    for (std::vector<boost::asio::ip::udp::endpoint>::iterator it = endpoints.begin() ; it != endpoints.end(); ++it)
+    else
       {
-	if (opts->udp_if != "")
+#endif
+	for (std::vector<boost::asio::ip::udp::endpoint>::iterator it = endpoints.begin() ; it != endpoints.end(); ++it)
 	  {
-	    boost::asio::ip::address interface_address = boost::asio::ip::address::from_string(opts->udp_if);
-	    stream->emplace_reader<spead2::recv::udp_reader>(*it, opts->packet, opts->buffer, interface_address);
+	    if (opts->udp_if != "")
+	      {
+		boost::asio::ip::address interface_address = boost::asio::ip::address::from_string(opts->udp_if);
+		stream->emplace_reader<spead2::recv::udp_reader>(*it, opts->packet, opts->buffer, interface_address);
+	      }
+	    else
+	      {
+		stream->emplace_reader<spead2::recv::udp_reader>(*it, opts->packet, opts->buffer);
+	      }
 	  }
-	else
-	  {
-	    stream->emplace_reader<spead2::recv::udp_reader>(*it, opts->packet, opts->buffer);
-	  }
+#if SPEAD2_USE_IBV
       }
 #endif
     return stream;

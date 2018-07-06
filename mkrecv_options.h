@@ -75,10 +75,16 @@
 #define DADA_MODE_OPT      "dada-mode"
 #define DADA_MODE_KEY      "DADA_MODE"
 #define DADA_MODE_DESC     "dada mode (0 = no, 1 = huge trash, 2 = dada, 3 = dada+slot, 4 = full dada)"
-#define DADA_MODE_DEF      4
+#define NO_DADA_MODE       0
+#define TRASH_DADA_MODE    1
+#define STATIC_DADA_MODE   2
+#define DYNAMIC_DADA_MODE  3
+#define FULL_DADA_MODE     4
+#define DADA_MODE_DEF      FULL_DADA_MODE
 
 /* The following options describe the connection to the network */
 
+#if SPEAD2_USE_IBV
 #define IBV_IF_OPT         "ibv-if"
 #define IBV_IF_KEY         "IBV_IF"
 #define IBV_IF_DESC        "Interface address for ibverbs"
@@ -93,6 +99,7 @@
 #define IBV_MAX_POLL_KEY   "IBV_MAX_POLL"
 #define IBV_MAX_POLL_DESC  "Maximum number of times to poll in a row"
 #define IBV_MAX_POLL_DEF   spead2::recv::udp_ibv_reader::default_max_poll
+#endif
 
 #define UDP_IF_OPT         "udp-if"
 #define UDP_IF_KEY         "UDP_IF"
@@ -200,8 +207,8 @@ namespace mkrecv
     std::size_t               heaps           = NHEAPS_DEF;
     bool                      memcpy_nt       = false;
     // DADA ringbuffer related stuff
-    std::string               key             = DADA_KEY_DEF;
     std::size_t               dada_mode       = DADA_MODE_DEF;
+    std::string               key             = DADA_KEY_DEF;
     // network configuration
 #if SPEAD2_USE_IBV
     std::string               ibv_if          = IBV_IF_DEF;

@@ -36,7 +36,7 @@ namespace mkrecv
 
     memallocator = std::make_shared<spead2::mmap_allocator>(0, true);
     dada_mode = opts->dada_mode;
-    if (dada_mode > 1)
+    if (dada_mode >= STATIC_DADA_MODE)
       {
 	hdr = &dada.header_stream().next();
 	dest[DATA_DEST].set_buffer(&dada.data_stream().next(), dada.data_buffer_size());
@@ -138,7 +138,7 @@ namespace mkrecv
 	dest[TEMP_DEST].cts = cts_temp;
 	state = SEQUENTIAL_STATE;
 	
-	if (dada_mode >= 2)
+	if (dada_mode >= STATIC_DADA_MODE)
 	  {
 	    opts->set_start_time(indices[0].first);
             memcpy(hdr->ptr(), opts->header, (DADA_DEFAULT_HEADER_SIZE < hdr->total_bytes()) ? DADA_DEFAULT_HEADER_SIZE : hdr->total_bytes());
@@ -199,7 +199,7 @@ namespace mkrecv
 	  }
       }
     // calculate the heap index, for example Timestamp -> Engine/Board/Antenna -> Frequency -> Time -> Polarization -> Complex number
-    if (dada_mode == 0) dest_index = TRASH_DEST;
+    if (dada_mode == NO_DADA_MODE) dest_index = TRASH_DEST;
     if (dest_index == TRASH_DEST) item_index[0] = 0;
     heap_index = item_index[0];
     for (i = 1; i < nindices; i++)
@@ -313,7 +313,7 @@ namespace mkrecv
     //std::cout << "mark " << cnt << " isok " << isok << " dest " << d << " needed " << nd << " " << nt << " cts " << ctsd << " " << ctst << std::endl;
     if ((state == SEQUENTIAL_STATE) && (ctst == 0))
       {
-	if (!hasStopped && (dada_mode >= 3))
+	if (!hasStopped && (dada_mode >= DYNAMIC_DADA_MODE))
 	  { // copy the optional side-channel items at the correct position
 	    // sci_base = buffer + size - (scape *nsci)
 	    spead2::s_item_pointer_t  *sci_base = (spead2::s_item_pointer_t*)(dest[DATA_DEST].ptr->ptr()
@@ -330,7 +330,7 @@ namespace mkrecv
 	  {
 	    hasStopped = true;
 	    std::cout << "request to stop the transfer into the ringbuffer received." << std::endl;
-	    if (dada_mode >= 3)
+	    if (dada_mode >= DYNAMIC_DADA_MODE)
 	      { // release the previously allocated slot without any data -> used as end signal
 		dada.data_stream().release();
 	      }
@@ -345,7 +345,7 @@ namespace mkrecv
       }
     else if ((state == PARALLEL_STATE) && (ctsd == 0))
       {
-	if (!hasStopped && (dada_mode >= 4))
+	if (!hasStopped && (dada_mode >= FULL_DADA_MODE))
 	  { // copy the heaps in temporary space into data space
 	    memcpy(dest[DATA_DEST].ptr->ptr(), dest[TEMP_DEST].ptr->ptr(), dest[TEMP_DEST].space*heap_size);
 	    if (nsci != 0)
