@@ -114,7 +114,7 @@ namespace mkrecv
       }
     catch (std::runtime_error &e)
       {
-	std::cerr << "Cannot connect to DADA Ringbuffer " << opts->key << " exiting..." << std::endl;
+	std::cerr << "Cannot connect to DADA Ringbuffer " << opts->dada_key << " exiting..." << std::endl;
 	exit(0);
       }
     signal(SIGINT, signal_handler);
@@ -145,7 +145,7 @@ namespace mkrecv
 
   std::shared_ptr<mkrecv::allocator> receiver::create_allocator()
   {
-    return std::shared_ptr<mkrecv::allocator>(new mkrecv::allocator(psrdada_cpp::string_to_key(opts->key), "recv", opts));
+    return std::shared_ptr<mkrecv::allocator>(new mkrecv::allocator(psrdada_cpp::string_to_key(opts->dada_key), "recv", opts));
   }
 
   std::unique_ptr<mkrecv::stream> receiver::create_stream()

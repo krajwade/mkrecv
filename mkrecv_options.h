@@ -67,11 +67,6 @@
 
 /* The following options describe the DADA ringbuffer use */
 
-#define DADA_KEY_OPT       "dada-key"
-#define DADA_KEY_KEY       "DADA_KEY"
-#define DADA_KEY_DESC      "PSRDADA ring buffer key"
-#define DADA_KEY_DEF       "dada"
-
 #define DADA_MODE_OPT      "dada-mode"
 #define DADA_MODE_KEY      "DADA_MODE"
 #define DADA_MODE_DESC     "dada mode (0 = no, 1 = huge trash, 2 = dada, 3 = dada+slot, 4 = full dada)"
@@ -81,6 +76,11 @@
 #define DYNAMIC_DADA_MODE  3
 #define FULL_DADA_MODE     4
 #define DADA_MODE_DEF      FULL_DADA_MODE
+
+#define DADA_KEY_OPT       "dada-key"
+#define DADA_KEY_KEY       "DADA_KEY"
+#define DADA_KEY_DESC      "PSRDADA ring buffer key"
+#define DADA_KEY_DEF       "dada"
 
 /* The following options describe the connection to the network */
 
@@ -208,7 +208,7 @@ namespace mkrecv
     bool                      memcpy_nt       = false;
     // DADA ringbuffer related stuff
     std::size_t               dada_mode       = DADA_MODE_DEF;
-    std::string               key             = DADA_KEY_DEF;
+    std::string               dada_key        = DADA_KEY_DEF;
     // network configuration
 #if SPEAD2_USE_IBV
     std::string               ibv_if          = IBV_IF_DEF;

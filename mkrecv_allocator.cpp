@@ -33,23 +33,11 @@ namespace mkrecv
     hdr(NULL)
   {
     int i, j;
+    std::size_t  data_size  = MAX_DATA_SPACE;
+    std::size_t  temp_size  = MAX_TEMPORARY_SPACE;
+    std::size_t  trash_size = MAX_TEMPORARY_SPACE;
 
     memallocator = std::make_shared<spead2::mmap_allocator>(0, true);
-    dada_mode = opts->dada_mode;
-    if (dada_mode >= STATIC_DADA_MODE)
-      {
-	hdr = &dada.header_stream().next();
-	dest[DATA_DEST].set_buffer(&dada.data_stream().next(), dada.data_buffer_size());
-      }
-    else
-      {
-	dest[DATA_DEST].allocate_buffer(memallocator, MAX_DATA_SPACE);
-      }
-    dest[TEMP_DEST].allocate_buffer(memallocator, MAX_TEMPORARY_SPACE);
-    dest[TRASH_DEST].allocate_buffer(memallocator, MAX_TEMPORARY_SPACE);
-    std::cout << "dest[DATA_DEST].ptr.ptr()  = " << (std::size_t)(dest[DATA_DEST].ptr->ptr()) << std::endl;
-    std::cout << "dest[TEMP_DEST].ptr.ptr()  = " << (std::size_t)(dest[TEMP_DEST].ptr->ptr()) << std::endl;
-    std::cout << "dest[TRASH_DEST].ptr.ptr() = " << (std::size_t)(dest[TRASH_DEST].ptr->ptr()) << std::endl;
     // copy index_option into a local index_part
     nindices = opts->nindices;
     heap_count = 1;
@@ -63,6 +51,30 @@ namespace mkrecv
     heap_size = opts->heap_size;
     nsci = opts->nsci;
     scis = opts->scis;
+    // allocate memory
+    if (heap_size != HEAP_SIZE_DEF)
+      {
+	std::size_t group_size;
+	group_size = heap_count*(heap_size + nsci*sizeof(spead2::s_item_pointer_t));
+	data_size  = 4*opts->ngroups_temp*group_size; // 4*N heap groups (N = option NGROUPS_TEMP)
+	temp_size  =   opts->ngroups_temp*group_size; //   N heap groups (N = option NGROUPS_TEMP)
+	trash_size =                      group_size; //   1 heap group
+      }
+    dada_mode = opts->dada_mode;
+    if (dada_mode >= STATIC_DADA_MODE)
+      {
+	hdr = &dada.header_stream().next();
+	dest[DATA_DEST].set_buffer(&dada.data_stream().next(), dada.data_buffer_size());
+      }
+    else
+      {
+	dest[DATA_DEST].allocate_buffer(memallocator, data_size);
+      }
+    dest[TEMP_DEST].allocate_buffer(memallocator, temp_size);
+    dest[TRASH_DEST].allocate_buffer(memallocator, trash_size);
+    std::cout << "dest[DATA_DEST].ptr.ptr()  = " << (std::size_t)(dest[DATA_DEST].ptr->ptr()) << std::endl;
+    std::cout << "dest[TEMP_DEST].ptr.ptr()  = " << (std::size_t)(dest[TEMP_DEST].ptr->ptr()) << std::endl;
+    std::cout << "dest[TRASH_DEST].ptr.ptr() = " << (std::size_t)(dest[TRASH_DEST].ptr->ptr()) << std::endl;
   }
 
   allocator::~allocator()
@@ -132,8 +144,8 @@ namespace mkrecv
 	payload_size = ph->payload_length;
 	if (heap_size == HEAP_SIZE_DEF) heap_size = size;
 	dest[DATA_DEST].set_heap_size(heap_size, heap_count, 0, nsci);
-	dest[TEMP_DEST].set_heap_size(heap_size, heap_count, opts->ngroups_temp, nsci);
-	dest[TRASH_DEST].set_heap_size(heap_size, heap_count, 4*opts->sources.size()/heap_count, nsci);
+	dest[TEMP_DEST].set_heap_size(heap_size, heap_count, 0, nsci);
+	dest[TRASH_DEST].set_heap_size(heap_size, heap_count, 0, nsci);
 	dest[DATA_DEST].cts = cts_data;
 	dest[TEMP_DEST].cts = cts_temp;
 	state = SEQUENTIAL_STATE;
