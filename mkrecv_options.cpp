@@ -41,7 +41,7 @@ namespace mkrecv
 
   options::options()
   {
-    int i;
+    size_t i;
 
     header = new char[DADA_DEFAULT_HEADER_SIZE + DADA_DEFAULT_HEADER_SIZE];
     for (i = 0; i < sizeof(header); i++) header[i] = '\0';
@@ -120,7 +120,7 @@ namespace mkrecv
       {
 	// get length of file:
 	is.seekg (0, is.end);
-	int length = is.tellg();
+	uint64_t length = is.tellg();
 	is.seekg (0, is.beg);
 	if (length > DADA_DEFAULT_HEADER_SIZE)
 	  {
@@ -179,7 +179,7 @@ namespace mkrecv
 	if (strcmp(sval, "unset") == 0) {
 	  //std::cout << "  header does contain unset for " << key << std::endl;
 	} else {
-	  if (sscanf(sval, "%ld", &val) != 1) {
+	  if (sscanf(sval, "%lu", &val) != 1) {
 	    std::cerr << "header contains no integer or unset for key " << key << std::endl;
 	  } else {
 	    //std::cout << "  header contains " << val << std::endl;
@@ -292,7 +292,6 @@ namespace mkrecv
 
   void options::set_opt(std::vector<std::size_t> &val, const char *opt, const char *key)
   {
-    int i;
     std::string::size_type pos, lastPos = 0, length;
     std::string sval;
 
@@ -437,7 +436,6 @@ namespace mkrecv
 
   void options::extract_values(std::vector<spead2::s_item_pointer_t> &val, const std::string &str)
   {
-    int i;
     std::string::size_type pos, lastPos = 0, length = str.length();
 
     val.clear();
@@ -461,6 +459,7 @@ namespace mkrecv
       lastPos = pos + 1;
     }
     /*
+    int i;
     std::cout << "item value list:";
     for (i = 0; i < val.size(); i++)
       {
@@ -472,7 +471,6 @@ namespace mkrecv
 
   void options::extract_values(std::vector<std::size_t> &val, const std::string &str)
   {
-    int i;
     std::string::size_type pos, lastPos = 0, length = str.length();
 
     val.clear();
@@ -496,6 +494,7 @@ namespace mkrecv
       lastPos = pos + 1;
     }
     /*
+    int i;
     std::cout << "item value list:";
     for (i = 0; i < val.size(); i++)
       {
@@ -592,7 +591,6 @@ namespace mkrecv
    */
   void options::apply_header()
   {
-    std::size_t    ival;
     int            i;
 
     /* Flags, therefore all default values are false */

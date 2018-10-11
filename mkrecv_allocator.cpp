@@ -12,7 +12,7 @@ namespace mkrecv
 
   void index_part::set(const index_options &opt)
   {
-    int  i;
+    size_t  i;
 
     item  = opt.item*sizeof(spead2::item_pointer_t);
     mask  = opt.mask;
@@ -32,7 +32,7 @@ namespace mkrecv
     dada(key, mlog),
     hdr(NULL)
   {
-    int i, j;
+    int i;
     std::size_t  data_size  = MAX_DATA_SPACE;
     std::size_t  temp_size  = MAX_TEMPORARY_SPACE;
     std::size_t  trash_size = MAX_TEMPORARY_SPACE;
@@ -85,7 +85,7 @@ namespace mkrecv
   {
     spead2::recv::packet_header    *ph = (spead2::recv::packet_header*)hint;
     spead2::recv::pointer_decoder   decoder(ph->heap_address_bits);
-    int                             i;
+    std::size_t                     i;
     spead2::s_item_pointer_t        item_value[MAX_INDEXPARTS];
     std::size_t                     item_index[MAX_INDEXPARTS];
     int                             dest_index = DATA_DEST;
@@ -101,7 +101,7 @@ namespace mkrecv
     bool ignore_heap = hasStopped;
     ignore_heap |= (ph->heap_cnt == 1);
     ignore_heap |= ((heap_size != HEAP_SIZE_DEF) && (heap_size != size));
-    ignore_heap |= (ph->n_items < nindices);
+    ignore_heap |= ((std::size_t)(ph->n_items) < nindices);
     if (ignore_heap)
       {
 	std::cout << "heap ignored heap_cnt " << ph->heap_cnt << " size " << size << " n_items " << ph->n_items << std::endl;
@@ -116,7 +116,7 @@ namespace mkrecv
       {
 	spead2::item_pointer_t pts = spead2::load_be<spead2::item_pointer_t>(ph->pointers + indices[i].item);
 	// a mask is used to restrict the used bits of an item value (default -> use all bits)
-	item_value[i] = decoder.get_immediate(pts) & indices[i].mask;
+	item_value[i] = (std::size_t)(decoder.get_immediate(pts) & indices[i].mask);
       }
     // calculate the index from the timestamp (first index component)
     if (state == INIT_STATE)
@@ -244,13 +244,15 @@ namespace mkrecv
 
   void allocator::free(std::uint8_t *ptr, void *user)
   {
+    (void)ptr;
+    (void)user;
   }
 
   void allocator::show_mark_log()
   {
     if ((tstat.ntotal - log_counter) >= LOG_FREQ)
       {
-	int i;
+	std::size_t i;
 	log_counter += LOG_FREQ;
 	std::cout << "heaps:"
 		  << " total " << tstat.ntotal
@@ -300,7 +302,7 @@ namespace mkrecv
 
   void allocator::mark(spead2::s_item_pointer_t cnt, bool isok, spead2::s_item_pointer_t reclen)
   {
-    std::size_t  nd, nt, ctsd, ctst, i, j;
+    std::size_t  ctsd, ctst;
 
     // **** GUARDED BY SEMAPHORE ****
     std::lock_guard<std::mutex> lock(dest_mutex);
@@ -309,8 +311,8 @@ namespace mkrecv
     dest[d].cts--;
     heap2dest.erase(cnt);
     tstat.nreceived += reclen;
-    nd = dest[DATA_DEST].needed;
-    nt = dest[TEMP_DEST].needed;
+    //nd = dest[DATA_DEST].needed;
+    //nt = dest[TEMP_DEST].needed;
     ctsd = dest[DATA_DEST].cts;
     ctst = dest[TEMP_DEST].cts;
     if (!isok)

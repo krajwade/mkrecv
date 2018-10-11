@@ -92,20 +92,21 @@ static int create_connection(mcast_context_t *context)
 
 static int add_connection(mcast_context_t *context, const char *interface_ip, const char *multicast_ip)
 {
-  int     rc;
+  int             rc;
+  struct in_addr  ia;
 
   printf("add_connection(.., %s, %s)\n", interface_ip, multicast_ip);
   // join the multicast group:
-  context->mreq.imr_multiaddr.s_addr = inet_addr(multicast_ip);
-  if(context->mreq.imr_multiaddr.s_addr == -1) {
-    fprintf(stderr, "ERROR: cannot decode multicast address %s: %s\n", multicast_ip, strerror(errno));
+  if (!inet_aton(multicast_ip, &ia)) {
+    fprintf(stderr, "ERROR: cannot decode multicast address %s\n", multicast_ip);
     return 0;
   }
-  context->mreq.imr_interface.s_addr = inet_addr(interface_ip);
-  if(context->mreq.imr_interface.s_addr == -1) {
-    fprintf(stderr, "ERROR: cannot decode interface address %s: %s\n", interface_ip, strerror(errno));
+  context->mreq.imr_multiaddr.s_addr = ia.s_addr;
+  if (!inet_aton(interface_ip, &ia)) {
+    fprintf(stderr, "ERROR: cannot decode interface address %s\n", interface_ip);
     return 0;
   }
+  context->mreq.imr_interface.s_addr = ia.s_addr;
   rc = setsockopt(context->sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &(context->mreq), sizeof(context->mreq));
   if (rc < 0) {
     fprintf(stderr, "ERROR: cannot add multicast membership: %s\n", strerror(errno));
@@ -116,24 +117,26 @@ static int add_connection(mcast_context_t *context, const char *interface_ip, co
 
 static int remove_connection(mcast_context_t *context, const char *interface_ip, const char *multicast_ip)
 {
-  int     rc;
+  int             rc;
+  struct in_addr  ia;
 
   // leave the multicast group:
-  context->mreq.imr_multiaddr.s_addr = inet_addr(multicast_ip);
-  if(context->mreq.imr_multiaddr.s_addr == -1) {
-    fprintf(stderr, "ERROR: cannot decode multicast address %s: %s\n", multicast_ip, strerror(errno));
+  if (!inet_aton(multicast_ip, &ia)) {
+    fprintf(stderr, "ERROR: cannot decode multicast address %s\n", multicast_ip);
     return 0;
   }
-  context->mreq.imr_interface.s_addr = inet_addr(interface_ip);
-  if(context->mreq.imr_interface.s_addr == -1) {
-    fprintf(stderr, "ERROR: cannot decode interface address %s: %s\n", interface_ip, strerror(errno));
+  context->mreq.imr_multiaddr.s_addr = ia.s_addr;
+  if (!inet_aton(interface_ip, &ia)) {
+    fprintf(stderr, "ERROR: cannot decode interface address %s\n", interface_ip);
     return 0;
   }
+  context->mreq.imr_interface.s_addr = ia.s_addr;
   rc = setsockopt(context->sock, IPPROTO_IP, IP_DROP_MEMBERSHIP, &(context->mreq), sizeof(context->mreq));
   if (rc < 0) {
     fprintf(stderr, "ERROR: cannot drop multicast membership: %s\n", strerror(errno));
     return 0;
   }
+  return 1;
 }
 
 static int delete_connection(mcast_context_t *context)
@@ -145,7 +148,7 @@ static int delete_connection(mcast_context_t *context)
   return 1;
 }
 
-static int process_heap(mcast_context_t *context)
+static void process_heap(mcast_context_t *context)
 {
   uint64_t   *spead_ptr = (uint64_t*)(context->data);
   uint64_t    spead_header;
@@ -218,7 +221,7 @@ static void *receive_heaps(void *arg)
   }
   while (1) {
     uint8_t   *ptr = context->data;
-    ssize_t count = recvfrom(context->sock, ptr, context->available, 0, NULL, NULL);
+    recvfrom(context->sock, ptr, context->available, 0, NULL, NULL);
     //if (!g_quiet) printf("packet\n");
     process_heap(context);
     if (context->heap_count == MAX_HEAPS) return NULL;
@@ -227,7 +230,7 @@ static void *receive_heaps(void *arg)
 
 static void usage(char *exename)
 {
-  printf("usage: $s [-quiet] [-port <port>] <interface_ip> { <multicast_ip> }\n");
+  printf("usage: %s [-quiet] [-port <port>] <interface_ip> { <multicast_ip> }\n", exename);
   printf("  -quiet         : only a summary after receiving %d heaps is printed\n", MAX_HEAPS);
   printf("  -port <port>   : changes the port from the default %d to a given number\n", g_port);
   printf("  <interface_ip> : ip address (IPv4) of the network interface which will receive the data\n");

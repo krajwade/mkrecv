@@ -127,6 +127,7 @@ static uint16_t read_uint16(FILE *in)
   return (uint16_t)be16toh(val);
 }
 
+/*
 static uint32_t read_uint32(FILE *in)
 {
   uint32_t  val;
@@ -138,7 +139,9 @@ static uint32_t read_uint32(FILE *in)
   }
   return (uint32_t)be32toh(val);
 }
+*/
 
+/*
 static uint64_t read_uint64(FILE *in)
 {
   uint64_t  val;
@@ -150,6 +153,7 @@ static uint64_t read_uint64(FILE *in)
   }
   return (uint64_t)be64toh(val);
 }
+*/
 
 static void read_file_prefix(FILE *in, file_prefix_t *prefix)
 {
@@ -217,6 +221,7 @@ static void read_packet_prefix(FILE *in, packet_prefix_t *prefix)
   }
 }
 
+/*
 static void dump_packet_prefix(packet_prefix_t *prefix)
 {
   printf("packet timestamp %d, %d captured = %d untruncated = %d\n",
@@ -225,6 +230,7 @@ static void dump_packet_prefix(packet_prefix_t *prefix)
     prefix->captured_length,
     prefix->untruncated_length);
 }
+*/
 
 static void read_ip_header(FILE *in, ip_packet_header_t *header)
 {
@@ -286,6 +292,7 @@ static void read_udp_packet(FILE *in, udp_packet_t *packet)
   }
 }
 
+/*
 static void dump_udp_packet(udp_packet_t *packet)
 {
   printf("udp %d -> %d length %d\n",
@@ -293,6 +300,7 @@ static void dump_udp_packet(udp_packet_t *packet)
     packet->destination_port,
     packet->total_length);
 }
+*/
 
 static void dump_heap(udp_packet_t *packet)
 {
@@ -345,6 +353,7 @@ int main(int argc, char **args)
   FILE *in = NULL;
   int   index;
 
+  if (argc != 2) return 1;
   init_memory();
   in = fopen(args[1], "r");
   if (in == NULL) {
