@@ -3,6 +3,7 @@ project (mkrecv CXX)
 cmake_minimum_required (VERSION 2.8)
 
 # @mhein3:
+# cmake -DCMAKE_BUILD_TYPE=DEBUG -DCMAKE_INSTALL_PREFIX=~ .
 # cmake -D CMAKE_INSTALL_PREFIX=~ .
 
 # The version number.

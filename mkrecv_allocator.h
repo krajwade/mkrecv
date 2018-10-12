@@ -59,7 +59,7 @@ namespace mkrecv
   {
   public:
     std::unordered_map<spead2::s_item_pointer_t, std::size_t> value2index;
-    std::size_t               first    = 0;
+    spead2::s_item_pointer_t  first    = 0;
     std::size_t               count    = 0;
     std::size_t               nerror   = 0;
     std::size_t               nskipped = 0;
@@ -85,7 +85,7 @@ namespace mkrecv
     std::mutex                         dest_mutex;
     destination                        dest[3];
     std::unordered_map<spead2::s_item_pointer_t, int> heap2dest;
-    int                                nindices = 0;
+    std::size_t                        nindices = 0;
     index_part                         indices[MAX_INDEXPARTS];
     std::size_t                        payload_size;// size of one packet payload (ph->payload_length
     std::size_t                        heap_size;   // size of a heap in bytes
