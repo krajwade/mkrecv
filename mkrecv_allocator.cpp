@@ -174,6 +174,7 @@ namespace mkrecv
       }
     else if (item_value[0] < indices[0].first)
       {
+	std::cout << "TS too old: " << ph->heap_cnt << " " << item_value[0] << " " << item_index[0] << " " << indices[0].first << " " << indices[0].step << std::endl;
 	tstat.nskipped++;
 	indices[0].nskipped++;
 	dest_index = TRASH_DEST;
