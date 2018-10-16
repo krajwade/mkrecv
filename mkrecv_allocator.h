@@ -37,9 +37,11 @@ namespace mkrecv
   static const int SEQUENTIAL_STATE = 1;
   static const int PARALLEL_STATE   = 2;
 
-  static const int LOG_FREQ = 10000;
+  static const int LOG_FREQ = 100000;
 
   static const std::size_t MAX_VALUE = 4096;
+
+  static const int TS_HISTO_SLOTS = 8;
 
   class statistics
   {
@@ -67,6 +69,23 @@ namespace mkrecv
     void set(const index_options &opt);
   };
 
+  class ts_histo
+  {
+  public:
+    bool                       has_last_ts;
+    std::int64_t               ts_step;
+    std::int64_t               last_ts;
+    std::int64_t               most_negative_index;
+    std::size_t                count_negative_indices;
+    std::size_t                counts[2*TS_HISTO_SLOTS + 1];
+    std::int64_t               most_positive_index;
+    std::size_t                count_positive_indices;
+    ts_histo();
+    void set_step(std::int64_t step);
+    void proc_ts(std::int64_t ts);
+    void show();
+  };
+
   /*
    * This allocator uses three memory areas for putting the incomming heaps into. The main
    * memory area is the current ringbuffer slot provided by the PSR_DADA library. Each slot
@@ -87,6 +106,7 @@ namespace mkrecv
     std::unordered_map<spead2::s_item_pointer_t, int> heap2dest;
     std::size_t                        nindices = 0;
     index_part                         indices[MAX_INDEXPARTS];
+    ts_histo                           hist;
     std::size_t                        payload_size;// size of one packet payload (ph->payload_length
     std::size_t                        heap_size;   // size of a heap in bytes
     std::size_t                        heap_count;  // number of heaps inside one group

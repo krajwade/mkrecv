@@ -26,6 +26,70 @@ namespace mkrecv
       }
   }
 
+  ts_histo::ts_histo()
+  {
+    int i;
+
+    has_last_ts = false;
+    ts_step = 1;
+    last_ts = 0;
+    most_negative_index = 0;
+    count_negative_indices = 0;
+    for (i = 0; i < 2*TS_HISTO_SLOTS+1; i++)
+      {
+        counts[i] = 0;
+      }
+    most_positive_index = 0;
+    count_positive_indices = 0;
+  }
+
+  void ts_histo::set_step(std::int64_t step)
+  {
+    ts_step = step;
+  }
+
+  void ts_histo::proc_ts(std::int64_t ts)
+  {
+    if (!has_last_ts)
+      {
+        last_ts = ts;
+        has_last_ts = true;
+      }
+    std::int64_t idx = (ts - last_ts)/ts_step;
+    if (idx < -TS_HISTO_SLOTS)
+      {
+        if (idx < most_negative_index) most_negative_index = idx;
+        count_negative_indices++;
+      }
+    else if (idx > TS_HISTO_SLOTS)
+      {
+        if (idx > most_positive_index) most_positive_index = idx;
+        count_positive_indices++;
+      }
+    else
+      {
+        counts[idx + TS_HISTO_SLOTS]++;
+      }
+    if (ts > last_ts)
+      {
+        last_ts = ts;
+      }
+  }
+
+  void ts_histo::show()
+  {
+    int i;
+
+    std::cout << "ts histo: " << most_negative_index << " .. " << most_positive_index;
+    std::cout << " neg " << count_negative_indices;
+    for (i = 0; i < 2*TS_HISTO_SLOTS+1; i++)
+      {
+        std::cout << " " << (i - TS_HISTO_SLOTS) << ":" << counts[i];
+      }
+    std::cout << " pos " << count_positive_indices;
+    std::cout << std::endl;
+  }
+
   allocator::allocator(key_t key, std::string mlname, std::shared_ptr<options> opts) :
     opts(opts),
     mlog(mlname),
@@ -46,8 +110,6 @@ namespace mkrecv
 	indices[i].set(opts->indices[i]);
 	heap_count *= indices[i].count;
       }
-    cts_data = opts->sources.size();
-    cts_temp = opts->sources.size();
     heap_size = opts->heap_size;
     nsci = opts->nsci;
     scis = opts->scis;
@@ -72,6 +134,11 @@ namespace mkrecv
       }
     dest[TEMP_DEST].allocate_buffer(memallocator, temp_size);
     dest[TRASH_DEST].allocate_buffer(memallocator, trash_size);
+    cts_data = opts->sources.size();
+    cts_temp = opts->sources.size();
+    //cts_data = dest[TEMP_DEST].space/4;
+    //cts_temp = dest[TEMP_DEST].space/4;
+    hist.set_step((std::int64_t)(indices[0].step));
     std::cout << "dest[DATA_DEST].ptr.ptr()  = " << (std::size_t)(dest[DATA_DEST].ptr->ptr()) << std::endl;
     std::cout << "dest[TEMP_DEST].ptr.ptr()  = " << (std::size_t)(dest[TEMP_DEST].ptr->ptr()) << std::endl;
     std::cout << "dest[TRASH_DEST].ptr.ptr() = " << (std::size_t)(dest[TRASH_DEST].ptr->ptr()) << std::endl;
@@ -104,7 +171,10 @@ namespace mkrecv
     ignore_heap |= ((std::size_t)(ph->n_items) < nindices);
     if (ignore_heap)
       {
-	std::cout << "heap ignored heap_cnt " << ph->heap_cnt << " size " << size << " n_items " << ph->n_items << std::endl;
+        if (!hasStopped)
+          {
+	    std::cout << "heap ignored heap_cnt " << ph->heap_cnt << " size " << size << " n_items " << ph->n_items << std::endl;
+          }
 	tstat.nignored++;
 	dest[TRASH_DEST].count++;
 	heap2dest[ph->heap_cnt] = TRASH_DEST;
@@ -124,6 +194,7 @@ namespace mkrecv
 	indices[0].first = item_value[0] + 2*indices[0].step; // 2 is a safety margin to avoid incomplete heaps
       }
     item_index[0] = (item_value[0] - indices[0].first)/indices[0].step;
+    hist.proc_ts((std::int64_t)(item_value[0]));
     // All other index components are used in the same way
     for (i = 1; i < nindices; i++)
       {
@@ -174,7 +245,7 @@ namespace mkrecv
       }
     else if (item_value[0] < indices[0].first)
       {
-	std::cout << "TS too old: " << ph->heap_cnt << " " << item_value[0] << " " << item_index[0] << " " << indices[0].first << " " << indices[0].step << std::endl;
+	//std::cout << "TS too old: " << ph->heap_cnt << " " << item_value[0] << " " << item_index[0] << " " << indices[0].first << " " << indices[0].step << " diff " << (indices[0].first - item_value[0])/indices[0].step << std::endl;
 	tstat.nskipped++;
 	indices[0].nskipped++;
 	dest_index = TRASH_DEST;
@@ -299,6 +370,7 @@ namespace mkrecv
 	      << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
 	      << " payload " << tstat.nexpected << " " << tstat.nreceived
 	      << " cts " << dest[DATA_DEST].cts << " " << dest[TEMP_DEST].cts << std::endl;
+    //hist.show();
   }
 
   void allocator::mark(spead2::s_item_pointer_t cnt, bool isok, spead2::s_item_pointer_t reclen)
@@ -350,6 +422,7 @@ namespace mkrecv
 		dada.data_stream().release();
 	      }
 	    stop = false;
+            hist.show();
 	  }
 	dest[DATA_DEST].needed  = dest[DATA_DEST].space;
 	indices[0].first  += dest[DATA_DEST].capacity*indices[0].step;

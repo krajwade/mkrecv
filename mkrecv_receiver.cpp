@@ -133,7 +133,7 @@ namespace mkrecv
 	auto &stream = dynamic_cast<mkrecv::stream &>(*ptr);
 	n_complete += stream.join();
       }
-    
+    g_stop_thread.join();
     std::cout << "Received " << n_complete << " heaps\n";
     return 0;
   }
