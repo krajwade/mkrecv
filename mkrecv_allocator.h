@@ -86,6 +86,22 @@ namespace mkrecv
     void show();
   };
 
+  class et_statistics
+  {
+  public:
+    static const int ALLOC_TIMING = 0;
+    static const int MARK_TIMING  = 1;
+  public:
+    double   min_et[2];
+    double   max_et[2];
+    double   sum_et[2];
+    double   count_et[2];
+  public:
+    et_statistics();
+    void add_et(int fi, double nanoseconds);
+    void show();
+  };
+
   /*
    * This allocator uses three memory areas for putting the incomming heaps into. The main
    * memory area is the current ringbuffer slot provided by the PSR_DADA library. Each slot
@@ -119,15 +135,11 @@ namespace mkrecv
     int                                state = INIT_STATE;
     bool                               hasStarted = false;
     statistics                         tstat;
+    et_statistics                      et;
     std::size_t                        dada_mode = 4;
     std::size_t                        log_counter = 0;
     bool                               stop = false;
     bool                               hasStopped = false;
-
-    double                             alloc_sum   = 0.0;
-    double                             alloc_count = 0.0;
-    double                             mark_sum    = 0.0;
-    double                             mark_count  = 0.0;
     
   public:
     allocator(key_t key, std::string mlname, std::shared_ptr<mkrecv::options> opts);

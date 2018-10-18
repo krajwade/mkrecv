@@ -517,35 +517,36 @@ namespace mkrecv
     int i;
 
     desc.add_options()
-      ("help",           "show this text")
+      ("help",            "show this text")
       // optional header file contain configuration options and additional information
-      (HEADER_OPT,       make_opt(hdrname),         HEADER_DESC)
+      (HEADER_OPT,        make_opt(hdrname),         HEADER_DESC)
       // some flags
-      (QUIET_OPT,        make_opt(quiet),           QUIET_DESC)
-      (DESCRIPTORS_OPT,  make_opt(descriptors),     DESCRIPTORS_DESC)
-      (PYSPEAD_OPT,      make_opt(pyspead),         PYSPEAD_DESC)
-      (JOINT_OPT,        make_opt(joint),           JOINT_DESC)
+      (QUIET_OPT,         make_opt(quiet),           QUIET_DESC)
+      (DESCRIPTORS_OPT,   make_opt(descriptors),     DESCRIPTORS_DESC)
+      (PYSPEAD_OPT,       make_opt(pyspead),         PYSPEAD_DESC)
+      (JOINT_OPT,         make_opt(joint),           JOINT_DESC)
       // some options, default values should be ok to use, will _not_ go into header
-      (PACKET_OPT,       make_opt(packet),          PACKET_DESC)
-      (BUFFER_OPT,       make_opt(buffer),          BUFFER_DESC)
-      (NTHREADS_OPT,     make_opt(threads),         NTHREADS_DESC)
-      (NHEAPS_OPT,       make_opt(heaps),           NHEAPS_DESC)
-      ("memcpy-nt",      make_opt(memcpy_nt),       "Use non-temporal memcpy")
+      (PACKET_OPT,        make_opt(packet),          PACKET_DESC)
+      (BUFFER_OPT,        make_opt(buffer),          BUFFER_DESC)
+      (NTHREADS_OPT,      make_opt(threads),         NTHREADS_DESC)
+      (NHEAPS_OPT,        make_opt(heaps),           NHEAPS_DESC)
+      ("memcpy-nt",       make_opt(memcpy_nt),       "Use non-temporal memcpy")
       // DADA ringbuffer related stuff
-      (DADA_MODE_OPT,    make_opt(dada_mode),       DADA_MODE_DESC)
-      (DADA_KEY_OPT,     make_opt(dada_key),        DADA_KEY_DESC)
+      (DADA_MODE_OPT,     make_opt(dada_mode),       DADA_MODE_DESC)
+      (DADA_KEY_OPT,      make_opt(dada_key),        DADA_KEY_DESC)
       // network configuration
 #if SPEAD2_USE_IBV
-      (IBV_IF_OPT,       make_opt(ibv_if),          IBV_IF_DESC)
-      (IBV_VECTOR_OPT,   make_opt(ibv_comp_vector), IBV_VECTOR_DESC)
-      (IBV_MAX_POLL_OPT, make_opt(ibv_max_poll),    IBV_MAX_POLL_DESC)
+      (IBV_IF_OPT,        make_opt(ibv_if),          IBV_IF_DESC)
+      (IBV_VECTOR_OPT,    make_opt(ibv_comp_vector), IBV_VECTOR_DESC)
+      (IBV_MAX_POLL_OPT,  make_opt(ibv_max_poll),    IBV_MAX_POLL_DESC)
 #endif
-      (UDP_IF_OPT,       make_opt(udp_if),          UDP_IF_DESC)
-      (PORT_OPT,         make_opt(port),            PORT_DESC)
-      (SYNC_EPOCH_OPT,   make_opt(sync_epoch),      SYNC_EPOCH_DESC)
-      (SAMPLE_CLOCK_OPT, make_opt(sample_clock),    SAMPLE_CLOCK_DESC)
-      (HEAP_SIZE_OPT,    make_opt(heap_size),        HEAP_SIZE_DESC)
-      (NGROUPS_TEMP_OPT, make_opt(ngroups_temp),     NGROUPS_TEMP_DESC)
+      (UDP_IF_OPT,        make_opt(udp_if),          UDP_IF_DESC)
+      (PORT_OPT,          make_opt(port),            PORT_DESC)
+      (SYNC_EPOCH_OPT,    make_opt(sync_epoch),      SYNC_EPOCH_DESC)
+      (SAMPLE_CLOCK_OPT,  make_opt(sample_clock),    SAMPLE_CLOCK_DESC)
+      (HEAP_SIZE_OPT,     make_opt(heap_size),       HEAP_SIZE_DESC)
+      (NGROUPS_TEMP_OPT,  make_opt(ngroups_temp),    NGROUPS_TEMP_DESC)
+      (NHEAPS_SWITCH_OPT, make_opt(nheaps_switch),   NHEAPS_SWITCH_DESC)
       ;
     // index calculation
     desc.add_options()
@@ -618,6 +619,7 @@ namespace mkrecv
     set_opt(sync_epoch,      SYNC_EPOCH_OPT, SYNC_EPOCH_KEY);
     set_opt(heap_size,       HEAP_SIZE_OPT, HEAP_SIZE_KEY);
     set_opt(ngroups_temp,    NGROUPS_TEMP_OPT, NGROUPS_TEMP_KEY);
+    set_opt(nheaps_switch,   NHEAPS_SWITCH_OPT, NHEAPS_SWITCH_KEY);
     set_opt(nindices,        NINDICES_OPT, NINDICES_KEY);
     if (nindices >= MAX_INDEXPARTS) nindices = MAX_INDEXPARTS-1;
     for (i = 0; i < nindices; i++)

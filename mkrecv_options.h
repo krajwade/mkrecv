@@ -164,6 +164,11 @@
 #define NGROUPS_TEMP_DESC  "Number of groups (heaps with the same timestamp) going into the temporary space."
 #define NGROUPS_TEMP_DEF   64
 
+#define NHEAPS_SWITCH_OPT   "nheaps-switch"
+#define NHEAPS_SWITCH_KEY   "NHEAPS_SWITCH"
+#define NHEAPS_SWITCH_DESC  "Number of received heaps before switching to a new ringbuffer slot."
+#define NHEAPS_SWITCH_DEF   0
+
 /* It is possible to put a list of item pointer values into some kind of side-channel inside a ringbuffer slot */
 #define SCI_LIST_OPT       "sci-list"
 #define SCI_LIST_KEY       "SCI_LIST"
@@ -226,6 +231,7 @@ namespace mkrecv
     index_options             indices[MAX_INDEXPARTS];
     std::size_t               heap_size       = HEAP_SIZE_DEF;
     std::size_t               ngroups_temp    = NGROUPS_TEMP_DEF;
+    std::size_t               nheaps_switch   = NHEAPS_SWITCH_DEF;
     std::string               sci_list        = SCI_LIST_DEF;
     std::size_t               nsci            = 0;
     std::vector<std::size_t>  scis;

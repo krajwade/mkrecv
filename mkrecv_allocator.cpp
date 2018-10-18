@@ -91,6 +91,36 @@ namespace mkrecv
     std::cout << std::endl;
   }
 
+  et_statistics::et_statistics()
+  {
+    int i;
+    
+    for (i = 0; i < 2; i++)
+      {
+	min_et[i] = 1.0e30;
+	max_et[i] = 0.0;
+	sum_et[i] = 0.0;
+	count_et[i] = 0.0;
+      }
+  }
+  
+  void et_statistics::add_et(int fi, double nanoseconds)
+  {
+    if (nanoseconds < min_et[fi]) min_et[fi] = nanoseconds;
+    if (nanoseconds > max_et[fi]) max_et[fi] = nanoseconds;
+    sum_et[fi]   += nanoseconds;
+    count_et[fi] += 1.0;
+  }
+  
+  void et_statistics::show()
+  {
+    std::cout << "et:"
+	      << " alloc " << sum_et[ALLOC_TIMING]/count_et[ALLOC_TIMING] << " [" << min_et[ALLOC_TIMING] << " .. " << max_et[ALLOC_TIMING] << "]"
+	      << " mark " << sum_et[MARK_TIMING]/count_et[MARK_TIMING] << " [" << min_et[MARK_TIMING] << " .. " << max_et[MARK_TIMING] << "]"
+      ;
+  }
+
+  
   allocator::allocator(key_t key, std::string mlname, std::shared_ptr<options> opts) :
     opts(opts),
     mlog(mlname),
@@ -135,10 +165,13 @@ namespace mkrecv
       }
     dest[TEMP_DEST].allocate_buffer(memallocator, temp_size);
     dest[TRASH_DEST].allocate_buffer(memallocator, trash_size);
-    cts_data = opts->sources.size();
-    cts_temp = opts->sources.size();
-    //cts_data = dest[TEMP_DEST].space/4;
-    //cts_temp = dest[TEMP_DEST].space/4;
+    cts_data = opts->nheaps_switch;
+    if (cts_data == NHEAPS_SWITCH_DEF)
+      {
+	cts_data = dest[TEMP_DEST].space/4;
+	if (cts_data < heap_count) cts_data = heap_count;
+      }
+    cts_temp = cts_data;
     hist.set_step((std::int64_t)(indices[0].step));
     std::cout << "dest[DATA_DEST].ptr.ptr()  = " << (std::size_t)(dest[DATA_DEST].ptr->ptr()) << std::endl;
     std::cout << "dest[TEMP_DEST].ptr.ptr()  = " << (std::size_t)(dest[TEMP_DEST].ptr->ptr()) << std::endl;
@@ -314,8 +347,7 @@ namespace mkrecv
       << std::endl;
     */
     std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
-    alloc_sum   += std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count();
-    alloc_count += 1.0;
+    et.add_et(et_statistics::ALLOC_TIMING, std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count());
     return pointer((std::uint8_t*)(mem_base + mem_offset), deleter(shared_from_this(), (void *) std::uintptr_t(size)));
   }
 
@@ -410,7 +442,7 @@ namespace mkrecv
 	  { // copy the optional side-channel items at the correct position
 	    // sci_base = buffer + size - (scape *nsci)
             std::cout << "still needing " << dest[DATA_DEST].needed << " heaps." << std::endl;
-            std::cout << "et alloc: " << alloc_sum/alloc_count << " ns" <<  " mark " << mark_sum/mark_count << " ns" << std::endl;
+	    et.show();
 	    spead2::s_item_pointer_t  *sci_base = (spead2::s_item_pointer_t*)(dest[DATA_DEST].ptr->ptr()
 									      + dest[DATA_DEST].size
 									      - dest[DATA_DEST].space*nsci*sizeof(spead2::s_item_pointer_t));
@@ -458,8 +490,7 @@ namespace mkrecv
 	show_state_log();
       }
     std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
-    mark_sum   += std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count();
-    mark_count += 1.0;
+    et.add_et(et_statistics::MARK_TIMING, std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count());
   }
 
   void allocator::request_stop()
