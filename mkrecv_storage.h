@@ -75,6 +75,7 @@ namespace mkrecv
       = 0;
     virtual void request_stop() = 0;
     virtual bool is_stopped() = 0;
+    virtual void close() = 0;
   };
 
 }

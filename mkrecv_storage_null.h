@@ -24,6 +24,7 @@ namespace mkrecv
 		    std::size_t reclen);      // recieved number of bytes
     void request_stop();
     bool is_stopped();
+    void close();
   };
 
 }

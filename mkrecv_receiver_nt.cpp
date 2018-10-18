@@ -132,6 +132,7 @@ namespace mkrecv
 	n_complete += stream.join();
       }
     g_stop_thread.join();
+    storage->close();
     std::cout << "Received " << n_complete << " heaps\n";
     return 0;
   }
@@ -143,7 +144,7 @@ namespace mkrecv
 
   std::shared_ptr<mkrecv::storage> receiver_nt::create_storage()
   {
-    if (opts->dada_mode == FULL_DADA_MODE)
+    if (opts->dada_mode != FULL_DADA_MODE)
       {
 	return std::shared_ptr<mkrecv::storage>(new storage_null(opts));
       }

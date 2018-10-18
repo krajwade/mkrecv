@@ -132,5 +132,9 @@ namespace mkrecv
     return has_stopped;
   }
 
+  void storage_null::close()
+  {
+  }
+
 
 }

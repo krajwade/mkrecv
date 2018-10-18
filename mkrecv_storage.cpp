@@ -21,5 +21,5 @@ namespace mkrecv
     scis = opts->scis;
     memallocator = std::make_shared<spead2::mmap_allocator>(0, true);
   }
-  
+
 }

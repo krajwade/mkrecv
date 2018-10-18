@@ -20,6 +20,9 @@ namespace mkrecv
     std::size_t                        cts_data;
     std::size_t                        cts_temp;
     std::size_t                        log_counter = 0;
+    std::thread                        header_thread;
+    std::thread                        switch_thread;
+    std::thread                        copy_thread;
   public:
     storage_full_dada(std::shared_ptr<mkrecv::options> opts, key_t key, std::string mlname);
     int alloc_place(spead2::s_item_pointer_t timestamp,    // timestamp of a heap
@@ -32,6 +35,10 @@ namespace mkrecv
 		    std::size_t reclen);      // recieved number of bytes
     void request_stop();
     bool is_stopped();
+    void close();
+    void proc_header();
+    void proc_switch_slot();
+    void proc_copy_temp();
   protected:
     void show_mark_log();
     void show_state_log();
