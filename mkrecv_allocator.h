@@ -123,6 +123,11 @@ namespace mkrecv
     std::size_t                        log_counter = 0;
     bool                               stop = false;
     bool                               hasStopped = false;
+
+    double                             alloc_sum   = 0.0;
+    double                             alloc_count = 0.0;
+    double                             mark_sum    = 0.0;
+    double                             mark_count  = 0.0;
     
   public:
     allocator(key_t key, std::string mlname, std::shared_ptr<mkrecv::options> opts);

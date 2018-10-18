@@ -1,3 +1,4 @@
+#include <chrono>
 
 #include "ascii_header.h"
 
@@ -150,6 +151,7 @@ namespace mkrecv
 
   spead2::memory_allocator::pointer allocator::allocate(std::size_t size, void *hint)
   {
+    std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
     spead2::recv::packet_header    *ph = (spead2::recv::packet_header*)hint;
     spead2::recv::pointer_decoder   decoder(ph->heap_address_bits);
     std::size_t                     i;
@@ -311,6 +313,9 @@ namespace mkrecv
       << " ntotal " << tstat.ntotal << " noverrun " << tstat.noverrun << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
       << std::endl;
     */
+    std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+    alloc_sum   += std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count();
+    alloc_count += 1.0;
     return pointer((std::uint8_t*)(mem_base + mem_offset), deleter(shared_from_this(), (void *) std::uintptr_t(size)));
   }
 
@@ -375,6 +380,7 @@ namespace mkrecv
 
   void allocator::mark(spead2::s_item_pointer_t cnt, bool isok, spead2::s_item_pointer_t reclen)
   {
+    std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
     std::size_t  ctsd, ctst;
 
     // **** GUARDED BY SEMAPHORE ****
@@ -403,6 +409,8 @@ namespace mkrecv
 	if (!hasStopped && (dada_mode >= DYNAMIC_DADA_MODE))
 	  { // copy the optional side-channel items at the correct position
 	    // sci_base = buffer + size - (scape *nsci)
+            std::cout << "still needing " << dest[DATA_DEST].needed << " heaps." << std::endl;
+            std::cout << "et alloc: " << alloc_sum/alloc_count << " ns" <<  " mark " << mark_sum/mark_count << " ns" << std::endl;
 	    spead2::s_item_pointer_t  *sci_base = (spead2::s_item_pointer_t*)(dest[DATA_DEST].ptr->ptr()
 									      + dest[DATA_DEST].size
 									      - dest[DATA_DEST].space*nsci*sizeof(spead2::s_item_pointer_t));
@@ -449,6 +457,9 @@ namespace mkrecv
 	state = SEQUENTIAL_STATE;
 	show_state_log();
       }
+    std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+    mark_sum   += std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count();
+    mark_count += 1.0;
   }
 
   void allocator::request_stop()
