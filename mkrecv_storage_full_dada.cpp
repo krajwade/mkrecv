@@ -90,7 +90,7 @@ namespace mkrecv
 	    // The timestamp is smaller than the timestamp of the first heap in the current slot
 	    // -> put this heap into trash and report it as a skipped heap
 	    gstat.heaps_skipped++;
-	    std::cout << "TS too old: " << timestamp << " " << timestamp_first << " " << timestamp_step << " -> " << group_index << std::endl;
+	    //std::cout << "TS too old: " << timestamp << " " << timestamp_first << " " << timestamp_step << " -> " << group_index << std::endl;
 	    dest_index = TRASH_DEST;
 	  }
 	else if (state == SEQUENTIAL_STATE)
@@ -98,7 +98,7 @@ namespace mkrecv
 	    if (group_index >= (spead2::s_item_pointer_t)(dest[DATA_DEST].capacity + dest[TEMP_DEST].capacity))
 	      {
 		gstat.heaps_overrun++;
-		std::cout << "SEQ overrun: " << timestamp << " " << timestamp_first << " " << timestamp_step << " -> " << group_index << std::endl;
+		//std::cout << "SEQ overrun: " << timestamp << " " << timestamp_first << " " << timestamp_step << " -> " << group_index << std::endl;
 		dest_index = TRASH_DEST;
 	      }
 	    else if (group_index >= (spead2::s_item_pointer_t)dest[DATA_DEST].capacity)
@@ -112,7 +112,7 @@ namespace mkrecv
 	    if (group_index >= (spead2::s_item_pointer_t)dest[DATA_DEST].capacity)
 	      {
 		gstat.heaps_overrun++;
-		std::cout << "PAR overrun: " << timestamp << " " << timestamp_first << " " << timestamp_step << " -> " << group_index << std::endl;
+		//std::cout << "PAR overrun: " << timestamp << " " << timestamp_first << " " << timestamp_step << " -> " << group_index << std::endl;
 		dest_index = TRASH_DEST;
 		//if (tstat.noverrun == 100) exit(1);
 	      }
@@ -196,6 +196,7 @@ namespace mkrecv
     if ((state == SEQUENTIAL_STATE) && (ctst == 0))
       {
 	// switch to parallel data/temp order
+        std::cout << "still needing " << dest[DATA_DEST].needed << " heaps." << std::endl;
 	state = PARALLEL_STATE;
 	if (!has_stopped)
 	  { // copy the optional side-channel items at the correct position

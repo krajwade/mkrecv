@@ -55,9 +55,21 @@ namespace mkrecv
 	dest[DATA_DEST].set_heap_size(heap_size, heap_count, 0, nsci);
 	dest[TEMP_DEST].set_heap_size(heap_size, heap_count, 0, nsci);
 	dest[TRASH_DEST].set_heap_size(heap_size, heap_count, 0, nsci);
+        cts_data = opts->nheaps_switch;
+        if (cts_data == NHEAPS_SWITCH_DEF)
+          {
+	    cts_data = dest[TEMP_DEST].space/4;
+	    if (cts_data < heap_count) cts_data = heap_count;
+          }
+        cts_temp = cts_data;
 	dest[DATA_DEST].cts = cts_data;
 	dest[TEMP_DEST].cts = cts_temp;
 	state = SEQUENTIAL_STATE;
+	std::cout << "sizes: heap size " << heap_size << " count " << heap_count << " first " << timestamp_first << " step " << timestamp_step << std::endl;
+	std::cout << "DATA_DEST:  capacity " << dest[DATA_DEST].capacity << " space " << dest[DATA_DEST].space << std::endl;
+	std::cout << "TEMP_DEST:  capacity " << dest[TEMP_DEST].capacity << " space " << dest[TEMP_DEST].space << std::endl;
+	std::cout << "TRASH_DEST: capacity " << dest[TRASH_DEST].capacity << " space " << dest[TRASH_DEST].space << std::endl;
+	std::cout << "cts " << dest[DATA_DEST].cts << " " << dest[TEMP_DEST].cts << " " << dest[TRASH_DEST].cts << std::endl;
       }
     if (stop)
       {
@@ -73,26 +85,40 @@ namespace mkrecv
 	    // The timestamp is smaller than the timestamp of the first heap in the current slot
 	    // -> put this heap into trash and report it as a skipped heap
 	    gstat.heaps_skipped++;
-	    std::cout << "TS too old: " << timestamp << " " << timestamp_first << " " << timestamp_step << " -> " << group_index << std::endl;
+	    //std::cout << "TS too old: " << timestamp << " " << timestamp_first << " " << timestamp_step << " -> " << group_index << std::endl;
 	    dest_index = TRASH_DEST;
 	  }
-	else if (group_index >= (spead2::s_item_pointer_t)(dest[DATA_DEST].capacity + dest[TEMP_DEST].capacity))
-	  {
-	    gstat.heaps_overrun++;
-	    std::cout << "SEQ overrun: " << timestamp << " " << timestamp_first << " " << timestamp_step << " -> " << group_index << std::endl;
-	    dest_index = TRASH_DEST;
-	  }
-	else if (group_index >= (spead2::s_item_pointer_t)dest[DATA_DEST].capacity)
-	  {
-	    dest_index = TEMP_DEST;
-	    group_index -= (spead2::s_item_pointer_t)dest[DATA_DEST].capacity;
-	  }
+        else if (state == SEQUENTIAL_STATE)
+          {
+	    if (group_index >= (spead2::s_item_pointer_t)(dest[DATA_DEST].capacity + dest[TEMP_DEST].capacity))
+	      {
+	        gstat.heaps_overrun++;
+	        //std::cout << "SEQ overrun: " << timestamp << " " << timestamp_first << " " << timestamp_step << " -> " << group_index << std::endl;
+	        dest_index = TRASH_DEST;
+	      }
+	    else if (group_index >= (spead2::s_item_pointer_t)dest[DATA_DEST].capacity)
+	      {
+	        dest_index = TEMP_DEST;
+	        group_index -= (spead2::s_item_pointer_t)dest[DATA_DEST].capacity;
+	      }
+          }
+        else if (state == PARALLEL_STATE)
+          {
+            if (group_index >= (spead2::s_item_pointer_t)dest[DATA_DEST].capacity)
+              {
+                dest_index = TRASH_DEST;
+              }
+           else if (group_index < (spead2::s_item_pointer_t)dest[TEMP_DEST].capacity)
+              {
+                dest_index = TEMP_DEST;
+              }
+          }
       }
     else
       { // The requested destination is already TRASH_DEST -> This heap is should be ignored
 	gstat.heaps_ignored++;
       }
-    group_index = 0;
+    if (dest_index == TRASH_DEST) group_index = 0;
     gstat.heaps_total++;
     gstat.heaps_open++;
     gstat.bytes_expected += size;
@@ -143,6 +169,7 @@ namespace mkrecv
 	    has_stopped = true;
 	    std::cout << "request to stop the transfer into the ringbuffer received." << std::endl;
 	  }
+        std::cout << "still needing " << dest[DATA_DEST].needed << " heaps." << std::endl;
 	dest[DATA_DEST].needed  = dest[DATA_DEST].space;
 	timestamp_first  += dest[DATA_DEST].capacity*timestamp_step;
 	dest[DATA_DEST].cts = cts_data;
