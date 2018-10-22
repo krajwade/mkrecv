@@ -17,8 +17,6 @@ namespace mkrecv
     psrdada_cpp::RawBytes             *hdr;   // memory to store constant (header) information
     std::mutex                         dest_mutex;
     destination                        dest[3];
-    std::size_t                        cts_data;
-    std::size_t                        cts_temp;
     std::size_t                        log_counter = 0;
     std::thread                        header_thread;
     std::thread                        switch_thread;

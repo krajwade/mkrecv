@@ -14,13 +14,20 @@ namespace mkrecv
       {
 	std::size_t group_size;
 	group_size = heap_count*(heap_size + nsci*sizeof(spead2::s_item_pointer_t));
-	data_size  = group_size; // 1 heap group
-	temp_size  = group_size; // 1 heap group
-	trash_size = group_size; // 1 heap group
+	data_size  = 16*opts->ngroups_temp*group_size; // 16 times N heap groups (N = option NGROUPS_TEMP)
+	temp_size  =    opts->ngroups_temp*group_size; // N heap groups (N = option NGROUPS_TEMP)
+	trash_size =                       group_size; // 1 heap group
       }
     dest[DATA_DEST].allocate_buffer(memallocator, data_size);
     dest[TEMP_DEST].allocate_buffer(memallocator, temp_size);
     dest[TRASH_DEST].allocate_buffer(memallocator, trash_size);
+    cts_data = opts->nheaps_switch;
+    if (cts_data == NHEAPS_SWITCH_DEF)
+      {
+	cts_data = dest[TEMP_DEST].space/4;
+	if (cts_data < heap_count) cts_data = heap_count;
+      }
+    cts_temp = cts_data;
     std::cout << "dest[DATA_DEST].ptr.ptr()  = " << (std::size_t)(dest[DATA_DEST].ptr->ptr()) << std::endl;
     std::cout << "dest[TEMP_DEST].ptr.ptr()  = " << (std::size_t)(dest[TEMP_DEST].ptr->ptr()) << std::endl;
     std::cout << "dest[TRASH_DEST].ptr.ptr() = " << (std::size_t)(dest[TRASH_DEST].ptr->ptr()) << std::endl;
@@ -104,6 +111,8 @@ namespace mkrecv
   void storage_null::free_place(int dest_index,           // destination of a heap
 				std::size_t reclen)       // recieved number of bytes
   {
+    std::size_t  ctsd, ctst;
+
     // **** GUARDED BY SEMAPHORE ****
     std::lock_guard<std::mutex> lock(dest_mutex);
     gstat.heaps_open--;
@@ -120,6 +129,88 @@ namespace mkrecv
 	gstat.heaps_discarded++;
 	dstat[dest_index].heaps_discarded++;
       }
+    dest[dest_index].needed--;
+    dest[dest_index].cts--;
+    ctsd = dest[DATA_DEST].cts;
+    ctst = dest[TEMP_DEST].cts;
+    show_mark_log();
+    if ((state == SEQUENTIAL_STATE) && (ctst == 0))
+      {
+	// switch to parallel data/temp order
+	state = PARALLEL_STATE;
+	if (stop && !has_stopped)
+	  {
+	    has_stopped = true;
+	    std::cout << "request to stop the transfer into the ringbuffer received." << std::endl;
+	  }
+	dest[DATA_DEST].needed  = dest[DATA_DEST].space;
+	timestamp_first  += dest[DATA_DEST].capacity*timestamp_step;
+	dest[DATA_DEST].cts = cts_data;
+	show_state_log();
+      }
+    else if ((state == PARALLEL_STATE) && (ctsd == 0))
+      {
+	// switch to sequential data/temp order
+	state = SEQUENTIAL_STATE;
+	dest[TEMP_DEST].needed  = dest[TEMP_DEST].space;
+	dest[DATA_DEST].needed -= dest[TEMP_DEST].space;
+	dest[TEMP_DEST].cts = cts_temp;
+	show_state_log();
+      }
+  }
+
+  void storage_null::show_mark_log()
+  {
+    if ((gstat.heaps_total - log_counter) >= LOG_FREQ)
+      {
+	log_counter += LOG_FREQ;
+	std::cout << "heaps:"
+		  << " total "
+		  << gstat.heaps_total
+		  << "=" << gstat.heaps_total
+		  << "+" << dstat[TEMP_DEST].heaps_total
+		  << "+" << dstat[TRASH_DEST].heaps_total
+		  << " completed " << gstat.heaps_completed
+		  << "=" << dstat[DATA_DEST].heaps_completed
+		  << "+" << dstat[TEMP_DEST].heaps_completed
+		  << "+" << dstat[TRASH_DEST].heaps_completed
+		  << " discarded " << gstat.heaps_discarded
+		  << "=" << dstat[DATA_DEST].heaps_discarded
+		  << "+" << dstat[TEMP_DEST].heaps_discarded
+		  << "+" << dstat[TRASH_DEST].heaps_discarded
+		  << " open " << dstat[DATA_DEST].heaps_open << " " << dstat[TEMP_DEST].heaps_open
+		  << " skipped " << gstat.heaps_skipped
+		  << " overrun " << gstat.heaps_overrun
+		  << " ignored " << gstat.heaps_ignored
+		  << " assigned " << dest[DATA_DEST].count << " " << dest[TEMP_DEST].count << " " << dest[TRASH_DEST].count
+		  << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
+		  << " payload " << gstat.bytes_expected << " " << gstat.bytes_received
+		  << " cts " << dest[DATA_DEST].cts << " " << dest[TEMP_DEST].cts
+		  << std::endl;
+      }
+  }
+
+  void storage_null::show_state_log()
+  {
+    if (state == SEQUENTIAL_STATE)
+      {
+	std::cout << "-> sequential";
+      }
+    else
+      {
+	std::cout << "-> parallel";
+      }
+    std::cout << " total " << gstat.heaps_total
+	      << " completed " << gstat.heaps_completed
+	      << " discarded " << gstat.heaps_discarded
+	      << " skipped " << gstat.heaps_skipped
+	      << " overrun " << gstat.heaps_overrun
+	      << " ignored " << gstat.heaps_ignored
+	      << " assigned " << dest[DATA_DEST].count << " " << dest[TEMP_DEST].count << " " << dest[TRASH_DEST].count
+	      << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
+	      << " payload " << gstat.bytes_expected << " " << gstat.bytes_received
+	      << " cts " << dest[DATA_DEST].cts << " " << dest[TEMP_DEST].cts << std::endl;
+    //hist.show();
   }
 
   void storage_null::request_stop()

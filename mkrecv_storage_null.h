@@ -12,6 +12,7 @@ namespace mkrecv
   protected:
     std::mutex                         dest_mutex;
     destination                        dest[3];
+    std::size_t                        log_counter = 0;
   public:
     storage_null(std::shared_ptr<mkrecv::options> opts);
     int alloc_place(spead2::s_item_pointer_t timestamp,    // timestamp of a heap
@@ -25,6 +26,9 @@ namespace mkrecv
     void request_stop();
     bool is_stopped();
     void close();
+  protected:
+    void show_mark_log();
+    void show_state_log();
   };
 
 }
