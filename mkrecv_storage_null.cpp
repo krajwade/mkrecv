@@ -57,8 +57,8 @@ namespace mkrecv
 	dest[DATA_DEST].set_heap_size(heap_size, heap_count, 0, nsci);
 	dest[TEMP_DEST].set_heap_size(heap_size, heap_count, 0, nsci);
 	dest[TRASH_DEST].set_heap_size(heap_size, heap_count, 0, nsci);
-	level_data_count = (100*(dest[DATA_DEST].capacity - dest[TEMP_DEST].capacity))/opts->level_data + dest[TEMP_DEST].capacity;
-	level_temp_count = (100*dest[TRASH_DEST].capacity)/opts->level_temp + dest[DATA_DEST].capacity;
+	level_data_count = ((dest[DATA_DEST].capacity - dest[TEMP_DEST].capacity)*opts->level_data)/100 + dest[TEMP_DEST].capacity;
+	level_temp_count = (dest[TRASH_DEST].capacity*opts->level_temp)/100 + dest[DATA_DEST].capacity;
 	/*
         cts_data = opts->nheaps_switch;
         if (cts_data == NHEAPS_SWITCH_DEF)
@@ -166,6 +166,10 @@ namespace mkrecv
 	dstat[dest_index].heaps_discarded++;
       }
     dest[dest_index].needed--;
+    if (dest[DATA_DEST].needed > dest[DATA_DEST].space)
+      {
+        std::cout << "warning needed < 0 state " << state << " needed " << dest[DATA_DEST].needed << " heaps_open " << dstat[DATA_DEST].heaps_open << "," << dstat[TEMP_DEST].heaps_open << std::endl;
+      }
     //dest[dest_index].cts--;
     //ctsd = dest[DATA_DEST].cts;
     //ctst = dest[TEMP_DEST].cts;
@@ -191,8 +195,12 @@ namespace mkrecv
 	// switch to sequential data/temp order
 	state = SEQUENTIAL_STATE;
 	timestamp_level_temp = timestamp_first + level_temp_count*timestamp_step;
-	dest[TEMP_DEST].needed  = dest[TEMP_DEST].space;
-	dest[DATA_DEST].needed -= dest[TEMP_DEST].space;
+	dest[DATA_DEST].needed -= (dest[TEMP_DEST].space - dest[TEMP_DEST].needed);
+        if (dest[DATA_DEST].needed > dest[DATA_DEST].space)
+          {
+            std::cout << "warning, p -> s, needed < 0 " << dest[DATA_DEST].needed << " heaps_open " << dstat[DATA_DEST].heaps_open << "," << dstat[TEMP_DEST].heaps_open << std::endl;
+          }
+        dest[TEMP_DEST].needed  = dest[TEMP_DEST].space;
 	//dest[TEMP_DEST].cts = cts_temp;
 	show_state_log();
       }
