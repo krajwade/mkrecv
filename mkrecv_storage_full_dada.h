@@ -29,8 +29,9 @@ namespace mkrecv
 		    int dest_index,                        // requested destination (DATA_DEST _or_ TRASH_DEST)
 		    char *&heap_place,                     // returned memory pointer to this heap payload
 		    spead2::s_item_pointer_t *&sci_place); // returned memory pointer to the side-channel items for this heap
-    void free_place(int dest,                 // real destination of a heap (DATA_DEST, TEMP_DEST or TRASH_DEST)
-		    std::size_t reclen);      // recieved number of bytes
+    void free_place(spead2::s_item_pointer_t timestamp,    // timestamp of a heap
+		    int dest,                              // real destination of a heap (DATA_DEST, TEMP_DEST or TRASH_DEST)
+		    std::size_t reclen);                   // recieved number of bytes
     void request_stop();
     bool is_stopped();
     void close();

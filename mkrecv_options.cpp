@@ -545,7 +545,10 @@ namespace mkrecv
       (SYNC_EPOCH_OPT,    make_opt(sync_epoch),      SYNC_EPOCH_DESC)
       (SAMPLE_CLOCK_OPT,  make_opt(sample_clock),    SAMPLE_CLOCK_DESC)
       (HEAP_SIZE_OPT,     make_opt(heap_size),       HEAP_SIZE_DESC)
+      (NGROUPS_DATA_OPT,  make_opt(ngroups_data),    NGROUPS_DATA_DESC)
       (NGROUPS_TEMP_OPT,  make_opt(ngroups_temp),    NGROUPS_TEMP_DESC)
+      (LEVEL_DATA_OPT,    make_opt(level_data),      LEVEL_DATA_DESC)
+      (LEVEL_TEMP_OPT,    make_opt(level_temp),      LEVEL_TEMP_DESC)
       (NHEAPS_SWITCH_OPT, make_opt(nheaps_switch),   NHEAPS_SWITCH_DESC)
       ;
     // index calculation
@@ -618,7 +621,10 @@ namespace mkrecv
     set_opt(sample_clock,    SAMPLE_CLOCK_OPT, SAMPLE_CLOCK_KEY);
     set_opt(sync_epoch,      SYNC_EPOCH_OPT, SYNC_EPOCH_KEY);
     set_opt(heap_size,       HEAP_SIZE_OPT, HEAP_SIZE_KEY);
+    set_opt(ngroups_data,    NGROUPS_DATA_OPT, NGROUPS_DATA_KEY);
     set_opt(ngroups_temp,    NGROUPS_TEMP_OPT, NGROUPS_TEMP_KEY);
+    set_opt(level_data,      LEVEL_DATA_OPT, LEVEL_DATA_KEY);
+    set_opt(level_temp,      LEVEL_TEMP_OPT, LEVEL_TEMP_KEY);
     set_opt(nheaps_switch,   NHEAPS_SWITCH_OPT, NHEAPS_SWITCH_KEY);
     set_opt(nindices,        NINDICES_OPT, NINDICES_KEY);
     if (nindices >= MAX_INDEXPARTS) nindices = MAX_INDEXPARTS-1;

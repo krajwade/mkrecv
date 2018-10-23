@@ -38,21 +38,22 @@ namespace mkrecv
   class allocator_nt : public spead2::memory_allocator
   {
   protected:
-    std::shared_ptr<mkrecv::options>   opts;
-    std::shared_ptr<mkrecv::storage>   store;
-    std::unordered_map<spead2::s_item_pointer_t, int> heap2dest;
-    std::size_t                        nindices = 0;
-    index_part                         indices[MAX_INDEXPARTS];
-    ts_histo                           hist;
-    std::size_t                        payload_size;// size of one packet payload (ph->payload_length
-    std::size_t                        heap_size;   // size of a heap in bytes
-    std::size_t                        heap_count;  // number of heaps inside one group
-    std::size_t                        nsci;
-    std::vector<std::size_t>           scis;
-    bool                               has_started = false;
-    bool                               stop = false;
-    bool                               has_stopped = false;
-    et_statistics                      et;
+    std::shared_ptr<mkrecv::options>                                         opts;
+    std::shared_ptr<mkrecv::storage>                                         store;
+    std::unordered_map<spead2::s_item_pointer_t, int>                        heap2dest;
+    std::unordered_map<spead2::s_item_pointer_t, spead2::s_item_pointer_t>   heap2timestamp;
+    std::size_t                                                              nindices = 0;
+    index_part                                                               indices[MAX_INDEXPARTS];
+    ts_histo                                                                 hist;
+    std::size_t                                                              payload_size;// size of one packet payload (ph->payload_length
+    std::size_t                                                              heap_size;   // size of a heap in bytes
+    std::size_t                                                              heap_count;  // number of heaps inside one group
+    std::size_t                                                              nsci;
+    std::vector<std::size_t>                                                 scis;
+    bool                                                                     has_started = false;
+    bool                                                                     stop = false;
+    bool                                                                     has_stopped = false;
+    et_statistics                                                            et;
 
   public:
     allocator_nt(std::shared_ptr<mkrecv::options> opts, std::shared_ptr<mkrecv::storage> store);

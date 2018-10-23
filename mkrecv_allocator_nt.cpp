@@ -100,7 +100,8 @@ namespace mkrecv
       }
     // Get the memory positions for the heap payload and the side-channel items
     dest_index = store->alloc_place(item_value[0], heap_index, size, dest_index, heap_place, sci_place);
-    heap2dest[ph->heap_cnt] = dest_index; // store the relation between heap counter and destination
+    heap2dest[ph->heap_cnt]      = dest_index;    // store the relation between heap counter and destination
+    heap2timestamp[ph->heap_cnt] = item_value[0]; // store the relation between heap counter and timestamp
     for (i = 0; i < nsci; i++)
       { // Put all side-channel items directly into memory
 	spead2::item_pointer_t pts = spead2::load_be<spead2::item_pointer_t>(ph->pointers + scis.at(i)*sizeof(spead2::item_pointer_t));
@@ -122,16 +123,19 @@ namespace mkrecv
   void allocator_nt::mark(spead2::s_item_pointer_t cnt, bool isok, spead2::s_item_pointer_t reclen)
   {
     std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
-    int dest_index;
+    int                      dest_index;
+    spead2::s_item_pointer_t timestamp;
 
     (void)isok;
     {
       // **** GUARDED BY SEMAPHORE ****
       //std::lock_guard<std::mutex> lock(dest_mutex);
       dest_index = heap2dest[cnt];
+      timestamp  = heap2timestamp[cnt];
       heap2dest.erase(cnt);
+      heap2timestamp.erase(cnt);
     }
-    store->free_place(dest_index, reclen);
+    store->free_place(timestamp, dest_index, reclen);
     std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
     et.add_et(et_statistics::MARK_TIMING, std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count());
   }

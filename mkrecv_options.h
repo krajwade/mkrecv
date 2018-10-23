@@ -159,10 +159,25 @@
 #define HEAP_SIZE_DESC     "The heap size used for checking incomming heaps."
 #define HEAP_SIZE_DEF      0
 
+#define NGROUPS_DATA_OPT   "ngroups-data"
+#define NGROUPS_DATA_KEY   "NGROUPS_DATA"
+#define NGROUPS_DATA_DESC  "Number of groups (heaps with the same timestamp) going into the data space."
+#define NGROUPS_DATA_DEF   64
+
 #define NGROUPS_TEMP_OPT   "ngroups-temp"
 #define NGROUPS_TEMP_KEY   "NGROUPS_TEMP"
 #define NGROUPS_TEMP_DESC  "Number of groups (heaps with the same timestamp) going into the temporary space."
-#define NGROUPS_TEMP_DEF   64
+#define NGROUPS_TEMP_DEF   32
+
+#define LEVEL_DATA_OPT     "level-data"
+#define LEVEL_DATA_KEY     "LEVEL_DATA"
+#define LEVEL_DATA_DESC    "Fill level of the data destination before switching to sequential mode (percent)."
+#define LEVEL_DATA_DEF     50
+
+#define LEVEL_TEMP_OPT     "level-temp"
+#define LEVEL_TEMP_KEY     "LEVEL_TEMP"
+#define LEVEL_TEMP_DESC    "Fill level of the temporary destination before switching to parallel mode (percent)."
+#define LEVEL_TEMP_DEF     50
 
 #define NHEAPS_SWITCH_OPT   "nheaps-switch"
 #define NHEAPS_SWITCH_KEY   "NHEAPS_SWITCH"
@@ -230,7 +245,10 @@ namespace mkrecv
     int                       nindices        = 0;
     index_options             indices[MAX_INDEXPARTS];
     std::size_t               heap_size       = HEAP_SIZE_DEF;
+    std::size_t               ngroups_data    = NGROUPS_DATA_DEF;
     std::size_t               ngroups_temp    = NGROUPS_TEMP_DEF;
+    std::size_t               level_data      = LEVEL_DATA_DEF;
+    std::size_t               level_temp      = LEVEL_TEMP_DEF;
     std::size_t               nheaps_switch   = NHEAPS_SWITCH_DEF;
     std::string               sci_list        = SCI_LIST_DEF;
     std::size_t               nsci            = 0;

@@ -14,20 +14,22 @@ namespace mkrecv
       {
 	std::size_t group_size;
 	group_size = heap_count*(heap_size + nsci*sizeof(spead2::s_item_pointer_t));
-	data_size  = 16*opts->ngroups_temp*group_size; // 16 times N heap groups (N = option NGROUPS_TEMP)
-	temp_size  =    opts->ngroups_temp*group_size; // N heap groups (N = option NGROUPS_TEMP)
-	trash_size =                       group_size; // 1 heap group
+	data_size  = opts->ngroups_data*group_size; // N heap groups (N = option NGROUPS_DATA)
+	temp_size  = opts->ngroups_temp*group_size; // N heap groups (N = option NGROUPS_TEMP)
+	trash_size =                    group_size; // 1 heap group
       }
     dest[DATA_DEST].allocate_buffer(memallocator, data_size);
     dest[TEMP_DEST].allocate_buffer(memallocator, temp_size);
     dest[TRASH_DEST].allocate_buffer(memallocator, trash_size);
+    /*
     cts_data = opts->nheaps_switch;
     if (cts_data == NHEAPS_SWITCH_DEF)
       {
-	cts_data = dest[TEMP_DEST].space/4;
-	if (cts_data < heap_count) cts_data = heap_count;
+    	cts_data = dest[TEMP_DEST].space/4;
+    	if (cts_data < heap_count) cts_data = heap_count;
       }
     cts_temp = cts_data;
+    */
     std::cout << "dest[DATA_DEST].ptr.ptr()  = " << (std::size_t)(dest[DATA_DEST].ptr->ptr()) << std::endl;
     std::cout << "dest[TEMP_DEST].ptr.ptr()  = " << (std::size_t)(dest[TEMP_DEST].ptr->ptr()) << std::endl;
     std::cout << "dest[TRASH_DEST].ptr.ptr() = " << (std::size_t)(dest[TRASH_DEST].ptr->ptr()) << std::endl;
@@ -55,6 +57,9 @@ namespace mkrecv
 	dest[DATA_DEST].set_heap_size(heap_size, heap_count, 0, nsci);
 	dest[TEMP_DEST].set_heap_size(heap_size, heap_count, 0, nsci);
 	dest[TRASH_DEST].set_heap_size(heap_size, heap_count, 0, nsci);
+	level_data_count = (100*(dest[DATA_DEST].capacity - dest[TEMP_DEST].capacity))/opts->level_data + dest[TEMP_DEST].capacity;
+	level_temp_count = (100*dest[TRASH_DEST].capacity)/opts->level_temp + dest[DATA_DEST].capacity;
+	/*
         cts_data = opts->nheaps_switch;
         if (cts_data == NHEAPS_SWITCH_DEF)
           {
@@ -62,14 +67,18 @@ namespace mkrecv
 	    if (cts_data < heap_count) cts_data = heap_count;
           }
         cts_temp = cts_data;
-	dest[DATA_DEST].cts = cts_data;
-	dest[TEMP_DEST].cts = cts_temp;
+	*/
+	//dest[DATA_DEST].cts = cts_data;
+	//dest[TEMP_DEST].cts = cts_temp;
 	state = SEQUENTIAL_STATE;
+	// timestemp limit for SEQUENTIAL -> PARALLEL switch
+	timestamp_level_temp = timestamp_first + level_temp_count*timestamp_step;
 	std::cout << "sizes: heap size " << heap_size << " count " << heap_count << " first " << timestamp_first << " step " << timestamp_step << std::endl;
 	std::cout << "DATA_DEST:  capacity " << dest[DATA_DEST].capacity << " space " << dest[DATA_DEST].space << std::endl;
 	std::cout << "TEMP_DEST:  capacity " << dest[TEMP_DEST].capacity << " space " << dest[TEMP_DEST].space << std::endl;
 	std::cout << "TRASH_DEST: capacity " << dest[TRASH_DEST].capacity << " space " << dest[TRASH_DEST].space << std::endl;
-	std::cout << "cts " << dest[DATA_DEST].cts << " " << dest[TEMP_DEST].cts << " " << dest[TRASH_DEST].cts << std::endl;
+	//std::cout << "cts " << dest[DATA_DEST].cts << " " << dest[TEMP_DEST].cts << " " << dest[TRASH_DEST].cts << std::endl;
+	std::cout << "level_data_count " << level_data_count << " level_temp_count " << level_temp_count << std::endl;
       }
     if (stop)
       {
@@ -134,10 +143,11 @@ namespace mkrecv
     return dest_index;
   }
   
-  void storage_null::free_place(int dest_index,           // destination of a heap
-				std::size_t reclen)       // recieved number of bytes
+  void storage_null::free_place(spead2::s_item_pointer_t timestamp,    // timestamp of a heap
+				int dest_index,                        // destination of a heap
+				std::size_t reclen)                    // recieved number of bytes
   {
-    std::size_t  ctsd, ctst;
+    //std::size_t  ctsd, ctst;
 
     // **** GUARDED BY SEMAPHORE ****
     std::lock_guard<std::mutex> lock(dest_mutex);
@@ -156,11 +166,11 @@ namespace mkrecv
 	dstat[dest_index].heaps_discarded++;
       }
     dest[dest_index].needed--;
-    dest[dest_index].cts--;
-    ctsd = dest[DATA_DEST].cts;
-    ctst = dest[TEMP_DEST].cts;
+    //dest[dest_index].cts--;
+    //ctsd = dest[DATA_DEST].cts;
+    //ctst = dest[TEMP_DEST].cts;
     show_mark_log();
-    if ((state == SEQUENTIAL_STATE) && (ctst == 0))
+    if ((state == SEQUENTIAL_STATE) && (timestamp >= timestamp_level_temp)) // (ctst == 0))
       {
 	// switch to parallel data/temp order
 	state = PARALLEL_STATE;
@@ -172,16 +182,18 @@ namespace mkrecv
         std::cout << "still needing " << dest[DATA_DEST].needed << " heaps." << std::endl;
 	dest[DATA_DEST].needed  = dest[DATA_DEST].space;
 	timestamp_first  += dest[DATA_DEST].capacity*timestamp_step;
-	dest[DATA_DEST].cts = cts_data;
+	timestamp_level_data = timestamp_first + level_data_count*timestamp_step;
+	//dest[DATA_DEST].cts = cts_data;
 	show_state_log();
       }
-    else if ((state == PARALLEL_STATE) && (ctsd == 0))
+    else if ((state == PARALLEL_STATE) && (timestamp >= timestamp_level_data)) // (ctsd == 0))
       {
 	// switch to sequential data/temp order
 	state = SEQUENTIAL_STATE;
+	timestamp_level_temp = timestamp_first + level_temp_count*timestamp_step;
 	dest[TEMP_DEST].needed  = dest[TEMP_DEST].space;
 	dest[DATA_DEST].needed -= dest[TEMP_DEST].space;
-	dest[TEMP_DEST].cts = cts_temp;
+	//dest[TEMP_DEST].cts = cts_temp;
 	show_state_log();
       }
   }
@@ -212,7 +224,7 @@ namespace mkrecv
 		  << " assigned " << dest[DATA_DEST].count << " " << dest[TEMP_DEST].count << " " << dest[TRASH_DEST].count
 		  << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
 		  << " payload " << gstat.bytes_expected << " " << gstat.bytes_received
-		  << " cts " << dest[DATA_DEST].cts << " " << dest[TEMP_DEST].cts
+	  //<< " cts " << dest[DATA_DEST].cts << " " << dest[TEMP_DEST].cts
 		  << std::endl;
       }
   }
@@ -236,7 +248,8 @@ namespace mkrecv
 	      << " assigned " << dest[DATA_DEST].count << " " << dest[TEMP_DEST].count << " " << dest[TRASH_DEST].count
 	      << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
 	      << " payload " << gstat.bytes_expected << " " << gstat.bytes_received
-	      << " cts " << dest[DATA_DEST].cts << " " << dest[TEMP_DEST].cts << std::endl;
+      //<< " cts " << dest[DATA_DEST].cts << " " << dest[TEMP_DEST].cts
+	      << std::endl;
     //hist.show();
   }
 

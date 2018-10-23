@@ -50,8 +50,12 @@ namespace mkrecv
     std::size_t                        heap_count;  // number of heaps inside one group
     spead2::s_item_pointer_t           timestamp_first = 0;  // serial number of the first group (needed for index calculation)
     spead2::s_item_pointer_t           timestamp_step = 0;   // the serial number difference between consecutive groups
-    std::size_t                        cts_data;
-    std::size_t                        cts_temp;
+    spead2::s_item_pointer_t           timestamp_level_data = 0; // timestamp for switching to sequential mode
+    spead2::s_item_pointer_t           timestamp_level_temp = 0; // timestamp for switching to parallel mode
+    spead2::s_item_pointer_t           level_data_count = 0;
+    spead2::s_item_pointer_t           level_temp_count = 0;
+    //std::size_t                        cts_data;
+    //std::size_t                        cts_temp;
     std::size_t                        nsci;
     std::vector<std::size_t>           scis;
     int                                state = INIT_STATE;
@@ -70,8 +74,9 @@ namespace mkrecv
 			    char *&heap_place,                     // returned memory pointer to this heap payload
 			    spead2::s_item_pointer_t *&sci_place)  // returned memory pointer to the side-channel items for this heap
       = 0;
-    virtual void free_place(int dest,            // real destination of a heap (DATA_DEST, TEMP_DEST or TRASH_DEST)
-			    std::size_t reclen)  // recieved number of bytes
+    virtual void free_place(spead2::s_item_pointer_t timestamp,    // timestamp of a heap
+			    int dest,                              // real destination of a heap (DATA_DEST, TEMP_DEST or TRASH_DEST)
+			    std::size_t reclen)                    // recieved number of bytes
       = 0;
     virtual void request_stop() = 0;
     virtual bool is_stopped() = 0;
