@@ -3,21 +3,18 @@
 
 #include "psrdada_cpp/dada_write_client.hpp"
 
-#include "mkrecv_storage.h"
+#include "mkrecv_storage_null.h"
 #include "mkrecv_destination.h"
 
 namespace mkrecv
 {
 
-  class storage_full_dada : public storage
+  class storage_full_dada : public storage_null
   {
   protected:
     psrdada_cpp::MultiLog              mlog;
     psrdada_cpp::DadaWriteClient       dada;
     psrdada_cpp::RawBytes             *hdr;   // memory to store constant (header) information
-    std::mutex                         dest_mutex;
-    destination                        dest[3];
-    std::size_t                        log_counter = 0;
     std::thread                        header_thread;
     std::thread                        switch_thread;
     std::thread                        copy_thread;
@@ -32,15 +29,14 @@ namespace mkrecv
     void free_place(spead2::s_item_pointer_t timestamp,    // timestamp of a heap
 		    int dest,                              // real destination of a heap (DATA_DEST, TEMP_DEST or TRASH_DEST)
 		    std::size_t reclen);                   // recieved number of bytes
-    void request_stop();
-    bool is_stopped();
     void close();
     void proc_header();
     void proc_switch_slot();
     void proc_copy_temp();
   protected:
-    void show_mark_log();
-    void show_state_log();
+    void proc_init(spead2::s_item_pointer_t timestamp,     // timestamp of a heap
+		   std::size_t size                        // heap size (only payload)
+		   );
   };
 
 }
