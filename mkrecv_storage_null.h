@@ -14,7 +14,8 @@ namespace mkrecv
     destination                        dest[3];
     std::size_t                        log_counter = 0;
   public:
-    storage_null(std::shared_ptr<mkrecv::options> opts);
+    storage_null(std::shared_ptr<mkrecv::options> opts, bool alloc_data = true);
+    ~storage_null();
     int alloc_place(spead2::s_item_pointer_t timestamp,    // timestamp of a heap
 		    std::size_t heap_index,                // heap number inside a heap group
 		    std::size_t size,                      // heap size (only payload)
@@ -28,6 +29,12 @@ namespace mkrecv
     bool is_stopped();
     void close();
   protected:
+    virtual void do_init(spead2::s_item_pointer_t timestamp,     // timestamp of a heap
+			 std::size_t size                        // heap size (only payload)
+			 );
+    virtual void do_switch_slot();
+    virtual void do_release_slot();
+    virtual void do_copy_temp();
     void show_mark_log();
     void show_state_log();
   };

@@ -52,7 +52,7 @@ set(mkrecv_src_nt
   mkrecv_options.cpp
   mkrecv_storage.cpp
   mkrecv_storage_null.cpp
-  mkrecv_storage_full_dada.cpp
+  mkrecv_storage_dada.cpp
   mkrecv_allocator.cpp
   mkrecv_allocator_nt.cpp
   mkrecv_destination.cpp

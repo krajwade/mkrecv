@@ -1,5 +1,5 @@
-#ifndef mkrecv_storage_full_dada_h
-#define mkrecv_storage_full_dada_h
+#ifndef mkrecv_storage_dada_h
+#define mkrecv_storage_dada_h
 
 #include "psrdada_cpp/dada_write_client.hpp"
 
@@ -9,7 +9,7 @@
 namespace mkrecv
 {
 
-  class storage_full_dada : public storage_null
+  class storage_dada : public storage_null
   {
   protected:
     psrdada_cpp::MultiLog              mlog;
@@ -19,27 +19,22 @@ namespace mkrecv
     std::thread                        switch_thread;
     std::thread                        copy_thread;
   public:
-    storage_full_dada(std::shared_ptr<mkrecv::options> opts, key_t key, std::string mlname);
-    int alloc_place(spead2::s_item_pointer_t timestamp,    // timestamp of a heap
-		    std::size_t heap_index,                // heap number inside a heap group
-		    std::size_t size,                      // heap size (only payload)
-		    int dest_index,                        // requested destination (DATA_DEST _or_ TRASH_DEST)
-		    char *&heap_place,                     // returned memory pointer to this heap payload
-		    spead2::s_item_pointer_t *&sci_place); // returned memory pointer to the side-channel items for this heap
-    void free_place(spead2::s_item_pointer_t timestamp,    // timestamp of a heap
-		    int dest,                              // real destination of a heap (DATA_DEST, TEMP_DEST or TRASH_DEST)
-		    std::size_t reclen);                   // recieved number of bytes
+    storage_dada(std::shared_ptr<mkrecv::options> opts, key_t key, std::string mlname);
+    ~storage_dada();
     void close();
     void proc_header();
     void proc_switch_slot();
     void proc_copy_temp();
   protected:
-    void proc_init(spead2::s_item_pointer_t timestamp,     // timestamp of a heap
-		   std::size_t size                        // heap size (only payload)
-		   );
+    void do_init(spead2::s_item_pointer_t timestamp,     // timestamp of a heap
+		 std::size_t size                        // heap size (only payload)
+		 );
+    void do_switch_slot();
+    void do_release_slot();
+    void do_copy_temp();
   };
 
 }
 
-#endif /* mkrecv_storage_full_dada_h */
+#endif /* mkrecv_storage_dada_h */
 

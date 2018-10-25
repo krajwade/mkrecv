@@ -19,7 +19,7 @@
 #include "psrdada_cpp/cli_utils.hpp"
 
 #include "mkrecv_storage_null.h"
-#include "mkrecv_storage_full_dada.h"
+#include "mkrecv_storage_dada.h"
 
 #include "mkrecv_receiver_nt.h"
 
@@ -152,7 +152,7 @@ namespace mkrecv
       {
 	try
 	  {
-	    return std::shared_ptr<mkrecv::storage>(new storage_full_dada(opts, psrdada_cpp::string_to_key(opts->dada_key), "recv"));
+	    return std::shared_ptr<mkrecv::storage>(new storage_dada(opts, psrdada_cpp::string_to_key(opts->dada_key), "recv"));
 	  }
 	catch (std::runtime_error &e)
 	  {

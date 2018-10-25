@@ -1,9 +1,9 @@
-#include "mkrecv_storage_full_dada.h"
+#include "mkrecv_storage_dada.h"
 
 namespace mkrecv
 {
 
-  storage_full_dada::storage_full_dada(std::shared_ptr<mkrecv::options> hopts, key_t key, std::string mlname) :
+  storage_dada::storage_dada(std::shared_ptr<mkrecv::options> hopts, key_t key, std::string mlname) :
     storage_null(hopts, false),
     mlog(mlname),
     dada(key, mlog),
@@ -14,7 +14,11 @@ namespace mkrecv
     std::cout << "dest[DATA_DEST].ptr.ptr()  = " << (std::size_t)(dest[DATA_DEST].ptr->ptr()) << std::endl;
   }
 
-  void storage_full_dada::proc_header()
+  storage_dada::~storage_dada()
+  {
+  }
+
+  void storage_dada::proc_header()
   {
     opts->set_start_time(timestamp_first);
     memcpy(hdr->ptr(),
@@ -25,18 +29,18 @@ namespace mkrecv
     hdr = NULL;
   }
 
-  void storage_full_dada::proc_init(spead2::s_item_pointer_t timestamp,     // timestamp of a heap
-				    std::size_t size                        // heap size (only payload)
-				    )
+  void storage_dada::do_init(spead2::s_item_pointer_t timestamp,     // timestamp of a heap
+			     std::size_t size                        // heap size (only payload)
+			     )
   {
-    storage_null::proc_init(timestamp, size);
+    storage_null::do_init(timestamp, size);
     header_thread = std::thread([this] ()
 				{
 				  this->proc_header();
 				});
   }
 
-  void storage_full_dada::proc_switch_slot()
+  void storage_dada::proc_switch_slot()
   {
     spead2::s_item_pointer_t  *sci_base = (spead2::s_item_pointer_t*)(dest[DATA_DEST].ptr->ptr()
 								      + dest[DATA_DEST].size
@@ -49,7 +53,7 @@ namespace mkrecv
     dest[DATA_DEST].ptr = &dada.data_stream().next();
   }
 
-  void storage_full_dada::proc_copy_temp()
+  void storage_dada::proc_copy_temp()
   {
     memcpy(dest[DATA_DEST].ptr->ptr(), dest[TEMP_DEST].ptr->ptr(), dest[TEMP_DEST].space*heap_size);
     if (nsci != 0)
@@ -59,7 +63,7 @@ namespace mkrecv
       }
   }
   
-  void storage_full_dada::do_switch_slot()
+  void storage_dada::do_switch_slot()
   {
     if (copy_thread.joinable()) copy_thread.join(); // We have to wait that the temporary heaps are copied into the slot before we switch to the next slot!
     switch_thread = std::thread([this] ()
@@ -68,13 +72,13 @@ namespace mkrecv
 					});
   }
   
-  void storage_full_dada::do_release_slot()
+  void storage_dada::do_release_slot()
   {
     // release the previously allocated slot without any data -> used as end signal
     dada.data_stream().release();
   }
   
-  void storage_full_dada::do_copy_temp()
+  void storage_dada::do_copy_temp()
   {
     if (switch_thread.joinable()) switch_thread.join(); // We have to wait until a new slot is available before we copy the temporary heaps into a slot!
     copy_thread = std::thread([this] ()
@@ -83,7 +87,7 @@ namespace mkrecv
 			      });
   }
   
-  void storage_full_dada::close()
+  void storage_dada::close()
   {
     // Avoid messages when exiting the program
     if (header_thread.joinable()) header_thread.join();

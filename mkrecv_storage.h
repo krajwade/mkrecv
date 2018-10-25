@@ -65,6 +65,7 @@ namespace mkrecv
     storage_statistics                 dstat[3];
   public:
     storage(std::shared_ptr<mkrecv::options> opts);
+    ~storage();
     // This method finds the memory location for a heap and his side-channel items.
     // The return value encodes the used destination which is used to mark a heap as received.
     virtual int alloc_place(spead2::s_item_pointer_t timestamp,    // timestamp of a heap
