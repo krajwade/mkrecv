@@ -15,6 +15,14 @@ namespace mkrecv
 				{
 				  this->proc_header();
 				});
+    switch_thread = std::thread([this] ()
+				{
+				  this->proc_switch_slot();
+				});
+    copy_thread = std::thread([this] ()
+			      {
+				this->proc_copy_temp();
+			      });
     std::cout << "dest[DATA_DEST].ptr.ptr()  = " << (std::size_t)(dest[DATA_DEST].ptr->ptr()) << std::endl;
   }
 
@@ -48,34 +56,43 @@ namespace mkrecv
 
   void storage_dada::proc_switch_slot()
   {
-    spead2::s_item_pointer_t  *sci_base = (spead2::s_item_pointer_t*)(dest[DATA_DEST].ptr->ptr()
-								      + dest[DATA_DEST].size
-								      - dest[DATA_DEST].space*nsci*sizeof(spead2::s_item_pointer_t));
-    memcpy(sci_base, dest[DATA_DEST].sci, dest[DATA_DEST].space*nsci*sizeof(spead2::s_item_pointer_t));
-    memset(dest[DATA_DEST].sci, 0, dest[DATA_DEST].space*nsci*sizeof(spead2::s_item_pointer_t));
-    // Release the current slot and get a new one
-    dest[DATA_DEST].ptr->used_bytes(dest[DATA_DEST].ptr->total_bytes());
-    dada.data_stream().release();
-    dest[DATA_DEST].ptr = &dada.data_stream().next();
+    do {
+      std::unique_lock<std::mutex> lck(switch_mutex);
+      while (switch_cv.wait_for(lck, std::chrono::milliseconds(50)) == std::cv_status::timeout) {
+	if (has_stopped) return;
+      }
+      spead2::s_item_pointer_t  *sci_base = (spead2::s_item_pointer_t*)(dest[DATA_DEST].ptr->ptr()
+									+ dest[DATA_DEST].size
+									- dest[DATA_DEST].space*nsci*sizeof(spead2::s_item_pointer_t));
+      memcpy(sci_base, dest[DATA_DEST].sci, dest[DATA_DEST].space*nsci*sizeof(spead2::s_item_pointer_t));
+      memset(dest[DATA_DEST].sci, 0, dest[DATA_DEST].space*nsci*sizeof(spead2::s_item_pointer_t));
+      // Release the current slot and get a new one
+      dest[DATA_DEST].ptr->used_bytes(dest[DATA_DEST].ptr->total_bytes());
+      dada.data_stream().release();
+      dest[DATA_DEST].ptr = &dada.data_stream().next();
+    } while (true);
   }
 
   void storage_dada::proc_copy_temp()
   {
-    memcpy(dest[DATA_DEST].ptr->ptr(), dest[TEMP_DEST].ptr->ptr(), dest[TEMP_DEST].space*heap_size);
-    if (nsci != 0)
-      { // copy the side-channel items in temporary space into data space and clear the source
-	memcpy(dest[DATA_DEST].sci, dest[TEMP_DEST].sci, dest[TEMP_DEST].space*nsci*sizeof(spead2::s_item_pointer_t));
-	memset(dest[TEMP_DEST].sci, 0, dest[TEMP_DEST].space*nsci*sizeof(spead2::s_item_pointer_t));
+    do {
+      std::unique_lock<std::mutex> lck(copy_mutex);
+      while (copy_cv.wait_for(lck, std::chrono::milliseconds(50)) == std::cv_status::timeout) {
+	if (has_stopped) return;
       }
+      memcpy(dest[DATA_DEST].ptr->ptr(), dest[TEMP_DEST].ptr->ptr(), dest[TEMP_DEST].space*heap_size);
+      if (nsci != 0)
+	{ // copy the side-channel items in temporary space into data space and clear the source
+	  memcpy(dest[DATA_DEST].sci, dest[TEMP_DEST].sci, dest[TEMP_DEST].space*nsci*sizeof(spead2::s_item_pointer_t));
+	  memset(dest[TEMP_DEST].sci, 0, dest[TEMP_DEST].space*nsci*sizeof(spead2::s_item_pointer_t));
+	}
+    } while (true);
   }
   
   void storage_dada::do_switch_slot()
   {
-    if (copy_thread.joinable()) copy_thread.join(); // We have to wait that the temporary heaps are copied into the slot before we switch to the next slot!
-    switch_thread = std::thread([this] ()
-					{
-					  this->proc_switch_slot();
-					});
+    std::unique_lock<std::mutex> lck(switch_mutex);
+    switch_cv.notify_all();
   }
   
   void storage_dada::do_release_slot()
@@ -86,11 +103,8 @@ namespace mkrecv
   
   void storage_dada::do_copy_temp()
   {
-    if (switch_thread.joinable()) switch_thread.join(); // We have to wait until a new slot is available before we copy the temporary heaps into a slot!
-    copy_thread = std::thread([this] ()
-			      {
-				this->proc_copy_temp();
-			      });
+    std::unique_lock<std::mutex> lck(copy_mutex);
+    copy_cv.notify_all();
   }
   
   void storage_dada::close()
