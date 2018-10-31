@@ -24,6 +24,8 @@ namespace mkrecv
 
   storage::~storage()
   {
+    std::cout << "storage: ";
+    et.show();
   }
 
 }

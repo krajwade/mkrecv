@@ -9,6 +9,7 @@
 #include <spead2/common_endian.h>
 
 #include "mkrecv_options.h"
+#include "mkrecv_allocator.h"
 
 namespace mkrecv
 {
@@ -63,6 +64,7 @@ namespace mkrecv
     bool                               has_stopped = false;
     storage_statistics                 gstat;
     storage_statistics                 dstat[3];
+    et_statistics                      et;
   public:
     storage(std::shared_ptr<mkrecv::options> opts);
     ~storage();

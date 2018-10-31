@@ -65,6 +65,7 @@ namespace mkrecv
 				char *&heap_place,                      // returned memory pointer to this heap payload
 				spead2::s_item_pointer_t *&sci_place)   // returned memory pointer to the side-channel items for this heap
   {
+    std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
     char                           *mem_base = NULL;
     spead2::s_item_pointer_t        mem_offset;
     spead2::s_item_pointer_t       *sci_base = NULL;
@@ -140,6 +141,8 @@ namespace mkrecv
     sci_offset = group_index*heap_count + heap_index;
     heap_place = mem_base + mem_offset;
     sci_place  = sci_base + sci_offset;
+    std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+    et.add_et(et_statistics::ALLOC_TIMING, std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count());
     return dest_index;
   }
   
@@ -159,6 +162,7 @@ namespace mkrecv
 				int dest_index,                        // destination of a heap
 				std::size_t reclen)                    // recieved number of bytes
   {
+    std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
     //std::size_t  ctsd, ctst;
 
     // **** GUARDED BY SEMAPHORE ****
@@ -223,6 +227,8 @@ namespace mkrecv
 	//dest[TEMP_DEST].cts = cts_temp;
 	show_state_log();
       }
+    std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+    et.add_et(et_statistics::MARK_TIMING, std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count());
   }
 
   void storage_null::show_mark_log()

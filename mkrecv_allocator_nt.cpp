@@ -31,6 +31,7 @@ namespace mkrecv
 
   allocator_nt::~allocator_nt()
   {
+    std::cout << "allocator_nt: ";
     et.show();
   }
 
