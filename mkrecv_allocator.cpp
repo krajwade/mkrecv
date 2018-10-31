@@ -117,6 +117,7 @@ namespace mkrecv
     std::cout << "et:"
 	      << " alloc " << sum_et[ALLOC_TIMING]/count_et[ALLOC_TIMING] << " [" << min_et[ALLOC_TIMING] << " .. " << max_et[ALLOC_TIMING] << "]"
 	      << " mark " << sum_et[MARK_TIMING]/count_et[MARK_TIMING] << " [" << min_et[MARK_TIMING] << " .. " << max_et[MARK_TIMING] << "]"
+	      << std::endl;
       ;
   }
 

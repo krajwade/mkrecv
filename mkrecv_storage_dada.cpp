@@ -11,6 +11,10 @@ namespace mkrecv
   {
     hdr = &dada.header_stream().next();
     dest[DATA_DEST].set_buffer(&dada.data_stream().next(), dada.data_buffer_size());
+    header_thread = std::thread([this] ()
+				{
+				  this->proc_header();
+				});
     std::cout << "dest[DATA_DEST].ptr.ptr()  = " << (std::size_t)(dest[DATA_DEST].ptr->ptr()) << std::endl;
   }
 
@@ -20,6 +24,10 @@ namespace mkrecv
 
   void storage_dada::proc_header()
   {
+    std::unique_lock<std::mutex> lck(header_mutex);
+    while (header_cv.wait_for(lck, std::chrono::milliseconds(50)) == std::cv_status::timeout) {
+      if (has_stopped) return;
+    }
     opts->set_start_time(timestamp_first);
     memcpy(hdr->ptr(),
 	   opts->header,
@@ -34,10 +42,8 @@ namespace mkrecv
 			     )
   {
     storage_null::do_init(timestamp, size);
-    header_thread = std::thread([this] ()
-				{
-				  this->proc_header();
-				});
+    std::unique_lock<std::mutex> lck(header_mutex);
+    header_cv.notify_all();
   }
 
   void storage_dada::proc_switch_slot()

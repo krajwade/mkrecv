@@ -1,6 +1,9 @@
 #ifndef mkrecv_storage_dada_h
 #define mkrecv_storage_dada_h
 
+#include <mutex>
+#include <condition_variable>
+
 #include "psrdada_cpp/dada_write_client.hpp"
 
 #include "mkrecv_storage_null.h"
@@ -15,8 +18,14 @@ namespace mkrecv
     psrdada_cpp::MultiLog              mlog;
     psrdada_cpp::DadaWriteClient       dada;
     psrdada_cpp::RawBytes             *hdr;   // memory to store constant (header) information
+    std::mutex                         header_mutex;
+    std::condition_variable            header_cv;
     std::thread                        header_thread;
+    std::mutex                         switch_mutex;
+    std::condition_variable            switch_cv;
     std::thread                        switch_thread;
+    std::mutex                         copy_mutex;
+    std::condition_variable            copy_cv;
     std::thread                        copy_thread;
   public:
     storage_dada(std::shared_ptr<mkrecv::options> opts, key_t key, std::string mlname);
