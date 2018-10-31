@@ -141,6 +141,7 @@ namespace mkrecv
     sci_offset = group_index*heap_count + heap_index;
     heap_place = mem_base + mem_offset;
     sci_place  = sci_base + sci_offset;
+    if (gstat.heaps_total == 10*dest[DATA_DEST].size) et.reset();
     std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
     et.add_et(et_statistics::ALLOC_TIMING, std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count());
     return dest_index;

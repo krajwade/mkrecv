@@ -100,6 +100,7 @@ namespace mkrecv
     et_statistics();
     void add_et(int fi, double nanoseconds);
     void show();
+    void reset();
   };
 
   /*

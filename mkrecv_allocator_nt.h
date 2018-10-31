@@ -53,6 +53,7 @@ namespace mkrecv
     bool                                                                     has_started = false;
     bool                                                                     stop = false;
     bool                                                                     has_stopped = false;
+    std::size_t                                                              heaps_total = 0;
     et_statistics                                                            et;
 
   public:

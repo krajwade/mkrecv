@@ -55,6 +55,7 @@ namespace mkrecv
     //   If the heap is is 1
     //   If the heap size is wrong (needs a value for HEAP_SIZE of --heap-size)
     //   If there are not enough item pointers do calculate heap_index
+    heaps_total++;
     bool ignore_heap = has_stopped;
     ignore_heap |= (ph->heap_cnt == 1);
     ignore_heap |= ((heap_size != HEAP_SIZE_DEF) && (heap_size != size));
@@ -116,6 +117,7 @@ namespace mkrecv
       << " ntotal " << tstat.ntotal << " noverrun " << tstat.noverrun << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
       << std::endl;
     */
+    if (heaps_total == 1000000) et.reset();
     std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
     et.add_et(et_statistics::ALLOC_TIMING, std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count());
     return pointer((std::uint8_t*)(heap_place), deleter(shared_from_this(), (void *) std::uintptr_t(size)));

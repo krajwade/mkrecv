@@ -121,7 +121,19 @@ namespace mkrecv
       ;
   }
 
-  
+  void et_statistics::reset()
+  {
+    int i;
+    
+    for (i = 0; i < 2; i++)
+      {
+	min_et[i] = 1.0e30;
+	max_et[i] = 0.0;
+	sum_et[i] = 0.0;
+	count_et[i] = 0.0;
+      }
+  }
+
   allocator::allocator(key_t key, std::string mlname, std::shared_ptr<options> opts) :
     opts(opts),
     mlog(mlname),
