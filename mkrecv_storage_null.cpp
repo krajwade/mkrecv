@@ -185,7 +185,7 @@ namespace mkrecv
     dest[dest_index].needed--;
     if (dest[DATA_DEST].needed > dest[DATA_DEST].space)
       {
-        std::cout << "warning needed < 0 state " << state << " needed " << dest[DATA_DEST].needed << " heaps_open " << dstat[DATA_DEST].heaps_open << "," << dstat[TEMP_DEST].heaps_open << std::endl;
+        //std::cout << "warning needed < 0 state " << state << " needed " << dest[DATA_DEST].needed << " heaps_open " << dstat[DATA_DEST].heaps_open << "," << dstat[TEMP_DEST].heaps_open << std::endl;
       }
     show_mark_log();
     //std::cout << "mark " << cnt << " isok " << isok << " dest " << d << " needed " << nd << " " << nt << " cts " << ctsd << " " << ctst << std::endl;
@@ -222,7 +222,7 @@ namespace mkrecv
 	dest[DATA_DEST].needed -= (dest[TEMP_DEST].space - dest[TEMP_DEST].needed);
         if (dest[DATA_DEST].needed > dest[DATA_DEST].space)
           {
-            std::cout << "warning, p -> s, needed < 0 " << dest[DATA_DEST].needed << " heaps_open " << dstat[DATA_DEST].heaps_open << "," << dstat[TEMP_DEST].heaps_open << std::endl;
+            //std::cout << "warning, p -> s, needed < 0 " << dest[DATA_DEST].needed << " heaps_open " << dstat[DATA_DEST].heaps_open << "," << dstat[TEMP_DEST].heaps_open << std::endl;
           }
         dest[TEMP_DEST].needed  = dest[TEMP_DEST].space;
 	//dest[TEMP_DEST].cts = cts_temp;
@@ -234,6 +234,7 @@ namespace mkrecv
 
   void storage_null::show_mark_log()
   {
+    /*
     if ((gstat.heaps_total - log_counter) >= LOG_FREQ)
       {
 	log_counter += LOG_FREQ;
@@ -260,10 +261,12 @@ namespace mkrecv
 		  << " payload " << gstat.bytes_expected << " " << gstat.bytes_received
 		  << std::endl;
       }
+    */
   }
 
   void storage_null::show_state_log()
   {
+    /*
     if (state == SEQUENTIAL_STATE)
       {
 	std::cout << "-> sequential";
@@ -283,6 +286,7 @@ namespace mkrecv
 	      << " payload " << gstat.bytes_expected << " " << gstat.bytes_received
 	      << std::endl;
     //hist.show();
+    */
   }
 
   void storage_null::request_stop()

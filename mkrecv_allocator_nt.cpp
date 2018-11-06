@@ -67,7 +67,11 @@ namespace mkrecv
 	    std::cout << "heap ignored heap_cnt " << ph->heap_cnt << " size " << size << " n_items " << ph->n_items << std::endl;
           }
 	dest_index = store->alloc_place(0, 0, size, storage::TRASH_DEST, heap_place, sci_place);
-	heap2dest[ph->heap_cnt] = dest_index;
+	//heap2dest[ph->heap_cnt] = dest_index;
+        heap_id[head] = ph->heap_cnt;
+        heap_dest[head] = dest_index;
+        heap_timestamp[head] = 0;
+        head = (head + 1)%MAX_OPEN_HEAPS;
 	return pointer((std::uint8_t*)heap_place, deleter(shared_from_this(), (void *)std::uintptr_t(size)));
       }
     // Extract all item pointer values and transform them into a heap index (inside a heap group)
@@ -102,8 +106,12 @@ namespace mkrecv
       }
     // Get the memory positions for the heap payload and the side-channel items
     dest_index = store->alloc_place(item_value[0], heap_index, size, dest_index, heap_place, sci_place);
-    heap2dest[ph->heap_cnt]      = dest_index;    // store the relation between heap counter and destination
-    heap2timestamp[ph->heap_cnt] = item_value[0]; // store the relation between heap counter and timestamp
+    //heap2dest[ph->heap_cnt]      = dest_index;    // store the relation between heap counter and destination
+    //heap2timestamp[ph->heap_cnt] = item_value[0]; // store the relation between heap counter and timestamp
+    heap_id[head]        = ph->heap_cnt;
+    heap_dest[head]      = dest_index;
+    heap_timestamp[head] = item_value[0];
+    head = (head + 1)%MAX_OPEN_HEAPS;
     for (i = 0; i < nsci; i++)
       { // Put all side-channel items directly into memory
 	spead2::item_pointer_t pts = spead2::load_be<spead2::item_pointer_t>(ph->pointers + scis.at(i)*sizeof(spead2::item_pointer_t));
@@ -117,7 +125,7 @@ namespace mkrecv
       << " ntotal " << tstat.ntotal << " noverrun " << tstat.noverrun << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
       << std::endl;
     */
-    if (heaps_total == 1000000) et.reset();
+    if (heaps_total == 2000000) et.reset();
     std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
     et.add_et(et_statistics::ALLOC_TIMING, std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count());
     return pointer((std::uint8_t*)(heap_place), deleter(shared_from_this(), (void *) std::uintptr_t(size)));
@@ -133,10 +141,27 @@ namespace mkrecv
     {
       // **** GUARDED BY SEMAPHORE ****
       //std::lock_guard<std::mutex> lock(dest_mutex);
-      dest_index = heap2dest[cnt];
-      timestamp  = heap2timestamp[cnt];
-      heap2dest.erase(cnt);
-      heap2timestamp.erase(cnt);
+      int idx = (head + (MAX_OPEN_HEAPS - 1))%MAX_OPEN_HEAPS;
+      int count = MAX_OPEN_HEAPS;
+      do
+        {
+          if (heap_id[idx] == cnt)
+            {
+              dest_index = heap_dest[idx];
+              timestamp  = heap_timestamp[idx];
+              break;
+            }
+         idx = (idx + (MAX_OPEN_HEAPS - 1))%MAX_OPEN_HEAPS;
+         count--;
+        } while (count != 0);
+      if (count == 0)
+        {
+          std::cerr << "ERROR: Cannot fine heap with id " << cnt << " in internal map" << std::endl;
+        }
+      //dest_index = heap2dest[cnt];
+      //timestamp  = heap2timestamp[cnt];
+      //heap2dest.erase(cnt);
+      //heap2timestamp.erase(cnt);
     }
     store->free_place(timestamp, dest_index, reclen);
     std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();

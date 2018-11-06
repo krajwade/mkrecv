@@ -33,7 +33,7 @@ namespace mkrecv
   void storage_dada::proc_header()
   {
     std::unique_lock<std::mutex> lck(header_mutex);
-    while (header_cv.wait_for(lck, std::chrono::milliseconds(50)) == std::cv_status::timeout) {
+    while (header_cv.wait_for(lck, std::chrono::milliseconds(500)) == std::cv_status::timeout) {
       if (has_stopped) return;
     }
     opts->set_start_time(timestamp_first);
@@ -58,7 +58,7 @@ namespace mkrecv
   {
     do {
       std::unique_lock<std::mutex> lck(switch_mutex);
-      while (switch_cv.wait_for(lck, std::chrono::milliseconds(50)) == std::cv_status::timeout) {
+      while (switch_cv.wait_for(lck, std::chrono::milliseconds(500)) == std::cv_status::timeout) {
 	if (has_stopped) return;
       }
       spead2::s_item_pointer_t  *sci_base = (spead2::s_item_pointer_t*)(dest[DATA_DEST].ptr->ptr()
@@ -77,7 +77,7 @@ namespace mkrecv
   {
     do {
       std::unique_lock<std::mutex> lck(copy_mutex);
-      while (copy_cv.wait_for(lck, std::chrono::milliseconds(50)) == std::cv_status::timeout) {
+      while (copy_cv.wait_for(lck, std::chrono::milliseconds(500)) == std::cv_status::timeout) {
 	if (has_stopped) return;
       }
       memcpy(dest[DATA_DEST].ptr->ptr(), dest[TEMP_DEST].ptr->ptr(), dest[TEMP_DEST].space*heap_size);

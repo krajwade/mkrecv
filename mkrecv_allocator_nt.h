@@ -2,7 +2,7 @@
 #define mkrecv_allocator_nt_h
 
 #include <cstdint>
-#include <unordered_map>
+//#include <unordered_map>
 
 #include <spead2/common_thread_pool.h>
 #include <spead2/recv_udp.h>
@@ -38,10 +38,17 @@ namespace mkrecv
   class allocator_nt : public spead2::memory_allocator
   {
   protected:
+    static const int MAX_OPEN_HEAPS  = 4;
+  protected:
     std::shared_ptr<mkrecv::options>                                         opts;
     std::shared_ptr<mkrecv::storage>                                         store;
-    std::unordered_map<spead2::s_item_pointer_t, int>                        heap2dest;
-    std::unordered_map<spead2::s_item_pointer_t, spead2::s_item_pointer_t>   heap2timestamp;
+    //std::unordered_map<spead2::s_item_pointer_t, int>                        heap2dest;
+    //std::unordered_map<spead2::s_item_pointer_t, spead2::s_item_pointer_t>   heap2timestamp;
+    std::size_t                                                              head = 0;
+    std::size_t                                                              tail = 0;
+    spead2::s_item_pointer_t                                                 heap_id[MAX_OPEN_HEAPS];
+    int                                                                      heap_dest[MAX_OPEN_HEAPS];
+    spead2::s_item_pointer_t                                                 heap_timestamp[MAX_OPEN_HEAPS];
     std::size_t                                                              nindices = 0;
     index_part                                                               indices[MAX_INDEXPARTS];
     ts_histo                                                                 hist;
