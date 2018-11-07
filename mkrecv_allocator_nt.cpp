@@ -108,6 +108,7 @@ namespace mkrecv
     dest_index = store->alloc_place(item_value[0], heap_index, size, dest_index, heap_place, sci_place);
     //heap2dest[ph->heap_cnt]      = dest_index;    // store the relation between heap counter and destination
     //heap2timestamp[ph->heap_cnt] = item_value[0]; // store the relation between heap counter and timestamp
+    //std::cout << "  heap map " << head << " " << heap_id[head] << " " << heap_dest[head] << " " << heap_timestamp[head] << std::endl;
     heap_id[head]        = ph->heap_cnt;
     heap_dest[head]      = dest_index;
     heap_timestamp[head] = item_value[0];
@@ -156,7 +157,9 @@ namespace mkrecv
         } while (count != 0);
       if (count == 0)
         {
-          std::cerr << "ERROR: Cannot fine heap with id " << cnt << " in internal map" << std::endl;
+          std::cout << "ERROR: Cannot find heap with id " << cnt << " in internal map" << std::endl;
+          dest_index = storage::TRASH_DEST;
+          timestamp = 0;
         }
       //dest_index = heap2dest[cnt];
       //timestamp  = heap2timestamp[cnt];

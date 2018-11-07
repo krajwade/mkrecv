@@ -46,7 +46,7 @@ namespace mkrecv
     dest[TEMP_DEST].set_heap_size(heap_size, heap_count, 0, nsci);
     dest[TRASH_DEST].set_heap_size(heap_size, heap_count, 0, nsci);
     level_data_count = ((dest[DATA_DEST].capacity - dest[TEMP_DEST].capacity)*opts->level_data)/100 + dest[TEMP_DEST].capacity;
-    level_temp_count = (dest[TRASH_DEST].capacity*opts->level_temp)/100 + dest[DATA_DEST].capacity;
+    level_temp_count = (dest[TEMP_DEST].capacity*opts->level_temp)/100 + dest[DATA_DEST].capacity;
     state = SEQUENTIAL_STATE;
     // timestemp limit for SEQUENTIAL -> PARALLEL switch
     timestamp_level_temp = timestamp_first + level_temp_count*timestamp_step;
@@ -55,7 +55,7 @@ namespace mkrecv
     std::cout << "TEMP_DEST:  capacity " << dest[TEMP_DEST].capacity << " space " << dest[TEMP_DEST].space << std::endl;
     std::cout << "TRASH_DEST: capacity " << dest[TRASH_DEST].capacity << " space " << dest[TRASH_DEST].space << std::endl;
     //std::cout << "cts " << dest[DATA_DEST].cts << " " << dest[TEMP_DEST].cts << " " << dest[TRASH_DEST].cts << std::endl;
-    std::cout << "level_data_count " << level_data_count << " level_temp_count " << level_temp_count << std::endl;
+    std::cout << "level_data_count " << level_data_count << " level_temp_count " << level_temp_count << " timestamp_level_temp " << timestamp_level_temp << std::endl;
   }
   
   int storage_null::alloc_place(spead2::s_item_pointer_t timestamp,     // timestamp of a heap
@@ -92,7 +92,7 @@ namespace mkrecv
 	    // The timestamp is smaller than the timestamp of the first heap in the current slot
 	    // -> put this heap into trash and report it as a skipped heap
 	    gstat.heaps_skipped++;
-	    //std::cout << "TS too old: " << timestamp << " " << timestamp_first << " " << timestamp_step << " -> " << group_index << std::endl;
+	    std::cout << "TS too old: " << timestamp << " " << timestamp_first << " " << timestamp_step << " -> " << group_index << std::endl;
 	    dest_index = TRASH_DEST;
 	  }
         else if (state == SEQUENTIAL_STATE)
@@ -100,7 +100,7 @@ namespace mkrecv
 	    if (group_index >= (spead2::s_item_pointer_t)(dest[DATA_DEST].capacity + dest[TEMP_DEST].capacity))
 	      {
 	        gstat.heaps_overrun++;
-	        //std::cout << "SEQ overrun: " << timestamp << " " << timestamp_first << " " << timestamp_step << " -> " << group_index << std::endl;
+	        std::cout << "SEQ overrun: " << timestamp << " " << timestamp_first << " " << timestamp_step << " -> " << group_index << std::endl;
 	        dest_index = TRASH_DEST;
 	      }
 	    else if (group_index >= (spead2::s_item_pointer_t)dest[DATA_DEST].capacity)
@@ -187,7 +187,7 @@ namespace mkrecv
       {
         //std::cout << "warning needed < 0 state " << state << " needed " << dest[DATA_DEST].needed << " heaps_open " << dstat[DATA_DEST].heaps_open << "," << dstat[TEMP_DEST].heaps_open << std::endl;
       }
-    show_mark_log();
+    //show_mark_log();
     //std::cout << "mark " << cnt << " isok " << isok << " dest " << d << " needed " << nd << " " << nt << " cts " << ctsd << " " << ctst << std::endl;
     if ((state == SEQUENTIAL_STATE) && (timestamp >= timestamp_level_temp))
       {
@@ -234,14 +234,13 @@ namespace mkrecv
 
   void storage_null::show_mark_log()
   {
-    /*
     if ((gstat.heaps_total - log_counter) >= LOG_FREQ)
       {
 	log_counter += LOG_FREQ;
 	std::cout << "heaps:"
 		  << " total "
 		  << gstat.heaps_total
-		  << "=" << gstat.heaps_total
+		  << "=" << dstat[DATA_DEST].heaps_total
 		  << "+" << dstat[TEMP_DEST].heaps_total
 		  << "+" << dstat[TRASH_DEST].heaps_total
 		  << " completed " << gstat.heaps_completed
@@ -261,12 +260,10 @@ namespace mkrecv
 		  << " payload " << gstat.bytes_expected << " " << gstat.bytes_received
 		  << std::endl;
       }
-    */
   }
 
   void storage_null::show_state_log()
   {
-    /*
     if (state == SEQUENTIAL_STATE)
       {
 	std::cout << "-> sequential";
@@ -283,10 +280,10 @@ namespace mkrecv
 	      << " ignored " << gstat.heaps_ignored
 	      << " assigned " << dest[DATA_DEST].count << " " << dest[TEMP_DEST].count << " " << dest[TRASH_DEST].count
 	      << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
+              << " level " << timestamp_level_data << " " << timestamp_level_temp
 	      << " payload " << gstat.bytes_expected << " " << gstat.bytes_received
 	      << std::endl;
     //hist.show();
-    */
   }
 
   void storage_null::request_stop()

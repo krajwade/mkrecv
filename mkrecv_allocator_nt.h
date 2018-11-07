@@ -38,7 +38,7 @@ namespace mkrecv
   class allocator_nt : public spead2::memory_allocator
   {
   protected:
-    static const int MAX_OPEN_HEAPS  = 4;
+    static const int MAX_OPEN_HEAPS  = 16;
   protected:
     std::shared_ptr<mkrecv::options>                                         opts;
     std::shared_ptr<mkrecv::storage>                                         store;
