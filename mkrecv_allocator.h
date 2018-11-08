@@ -86,16 +86,30 @@ namespace mkrecv
     void show();
   };
 
+  /*
+   * histo: histogram with logarithmic slots:
+   * 10, 20, 50 ns
+   * 100, 200, 500 ns
+   * 1, 2, 5 us
+   * 10, 20, 50 us
+   * 100, 200, 500 us
+   * 1, 2, 5 ms
+   * 10, 20, 50 ms
+   * 100, 200, 500 ms
+   */
   class et_statistics
   {
   public:
     static const int ALLOC_TIMING = 0;
     static const int MARK_TIMING  = 1;
+    static const int MAX_SLOTS    = 8*3+1;
+    static const int LARGER_SLOT  = MAX_SLOTS-1;
   public:
     double   min_et[2];
     double   max_et[2];
     double   sum_et[2];
     double   count_et[2];
+    int      histo[2][MAX_SLOTS]; // 8 times 1,2,5
   public:
     et_statistics();
     void add_et(int fi, double nanoseconds);

@@ -102,23 +102,210 @@ namespace mkrecv
 	sum_et[i] = 0.0;
 	count_et[i] = 0.0;
       }
+    for (i = 0; i < MAX_SLOTS; i++)
+      {
+	histo[0][i] = 0;
+	histo[1][i] = 0;
+      }
   }
-  
+  /*
+   * 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000
+   * 100000, 200000, 500000, 1000000, 2000000, 5000000
+   * 10000000, 20000000, 50000000, 100000000, 200000000, 500000000
+   */
   void et_statistics::add_et(int fi, double nanoseconds)
   {
     if (nanoseconds < min_et[fi]) min_et[fi] = nanoseconds;
     if (nanoseconds > max_et[fi]) max_et[fi] = nanoseconds;
     sum_et[fi]   += nanoseconds;
     count_et[fi] += 1.0;
+    if (nanoseconds <= 10.0)
+      {
+	histo[fi][0]++;
+      }
+    else if (nanoseconds <= 100.0)
+      {
+	if (nanoseconds <= 20.0)
+	  {
+	    histo[fi][1]++;
+	  }
+	else if (nanoseconds <= 50.0)
+	  {
+	    histo[fi][2]++;
+	  }
+	else
+	  {
+	    histo[fi][3]++;
+	  }
+      }
+    else if (nanoseconds <= 1000.0)
+      {
+	if (nanoseconds <= 200.0)
+	  {
+	    histo[fi][4]++;
+	  }
+	else if (nanoseconds <= 500.0)
+	  {
+	    histo[fi][5]++;
+	  }
+	else
+	  {
+	    histo[fi][6]++;
+	  }
+      }
+    else if (nanoseconds <= 10000.0)
+      {
+	if (nanoseconds <= 2000.0)
+	  {
+	    histo[fi][7]++;
+	  }
+	else if (nanoseconds <= 5000.0)
+	  {
+	    histo[fi][8]++;
+	  }
+	else
+	  {
+	    histo[fi][9]++;
+	  }
+      }
+    else if (nanoseconds <= 100000.0)
+      {
+	if (nanoseconds <= 20000.0)
+	  {
+	    histo[fi][10]++;
+	  }
+	else if (nanoseconds <= 50000.0)
+	  {
+	    histo[fi][11]++;
+	  }
+	else
+	  {
+	    histo[fi][12]++;
+	  }
+      }
+    else if (nanoseconds <= 1000000.0)
+      {
+	if (nanoseconds <= 200000.0)
+	  {
+	    histo[fi][13]++;
+	  }
+	else if (nanoseconds <= 500000.0)
+	  {
+	    histo[fi][14]++;
+	  }
+	else
+	  {
+	    histo[fi][15]++;
+	  }
+      }
+    else if (nanoseconds <= 10000000.0)
+      {
+	if (nanoseconds <= 2000000.0)
+	  {
+	    histo[fi][16]++;
+	  }
+	else if (nanoseconds <= 5000000.0)
+	  {
+	    histo[fi][17]++;
+	  }
+	else
+	  {
+	    histo[fi][18]++;
+	  }
+      }
+    else if (nanoseconds <= 100000000.0)
+      {
+	if (nanoseconds <= 20000000.0)
+	  {
+	    histo[fi][19]++;
+	  }
+	else if (nanoseconds <= 50000000.0)
+	  {
+	    histo[fi][20]++;
+	  }
+	else
+	  {
+	    histo[fi][21]++;
+	  }
+      }
+    else if (nanoseconds <= 1000000000.0)
+      {
+	if (nanoseconds <= 200000000.0)
+	  {
+	    histo[fi][22]++;
+	  }
+	else if (nanoseconds <= 500000000.0)
+	  {
+	    histo[fi][23]++;
+	  }
+	else
+	  {
+	    histo[fi][24]++;
+	  }
+      }
+    else
+      {
+	histo[fi][LARGER_SLOT]++;
+      }
   }
   
   void et_statistics::show()
   {
-    std::cout << "et:"
-	      << " alloc " << sum_et[ALLOC_TIMING]/count_et[ALLOC_TIMING] << " [" << min_et[ALLOC_TIMING] << " .. " << max_et[ALLOC_TIMING] << "]"
-	      << " mark " << sum_et[MARK_TIMING]/count_et[MARK_TIMING] << " [" << min_et[MARK_TIMING] << " .. " << max_et[MARK_TIMING] << "]"
-	      << std::endl;
-      ;
+    std::cout << "et: alloc " << sum_et[ALLOC_TIMING]/count_et[ALLOC_TIMING] << " [" << min_et[ALLOC_TIMING] << " .. " << max_et[ALLOC_TIMING] << "]";
+    std::cout << " <= 10 ns = " << histo[ALLOC_TIMING][0];
+    std::cout << " <= 20 ns = " << histo[ALLOC_TIMING][1];
+    std::cout << " <= 50 ns = " << histo[ALLOC_TIMING][2];
+    std::cout << " <= 100 ns = " << histo[ALLOC_TIMING][3];
+    std::cout << " <= 200 ns = " << histo[ALLOC_TIMING][4];
+    std::cout << " <= 500 ns = " << histo[ALLOC_TIMING][5];
+    std::cout << " <= 1 us = " << histo[ALLOC_TIMING][6];
+    std::cout << " <= 2 us = " << histo[ALLOC_TIMING][7];
+    std::cout << " <= 5 us = " << histo[ALLOC_TIMING][8];
+    std::cout << " <= 10 us = " << histo[ALLOC_TIMING][9];
+    std::cout << " <= 20 us = " << histo[ALLOC_TIMING][10];
+    std::cout << " <= 50 us = " << histo[ALLOC_TIMING][11];
+    std::cout << " <= 100 us = " << histo[ALLOC_TIMING][12];
+    std::cout << " <= 200 us = " << histo[ALLOC_TIMING][13];
+    std::cout << " <= 500 us = " << histo[ALLOC_TIMING][14];
+    std::cout << " <= 1 ms = " << histo[ALLOC_TIMING][15];
+    std::cout << " <= 2 ms = " << histo[ALLOC_TIMING][16];
+    std::cout << " <= 5 ms = " << histo[ALLOC_TIMING][17];
+    std::cout << " <= 10 ms = " << histo[ALLOC_TIMING][18];
+    std::cout << " <= 20 ms = " << histo[ALLOC_TIMING][19];
+    std::cout << " <= 50 ms = " << histo[ALLOC_TIMING][20];
+    std::cout << " <= 100 ms = " << histo[ALLOC_TIMING][21];
+    std::cout << " <= 200 ms = " << histo[ALLOC_TIMING][22];
+    std::cout << " <= 500 ms = " << histo[ALLOC_TIMING][23];
+    std::cout << " > 500 ms = " << histo[ALLOC_TIMING][LARGER_SLOT];
+    std::cout << std::endl;
+    
+    std::cout << "et: mark " << sum_et[MARK_TIMING]/count_et[MARK_TIMING] << " [" << min_et[MARK_TIMING] << " .. " << max_et[MARK_TIMING] << "]";
+    std::cout << " <= 10 ns = " << histo[MARK_TIMING][0];
+    std::cout << " <= 20 ns = " << histo[MARK_TIMING][1];
+    std::cout << " <= 50 ns = " << histo[MARK_TIMING][2];
+    std::cout << " <= 100 ns = " << histo[MARK_TIMING][3];
+    std::cout << " <= 200 ns = " << histo[MARK_TIMING][4];
+    std::cout << " <= 500 ns = " << histo[MARK_TIMING][5];
+    std::cout << " <= 1 us = " << histo[MARK_TIMING][6];
+    std::cout << " <= 2 us = " << histo[MARK_TIMING][7];
+    std::cout << " <= 5 us = " << histo[MARK_TIMING][8];
+    std::cout << " <= 10 us = " << histo[MARK_TIMING][9];
+    std::cout << " <= 20 us = " << histo[MARK_TIMING][10];
+    std::cout << " <= 50 us = " << histo[MARK_TIMING][11];
+    std::cout << " <= 100 us = " << histo[MARK_TIMING][12];
+    std::cout << " <= 200 us = " << histo[MARK_TIMING][13];
+    std::cout << " <= 500 us = " << histo[MARK_TIMING][14];
+    std::cout << " <= 1 ms = " << histo[MARK_TIMING][15];
+    std::cout << " <= 2 ms = " << histo[MARK_TIMING][16];
+    std::cout << " <= 5 ms = " << histo[MARK_TIMING][17];
+    std::cout << " <= 10 ms = " << histo[MARK_TIMING][18];
+    std::cout << " <= 20 ms = " << histo[MARK_TIMING][19];
+    std::cout << " <= 50 ms = " << histo[MARK_TIMING][20];
+    std::cout << " <= 100 ms = " << histo[MARK_TIMING][21];
+    std::cout << " <= 200 ms = " << histo[MARK_TIMING][22];
+    std::cout << " <= 500 ms = " << histo[MARK_TIMING][23];
+    std::cout << " > 500 ms = " << histo[MARK_TIMING][LARGER_SLOT];
+    std::cout << std::endl;
   }
 
   void et_statistics::reset()
