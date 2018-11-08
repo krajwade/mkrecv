@@ -251,6 +251,7 @@ namespace mkrecv
   
   void et_statistics::show()
   {
+    /*
     std::cout << "et: alloc " << sum_et[ALLOC_TIMING]/count_et[ALLOC_TIMING] << " [" << min_et[ALLOC_TIMING] << " .. " << max_et[ALLOC_TIMING] << "]";
     std::cout << " <= 10 ns = " << histo[ALLOC_TIMING][0];
     std::cout << " <= 20 ns = " << histo[ALLOC_TIMING][1];
@@ -306,6 +307,35 @@ namespace mkrecv
     std::cout << " <= 500 ms = " << histo[MARK_TIMING][23];
     std::cout << " > 500 ms = " << histo[MARK_TIMING][LARGER_SLOT];
     std::cout << std::endl;
+    */
+    std::cout << "et:"
+              << " alloc " << sum_et[ALLOC_TIMING]/count_et[ALLOC_TIMING] << " [" << min_et[ALLOC_TIMING] << " .. " << max_et[ALLOC_TIMING] << "]"
+              << " mark " << sum_et[MARK_TIMING]/count_et[MARK_TIMING] << " [" << min_et[MARK_TIMING] << " .. " << max_et[MARK_TIMING] << "]"
+              << std::endl;
+    std::cout << "10 " << histo[ALLOC_TIMING][0] << " " << histo[MARK_TIMING][0] << std::endl;
+    std::cout << "20 " << histo[ALLOC_TIMING][1] << " " << histo[MARK_TIMING][1] << std::endl;
+    std::cout << "50 " << histo[ALLOC_TIMING][2] << " " << histo[MARK_TIMING][2] << std::endl;
+    std::cout << "100 " << histo[ALLOC_TIMING][3] << " " << histo[MARK_TIMING][3] << std::endl;
+    std::cout << "200 " << histo[ALLOC_TIMING][4] << " " << histo[MARK_TIMING][4] << std::endl;
+    std::cout << "500 " << histo[ALLOC_TIMING][5] << " " << histo[MARK_TIMING][5] << std::endl;
+    std::cout << "1000 " << histo[ALLOC_TIMING][6] << " " << histo[MARK_TIMING][6] << std::endl;
+    std::cout << "2000 " << histo[ALLOC_TIMING][7] << " " << histo[MARK_TIMING][7] << std::endl;
+    std::cout << "5000 " << histo[ALLOC_TIMING][8] << " " << histo[MARK_TIMING][8] << std::endl;
+    std::cout << "10000 " << histo[ALLOC_TIMING][9] << " " << histo[MARK_TIMING][9] << std::endl;
+    std::cout << "20000 " << histo[ALLOC_TIMING][10] << " " << histo[MARK_TIMING][10] << std::endl;
+    std::cout << "50000 " << histo[ALLOC_TIMING][11] << " " << histo[MARK_TIMING][11] << std::endl;
+    std::cout << "100000 " << histo[ALLOC_TIMING][12] << " " << histo[MARK_TIMING][12] << std::endl;
+    std::cout << "200000 " << histo[ALLOC_TIMING][13] << " " << histo[MARK_TIMING][13] << std::endl;
+    std::cout << "500000 " << histo[ALLOC_TIMING][14] << " " << histo[MARK_TIMING][14] << std::endl;
+    std::cout << "1000000 " << histo[ALLOC_TIMING][15] << " " << histo[MARK_TIMING][15] << std::endl;
+    std::cout << "2000000 " << histo[ALLOC_TIMING][16] << " " << histo[MARK_TIMING][16] << std::endl;
+    std::cout << "5000000 " << histo[ALLOC_TIMING][17] << " " << histo[MARK_TIMING][17] << std::endl;
+    std::cout << "10000000 " << histo[ALLOC_TIMING][18] << " " << histo[MARK_TIMING][18] << std::endl;
+    std::cout << "20000000 " << histo[ALLOC_TIMING][19] << " " << histo[MARK_TIMING][19] << std::endl;
+    std::cout << "50000000 " << histo[ALLOC_TIMING][20] << " " << histo[MARK_TIMING][20] << std::endl;
+    std::cout << "100000000 " << histo[ALLOC_TIMING][21] << " " << histo[MARK_TIMING][21] << std::endl;
+    std::cout << "200000000 " << histo[ALLOC_TIMING][22] << " " << histo[MARK_TIMING][22] << std::endl;
+    std::cout << "500000000 " << histo[ALLOC_TIMING][23] << " " << histo[MARK_TIMING][23] << std::endl;
   }
 
   void et_statistics::reset()
@@ -318,6 +348,11 @@ namespace mkrecv
 	max_et[i] = 0.0;
 	sum_et[i] = 0.0;
 	count_et[i] = 0.0;
+      }
+    for (i = 0; i < MAX_SLOTS; i++)
+      {
+        histo[0][i] = 0;
+        histo[1][i] = 0;
       }
   }
 

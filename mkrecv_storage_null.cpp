@@ -280,6 +280,8 @@ namespace mkrecv
 	      << " ignored " << gstat.heaps_ignored
 	      << " assigned " << dest[DATA_DEST].count << " " << dest[TEMP_DEST].count << " " << dest[TRASH_DEST].count
 	      << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
+              << " completed " << dstat[DATA_DEST].heaps_completed << " " << dstat[TEMP_DEST].heaps_completed
+              << " open " << dstat[DATA_DEST].heaps_open << " " << dstat[TEMP_DEST].heaps_open
               << " level " << timestamp_level_data << " " << timestamp_level_temp
 	      << " payload " << gstat.bytes_expected << " " << gstat.bytes_received
 	      << std::endl;
