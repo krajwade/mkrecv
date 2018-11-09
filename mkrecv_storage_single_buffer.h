@@ -1,5 +1,5 @@
-#ifndef mkrecv_storage_null_h
-#define mkrecv_storage_null_h
+#ifndef mkrecv_storage_single_buffer_h
+#define mkrecv_storage_single_buffer_h
 
 #include "mkrecv_storage.h"
 #include "mkrecv_destination.h"
@@ -7,16 +7,15 @@
 namespace mkrecv
 {
 
-  class storage_null : public storage
+  class storage_single_buffer : public storage
   {
   protected:
     std::mutex                         dest_mutex;
-    destination                        dest[1];
-    std::size_t                        index_next = 0;
+    destination                        dest[3];
     std::size_t                        log_counter = 0;
   public:
-    storage_null(std::shared_ptr<mkrecv::options> opts, bool alloc_data = true);
-    ~storage_null();
+    storage_single_buffer(std::shared_ptr<mkrecv::options> opts, bool alloc_data = true);
+    ~storage_single_buffer();
     int alloc_place(spead2::s_item_pointer_t timestamp,    // timestamp of a heap
 		    std::size_t heap_index,                // heap number inside a heap group
 		    std::size_t size,                      // heap size (only payload)
@@ -33,10 +32,14 @@ namespace mkrecv
     virtual void do_init(spead2::s_item_pointer_t timestamp,     // timestamp of a heap
 			 std::size_t size                        // heap size (only payload)
 			 );
+    virtual void do_switch_slot();
+    virtual void do_release_slot();
+    virtual void do_copy_temp();
     void show_mark_log();
+    void show_state_log();
   };
 
 }
 
-#endif /* mkrecv_storage_null_h */
+#endif /* mkrecv_storage_single_buffer_h */
 

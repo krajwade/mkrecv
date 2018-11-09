@@ -19,7 +19,7 @@
 #include "psrdada_cpp/cli_utils.hpp"
 
 #include "mkrecv_storage_null.h"
-#include "mkrecv_storage_dada.h"
+#include "mkrecv_storage_single_dada.h"
 
 #include "mkrecv_receiver_nt.h"
 
@@ -110,10 +110,17 @@ namespace mkrecv
 
   int receiver_nt::execute(int argc, const char **argv)
   {
+    std::vector<int> affinity;
+    int i;
+
     opts = create_options();
     opts->parse_args(argc, argv);
     std::cout << opts->header << std::endl;
-    thread_pool.reset(new spead2::thread_pool(opts->threads));
+    for (i = 0; i < 16; i++)
+      {
+        affinity.push_back(i);
+      }
+    thread_pool.reset(new spead2::thread_pool(opts->threads)); //, affinity));
     signal(SIGINT, signal_handler);
     storage = create_storage();
     if (opts->joint)
@@ -152,7 +159,7 @@ namespace mkrecv
       {
 	try
 	  {
-	    return std::shared_ptr<mkrecv::storage>(new storage_dada(opts, psrdada_cpp::string_to_key(opts->dada_key), "recv"));
+	    return std::shared_ptr<mkrecv::storage>(new storage_single_dada(opts, psrdada_cpp::string_to_key(opts->dada_key), "recv"));
 	  }
 	catch (std::runtime_error &e)
 	  {
