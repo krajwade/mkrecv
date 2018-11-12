@@ -54,6 +54,7 @@ set(mkrecv_src_nt
   mkrecv_storage_null.cpp
   mkrecv_storage_single_buffer.cpp
   mkrecv_storage_single_dada.cpp
+  mkrecv_storage_double_buffer.cpp
   mkrecv_allocator.cpp
   mkrecv_allocator_nt.cpp
   mkrecv_destination.cpp

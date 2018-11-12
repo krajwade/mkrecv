@@ -19,7 +19,9 @@
 #include "psrdada_cpp/cli_utils.hpp"
 
 #include "mkrecv_storage_null.h"
+#include "mkrecv_storage_single_buffer.h"
 #include "mkrecv_storage_single_dada.h"
+#include "mkrecv_storage_double_buffer.h"
 
 #include "mkrecv_receiver_nt.h"
 
@@ -153,7 +155,22 @@ namespace mkrecv
   {
     if (opts->dada_mode != FULL_DADA_MODE)
       {
-	return std::shared_ptr<mkrecv::storage>(new storage_null(opts));
+        if (opts->dada_mode == NO_DADA_MODE)
+          {
+	    return std::shared_ptr<mkrecv::storage>(new storage_null(opts));
+          }
+        else if (opts->dada_mode == TRASH_DADA_MODE)
+          {
+            return std::shared_ptr<mkrecv::storage>(new storage_single_buffer(opts));
+          }
+        else if (opts->dada_mode == STATIC_DADA_MODE)
+          {
+            return std::shared_ptr<mkrecv::storage>(new storage_double_buffer(opts));
+          }
+        else
+          {
+            return std::shared_ptr<mkrecv::storage>(new storage_null(opts));
+          }
       }
     else
       {

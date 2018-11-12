@@ -55,8 +55,6 @@ namespace mkrecv
     spead2::s_item_pointer_t           timestamp_level_temp = 0; // timestamp for switching to parallel mode
     spead2::s_item_pointer_t           level_data_count = 0;
     spead2::s_item_pointer_t           level_temp_count = 0;
-    //std::size_t                        cts_data;
-    //std::size_t                        cts_temp;
     std::size_t                        nsci;
     std::vector<std::size_t>           scis;
     int                                state = INIT_STATE;

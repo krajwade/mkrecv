@@ -415,6 +415,7 @@ namespace mkrecv
 
   allocator::~allocator()
   {
+    et.show();
   }
 
   spead2::memory_allocator::pointer allocator::allocate(std::size_t size, void *hint)
@@ -677,7 +678,6 @@ namespace mkrecv
 	  { // copy the optional side-channel items at the correct position
 	    // sci_base = buffer + size - (scape *nsci)
             std::cout << "still needing " << dest[DATA_DEST].needed << " heaps." << std::endl;
-	    et.show();
 	    spead2::s_item_pointer_t  *sci_base = (spead2::s_item_pointer_t*)(dest[DATA_DEST].ptr->ptr()
 									      + dest[DATA_DEST].size
 									      - dest[DATA_DEST].space*nsci*sizeof(spead2::s_item_pointer_t));
