@@ -10,7 +10,6 @@ namespace mkrecv
   class storage_single_buffer : public storage
   {
   protected:
-    std::mutex                         dest_mutex;
     destination                        dest[3];
     std::size_t                        log_counter = 0;
   public:

@@ -32,6 +32,7 @@ namespace mkrecv
 			     std::size_t size                        // heap size (only payload)
 			     )
   {
+    (void)timestamp;
     state = SEQUENTIAL_STATE;
     if (heap_size == HEAP_SIZE_DEF) heap_size = size;
     dest[DATA_DEST].set_heap_size(heap_size, heap_count, 0, nsci);
@@ -46,14 +47,22 @@ namespace mkrecv
 				char *&heap_place,                      // returned memory pointer to this heap payload
 				spead2::s_item_pointer_t *&sci_place)   // returned memory pointer to the side-channel items for this heap
   {
-    //std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+    (void)timestamp;
+#ifdef ENABLE_TIMING_MEASUREMENTS
+    std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+#endif
     char                           *mem_base = NULL;
     spead2::s_item_pointer_t        mem_offset;
     spead2::s_item_pointer_t       *sci_base = NULL;
     spead2::s_item_pointer_t        sci_offset;
 
+    {
     // **** GUARDED BY SEMAPHORE ****
+#ifdef USE_STD_MUTEX
     std::lock_guard<std::mutex> lock(dest_mutex);
+#else
+    dest_sem.get();
+#endif
     if ((state == INIT_STATE) && (dest_index == DATA_DEST))
       {
 	do_init(timestamp, size);
@@ -81,10 +90,16 @@ namespace mkrecv
     sci_offset = nsci*index_next;
     heap_place = mem_base + mem_offset;
     sci_place  = sci_base + sci_offset;
-    if (gstat.heaps_total == 10*dest[DATA_DEST].size) et.reset();
     index_next = (index_next + 1)%dest[DATA_DEST].space;
-    //std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
-    //et.add_et(et_statistics::ALLOC_TIMING, std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count());
+#ifndef USE_STD_MUTEX
+    dest_sem.put();
+#endif
+    }
+#ifdef ENABLE_TIMING_MEASUREMENTS
+    if (gstat.heaps_total == 10*dest[DATA_DEST].size) et.reset();
+    std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+    et.add_et(et_statistics::ALLOC_TIMING, std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count());
+#endif
     return dest_index;
   }
   
@@ -92,11 +107,19 @@ namespace mkrecv
 				int dest_index,                        // destination of a heap
 				std::size_t reclen)                    // recieved number of bytes
   {
-    //std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+    (void)timestamp;
+#ifdef ENABLE_TIMING_MEASUREMENTS
+    std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+#endif
     //std::size_t  ctsd, ctst;
 
+    {
     // **** GUARDED BY SEMAPHORE ****
+#ifdef USE_STD_MUTEX
     std::lock_guard<std::mutex> lock(dest_mutex);
+#else
+    dest_sem.get();
+#endif
     dest_index = DATA_DEST;
     gstat.heaps_open--;
     gstat.bytes_received += reclen;
@@ -114,8 +137,14 @@ namespace mkrecv
       }
     dest[dest_index].needed--;
     show_mark_log();
-    //std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
-    //et.add_et(et_statistics::MARK_TIMING, std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count());
+#ifndef USE_STD_MUTEX
+    dest_sem.put();
+#endif
+    }
+#ifdef ENABLE_TIMING_MEASUREMENTS
+    std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+    et.add_et(et_statistics::MARK_TIMING, std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count());
+#endif
   }
 
   void storage_null::show_mark_log()

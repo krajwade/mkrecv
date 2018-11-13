@@ -10,7 +10,6 @@ namespace mkrecv
   class storage_null : public storage
   {
   protected:
-    std::mutex                         dest_mutex;
     destination                        dest[1];
     std::size_t                        index_next = 0;
     std::size_t                        log_counter = 0;

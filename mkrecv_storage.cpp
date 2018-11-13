@@ -5,6 +5,9 @@ namespace mkrecv
 
   storage::storage(std::shared_ptr<mkrecv::options> hopts) :
     opts(hopts)
+#ifndef USE_STD_MUTEX
+    , dest_sem(1)
+#endif
   {
     int i;
     
@@ -24,8 +27,10 @@ namespace mkrecv
 
   storage::~storage()
   {
+#ifdef ENABLE_TIMING_MEASUREMENTS
     std::cout << "storage: ";
     et.show();
+#endif
   }
 
 }

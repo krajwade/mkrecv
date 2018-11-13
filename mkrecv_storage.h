@@ -7,6 +7,9 @@
 #include <spead2/common_defines.h>
 #include <spead2/common_logging.h>
 #include <spead2/common_endian.h>
+#ifndef USE_STD_MUTEX
+#include "spead2/common_semaphore.h"
+#endif
 
 #include "mkrecv_options.h"
 #include "mkrecv_allocator.h"
@@ -24,6 +27,7 @@ namespace mkrecv
     std::size_t    heaps_overrun   = 0;  // number of lost heaps due to overrun
     std::size_t    heaps_ignored   = 0;  // number of ignored heaps (requested destination is TRASH)
     std::size_t    heaps_open      = 0;  // number of open heaps
+    std::size_t    heaps_needed    = 0;  // number of needed heaps
     std::size_t    bytes_expected  = 0;  // number of expected payload bytes
     std::size_t    bytes_received  = 0;  // number of received payload bytes
   };
@@ -45,6 +49,11 @@ namespace mkrecv
     // Some additional constants
     static const int LOG_FREQ = 100000;
   protected:
+#ifdef USE_STD_MUTEX
+    std::mutex                         dest_mutex;
+#else
+    spead2::semaphore_spin             dest_sem;
+#endif
     std::shared_ptr<mkrecv::options>   opts;
     std::shared_ptr<spead2::mmap_allocator>   memallocator;
     std::size_t                        heap_size;   // size of a heap in bytes
@@ -62,7 +71,9 @@ namespace mkrecv
     bool                               has_stopped = false;
     storage_statistics                 gstat;
     storage_statistics                 dstat[3];
+#ifdef ENABLE_TIMING_MEASUREMENTS
     et_statistics                      et;
+#endif
   public:
     storage(std::shared_ptr<mkrecv::options> opts);
     ~storage();

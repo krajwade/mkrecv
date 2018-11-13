@@ -1,4 +1,6 @@
+#ifdef ENABLE_TIMING_MEASUREMENTS
 #include <chrono>
+#endif
 
 #include "ascii_header.h"
 
@@ -31,13 +33,17 @@ namespace mkrecv
 
   allocator_nt::~allocator_nt()
   {
+#ifdef ENABLE_TIMING_MEASUREMENTS
     std::cout << "allocator_nt: ";
     et.show();
+#endif
   }
 
   spead2::memory_allocator::pointer allocator_nt::allocate(std::size_t size, void *hint)
   {
+#ifdef ENABLE_TIMING_MEASUREMENTS
     std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+#endif
     spead2::recv::packet_header    *ph = (spead2::recv::packet_header*)hint;
     spead2::recv::pointer_decoder   decoder(ph->heap_address_bits);
     spead2::s_item_pointer_t        item_value[MAX_INDEXPARTS];
@@ -126,15 +132,19 @@ namespace mkrecv
       << " ntotal " << tstat.ntotal << " noverrun " << tstat.noverrun << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
       << std::endl;
     */
+#ifdef ENABLE_TIMING_MEASUREMENTS
     if (heaps_total == 2000000) et.reset();
     std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
     et.add_et(et_statistics::ALLOC_TIMING, std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count());
+#endif
     return pointer((std::uint8_t*)(heap_place), deleter(shared_from_this(), (void *) std::uintptr_t(size)));
   }
 
   void allocator_nt::mark(spead2::s_item_pointer_t cnt, bool isok, spead2::s_item_pointer_t reclen)
   {
+#ifdef ENABLE_TIMING_MEASUREMENTS
     std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+#endif
     int                      dest_index;
     spead2::s_item_pointer_t timestamp;
 
@@ -167,8 +177,10 @@ namespace mkrecv
       //heap2timestamp.erase(cnt);
     }
     store->free_place(timestamp, dest_index, reclen);
+#ifdef ENABLE_TIMING_MEASUREMENTS
     std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
     et.add_et(et_statistics::MARK_TIMING, std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count());
+#endif
   }
 
   void allocator_nt::request_stop()

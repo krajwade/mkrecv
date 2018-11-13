@@ -56,7 +56,6 @@ namespace mkrecv
 				char *&heap_place,                      // returned memory pointer to this heap payload
 				spead2::s_item_pointer_t *&sci_place)   // returned memory pointer to the side-channel items for this heap
   {
-    //std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
     char                           *mem_base = NULL;
     spead2::s_item_pointer_t        mem_offset;
     spead2::s_item_pointer_t       *sci_base = NULL;
@@ -64,8 +63,16 @@ namespace mkrecv
     spead2::s_item_pointer_t        group_index;
     int                             sindex;
 
+#ifdef ENABLE_TIMING_MEASUREMENTS
+    std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+#endif
+    {
     // **** GUARDED BY SEMAPHORE ****
+#ifdef USE_STD_MUTEX
     std::lock_guard<std::mutex> lock(dest_mutex);
+#else
+    dest_sem.get();
+#endif
     if ((state == INIT_STATE) && (dest_index == DATA_DEST))
       {
 	do_init(timestamp, size);
@@ -128,9 +135,15 @@ namespace mkrecv
     sci_offset = group_index*heap_count + heap_index;
     heap_place = mem_base + mem_offset;
     sci_place  = sci_base + sci_offset;
+#ifndef USE_STD_MUTEX
+    dest_sem.put();
+#endif
+    }
+#ifdef ENABLE_TIMING_MEASUREMENTS
     if (gstat.heaps_total == 10*dest[DATA_DEST].size) et.reset();
-    //std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
-    //et.add_et(et_statistics::ALLOC_TIMING, std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count());
+    std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+    et.add_et(et_statistics::ALLOC_TIMING, std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count());
+#endif
     return sindex;
   }
   
@@ -150,11 +163,18 @@ namespace mkrecv
 				int dest_index,                        // destination of a heap
 				std::size_t reclen)                    // recieved number of bytes
   {
-    //std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
     int                 sindex;
 
+#ifdef ENABLE_TIMING_MEASUREMENTS
+    std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+#endif
+    {
     // **** GUARDED BY SEMAPHORE ****
+#ifdef USE_STD_MUTEX
     std::lock_guard<std::mutex> lock(dest_mutex);
+#else
+    dest_sem.get();
+#endif
     gstat.heaps_open--;
     gstat.bytes_received += reclen;
     dstat[dest_index].heaps_open--;
@@ -180,6 +200,7 @@ namespace mkrecv
       {
 	// switch to next buffer
         std::cout << "still needing " << dest[dindex].needed << " heaps." << std::endl;
+        gstat.heaps_needed += dest[dindex].needed;
 	if (!has_stopped)
 	  { // copy the optional side-channel items at the correct position
 	    // sci_base = buffer + size - (scape *nsci)
@@ -198,8 +219,14 @@ namespace mkrecv
 	timestamp_level_data = timestamp_first + level_data_count*timestamp_step;
 	show_state_log();
       }
-    //std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
-    //et.add_et(et_statistics::MARK_TIMING, std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count());
+#ifndef USE_STD_MUTEX
+    dest_sem.put();
+#endif
+    }
+#ifdef ENABLE_TIMING_MEASUREMENTS
+    std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+    et.add_et(et_statistics::MARK_TIMING, std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count());
+#endif
   }
 
   void storage_double_buffer::show_mark_log()
@@ -248,6 +275,7 @@ namespace mkrecv
 	      << " skipped " << gstat.heaps_skipped
 	      << " overrun " << gstat.heaps_overrun
 	      << " ignored " << gstat.heaps_ignored
+              << " needed " << gstat.heaps_needed
 	      << " assigned " << dest[DATA_DEST].count << " " << dest[TEMP_DEST].count << " " << dest[TRASH_DEST].count
 	      << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
               << " completed " << dstat[DATA_DEST].heaps_completed << " " << dstat[TEMP_DEST].heaps_completed

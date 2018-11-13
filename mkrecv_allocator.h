@@ -20,6 +20,7 @@
 
 #include "psrdada_cpp/dada_write_client.hpp"
 
+#include "mkrecv_common.h"
 #include "mkrecv_options.h"
 #include "mkrecv_destination.h"
 
@@ -86,6 +87,7 @@ namespace mkrecv
     void show();
   };
 
+#ifdef ENABLE_TIMING_MEASUREMENTS
   /*
    * histo: histogram with logarithmic slots:
    * 10, 20, 50 ns
@@ -116,6 +118,7 @@ namespace mkrecv
     void show();
     void reset();
   };
+#endif
 
   /*
    * This allocator uses three memory areas for putting the incomming heaps into. The main
@@ -150,7 +153,9 @@ namespace mkrecv
     int                                state = INIT_STATE;
     bool                               hasStarted = false;
     statistics                         tstat;
+#ifdef ENABLE_TIMING_MEASUREMENTS
     et_statistics                      et;
+#endif
     std::size_t                        dada_mode = 4;
     std::size_t                        log_counter = 0;
     bool                               stop = false;

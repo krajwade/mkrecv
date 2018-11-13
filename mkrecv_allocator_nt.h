@@ -61,7 +61,9 @@ namespace mkrecv
     bool                                                                     stop = false;
     bool                                                                     has_stopped = false;
     std::size_t                                                              heaps_total = 0;
+#ifdef ENABLE_TIMING_MEASUREMENTS
     et_statistics                                                            et;
+#endif
 
   public:
     allocator_nt(std::shared_ptr<mkrecv::options> opts, std::shared_ptr<mkrecv::storage> store);
