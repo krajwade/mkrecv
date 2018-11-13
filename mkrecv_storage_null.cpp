@@ -48,6 +48,7 @@ namespace mkrecv
 				spead2::s_item_pointer_t *&sci_place)   // returned memory pointer to the side-channel items for this heap
   {
     (void)timestamp;
+    (void)heap_index;
 #ifdef ENABLE_TIMING_MEASUREMENTS
     std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
 #endif

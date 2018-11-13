@@ -4,10 +4,10 @@ namespace mkrecv
 {
 
   storage::storage(std::shared_ptr<mkrecv::options> hopts) :
-    opts(hopts)
 #ifndef USE_STD_MUTEX
-    , dest_sem(1)
+    dest_sem(1),
 #endif
+    opts(hopts)
   {
     int i;
     
