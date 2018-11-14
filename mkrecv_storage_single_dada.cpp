@@ -30,6 +30,13 @@ namespace mkrecv
   {
   }
 
+  void storage_single_dada::handle_init()
+  {
+    std::unique_lock<std::mutex> lck(header_mutex);
+    header_cv.notify_all();
+  }
+
+
   void storage_single_dada::proc_header()
   {
     std::unique_lock<std::mutex> lck(header_mutex);
@@ -43,15 +50,6 @@ namespace mkrecv
     hdr->used_bytes(hdr->total_bytes());
     dada.header_stream().release();
     hdr = NULL;
-  }
-
-  void storage_single_dada::do_init(spead2::s_item_pointer_t timestamp,     // timestamp of a heap
-			     std::size_t size                        // heap size (only payload)
-			     )
-  {
-    storage_single_buffer::do_init(timestamp, size);
-    std::unique_lock<std::mutex> lck(header_mutex);
-    header_cv.notify_all();
   }
 
   void storage_single_dada::proc_switch_slot()

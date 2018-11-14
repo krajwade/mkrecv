@@ -30,12 +30,14 @@ namespace mkrecv {
 
   void destination::set_buffer(psrdada_cpp::RawBytes *ptr, std::size_t size)
   {
+    this->active = true;
     this->size = size;
     this->ptr = ptr;
   }
 
   void destination::allocate_buffer(std::shared_ptr<spead2::mmap_allocator> memallocator, std::size_t size)
   {
+    this->active = true;
     this->size = size;
     is_owner = true;
     if (memallocator == NULL)

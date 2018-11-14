@@ -35,9 +35,7 @@ namespace mkrecv
     void proc_switch_slot();
     void proc_copy_temp();
   protected:
-    void do_init(spead2::s_item_pointer_t timestamp,     // timestamp of a heap
-		 std::size_t size                        // heap size (only payload)
-		 );
+    void handle_init();
     void do_switch_slot();
     void do_release_slot();
     void do_copy_temp();

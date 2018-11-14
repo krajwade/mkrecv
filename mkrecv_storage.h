@@ -56,19 +56,21 @@ namespace mkrecv
 #endif
     std::shared_ptr<mkrecv::options>   opts;
     std::shared_ptr<spead2::mmap_allocator>   memallocator;
+    destination                        dest[3];
     std::size_t                        heap_size;   // size of a heap in bytes
     std::size_t                        heap_count;  // number of heaps inside one group
     spead2::s_item_pointer_t           timestamp_first = 0;  // serial number of the first group (needed for index calculation)
     spead2::s_item_pointer_t           timestamp_step = 0;   // the serial number difference between consecutive groups
-    spead2::s_item_pointer_t           timestamp_level_data = 0; // timestamp for switching to sequential mode
-    spead2::s_item_pointer_t           timestamp_level_temp = 0; // timestamp for switching to parallel mode
-    spead2::s_item_pointer_t           level_data_count = 0;
-    spead2::s_item_pointer_t           level_temp_count = 0;
+    spead2::s_item_pointer_t           timestamp_data_count = 0;
+    spead2::s_item_pointer_t           timestamp_temp_count = 0;
+    spead2::s_item_pointer_t           timestamp_data_level = 0; // timestamp for switching to sequential mode
+    spead2::s_item_pointer_t           timestamp_temp_level = 0; // timestamp for switching to parallel mode
     std::size_t                        nsci;
     std::vector<std::size_t>           scis;
     int                                state = INIT_STATE;
     bool                               stop = false;
     bool                               has_stopped = false;
+    std::size_t                        log_counter = 0;
     storage_statistics                 gstat;
     storage_statistics                 dstat[3];
 #ifdef ENABLE_TIMING_MEASUREMENTS
@@ -79,20 +81,23 @@ namespace mkrecv
     ~storage();
     // This method finds the memory location for a heap and his side-channel items.
     // The return value encodes the used destination which is used to mark a heap as received.
-    virtual int alloc_place(spead2::s_item_pointer_t timestamp,    // timestamp of a heap
-			    std::size_t heap_index,                // heap number inside a heap group
-			    std::size_t size,                      // heap size (only payload)
-			    int dest_index,                        // requested destination (DATA_DEST _or_ TRASH_DEST)
-			    char *&heap_place,                     // returned memory pointer to this heap payload
-			    spead2::s_item_pointer_t *&sci_place)  // returned memory pointer to the side-channel items for this heap
-      = 0;
-    virtual void free_place(spead2::s_item_pointer_t timestamp,    // timestamp of a heap
-			    int dest,                              // real destination of a heap (DATA_DEST, TEMP_DEST or TRASH_DEST)
-			    std::size_t reclen)                    // recieved number of bytes
-      = 0;
+    int alloc_place(spead2::s_item_pointer_t timestamp,    // timestamp of a heap
+		    std::size_t heap_index,                // heap number inside a heap group
+		    std::size_t size,                      // heap size (only payload)
+		    int dest_index,                        // requested destination (DATA_DEST _or_ TRASH_DEST)
+		    char *&heap_place,                     // returned memory pointer to this heap payload
+		    spead2::s_item_pointer_t *&sci_place); // returned memory pointer to the side-channel items for this heap
+    void free_place(spead2::s_item_pointer_t timestamp,    // timestamp of a heap
+		    int dest_index,                        // real destination of a heap (DATA_DEST, TEMP_DEST or TRASH_DEST)
+		    std::size_t reclen);                   // recieved number of bytes
     virtual void request_stop() = 0;
     virtual bool is_stopped() = 0;
     virtual void close() = 0;
+  protected:
+    virtual void handle_init();
+    virtual int handle_alloc_place(spead2::s_item_pointer_t &group_index, int dest_index);
+    virtual void handle_free_place(spead2::s_item_pointer_t timestamp, int dest_index);
+    void show_log();
   };
 
 }

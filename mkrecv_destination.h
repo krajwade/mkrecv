@@ -15,6 +15,7 @@ namespace mkrecv
   private:
     bool    is_owner = false;
   public:
+    bool                      active = false;
     spead2::memory_allocator::pointer          mptr = NULL;
     psrdada_cpp::RawBytes    *ptr = NULL;
     std::size_t               size = 0;     // destination size in bytes
