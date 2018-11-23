@@ -88,7 +88,7 @@ namespace mkrecv
         std::cout << " " << (i - TS_HISTO_SLOTS) << ":" << counts[i];
       }
     std::cout << " pos " << count_positive_indices;
-    std::cout << std::endl;
+    std::cout << '\n';
   }
 
 #ifdef ENABLE_TIMING_MEASUREMENTS
@@ -279,7 +279,7 @@ namespace mkrecv
     std::cout << " <= 200 ms = " << histo[ALLOC_TIMING][22];
     std::cout << " <= 500 ms = " << histo[ALLOC_TIMING][23];
     std::cout << " > 500 ms = " << histo[ALLOC_TIMING][LARGER_SLOT];
-    std::cout << std::endl;
+    std::cout << '\n';
     
     std::cout << "et: mark " << sum_et[MARK_TIMING]/count_et[MARK_TIMING] << " [" << min_et[MARK_TIMING] << " .. " << max_et[MARK_TIMING] << "]";
     std::cout << " <= 10 ns = " << histo[MARK_TIMING][0];
@@ -307,36 +307,36 @@ namespace mkrecv
     std::cout << " <= 200 ms = " << histo[MARK_TIMING][22];
     std::cout << " <= 500 ms = " << histo[MARK_TIMING][23];
     std::cout << " > 500 ms = " << histo[MARK_TIMING][LARGER_SLOT];
-    std::cout << std::endl;
+    std::cout << '\n';
     */
     std::cout << "et:"
               << " alloc " << sum_et[ALLOC_TIMING]/count_et[ALLOC_TIMING] << " [" << min_et[ALLOC_TIMING] << " .. " << max_et[ALLOC_TIMING] << "]"
               << " mark " << sum_et[MARK_TIMING]/count_et[MARK_TIMING] << " [" << min_et[MARK_TIMING] << " .. " << max_et[MARK_TIMING] << "]"
-              << std::endl;
-    std::cout << "10 " << histo[ALLOC_TIMING][0] << " " << histo[MARK_TIMING][0] << std::endl;
-    std::cout << "20 " << histo[ALLOC_TIMING][1] << " " << histo[MARK_TIMING][1] << std::endl;
-    std::cout << "50 " << histo[ALLOC_TIMING][2] << " " << histo[MARK_TIMING][2] << std::endl;
-    std::cout << "100 " << histo[ALLOC_TIMING][3] << " " << histo[MARK_TIMING][3] << std::endl;
-    std::cout << "200 " << histo[ALLOC_TIMING][4] << " " << histo[MARK_TIMING][4] << std::endl;
-    std::cout << "500 " << histo[ALLOC_TIMING][5] << " " << histo[MARK_TIMING][5] << std::endl;
-    std::cout << "1000 " << histo[ALLOC_TIMING][6] << " " << histo[MARK_TIMING][6] << std::endl;
-    std::cout << "2000 " << histo[ALLOC_TIMING][7] << " " << histo[MARK_TIMING][7] << std::endl;
-    std::cout << "5000 " << histo[ALLOC_TIMING][8] << " " << histo[MARK_TIMING][8] << std::endl;
-    std::cout << "10000 " << histo[ALLOC_TIMING][9] << " " << histo[MARK_TIMING][9] << std::endl;
-    std::cout << "20000 " << histo[ALLOC_TIMING][10] << " " << histo[MARK_TIMING][10] << std::endl;
-    std::cout << "50000 " << histo[ALLOC_TIMING][11] << " " << histo[MARK_TIMING][11] << std::endl;
-    std::cout << "100000 " << histo[ALLOC_TIMING][12] << " " << histo[MARK_TIMING][12] << std::endl;
-    std::cout << "200000 " << histo[ALLOC_TIMING][13] << " " << histo[MARK_TIMING][13] << std::endl;
-    std::cout << "500000 " << histo[ALLOC_TIMING][14] << " " << histo[MARK_TIMING][14] << std::endl;
-    std::cout << "1000000 " << histo[ALLOC_TIMING][15] << " " << histo[MARK_TIMING][15] << std::endl;
-    std::cout << "2000000 " << histo[ALLOC_TIMING][16] << " " << histo[MARK_TIMING][16] << std::endl;
-    std::cout << "5000000 " << histo[ALLOC_TIMING][17] << " " << histo[MARK_TIMING][17] << std::endl;
-    std::cout << "10000000 " << histo[ALLOC_TIMING][18] << " " << histo[MARK_TIMING][18] << std::endl;
-    std::cout << "20000000 " << histo[ALLOC_TIMING][19] << " " << histo[MARK_TIMING][19] << std::endl;
-    std::cout << "50000000 " << histo[ALLOC_TIMING][20] << " " << histo[MARK_TIMING][20] << std::endl;
-    std::cout << "100000000 " << histo[ALLOC_TIMING][21] << " " << histo[MARK_TIMING][21] << std::endl;
-    std::cout << "200000000 " << histo[ALLOC_TIMING][22] << " " << histo[MARK_TIMING][22] << std::endl;
-    std::cout << "500000000 " << histo[ALLOC_TIMING][23] << " " << histo[MARK_TIMING][23] << std::endl;
+              << '\n';
+    std::cout << "10 " << histo[ALLOC_TIMING][0] << " " << histo[MARK_TIMING][0] << '\n';
+    std::cout << "20 " << histo[ALLOC_TIMING][1] << " " << histo[MARK_TIMING][1] << '\n';
+    std::cout << "50 " << histo[ALLOC_TIMING][2] << " " << histo[MARK_TIMING][2] << '\n';
+    std::cout << "100 " << histo[ALLOC_TIMING][3] << " " << histo[MARK_TIMING][3] << '\n';
+    std::cout << "200 " << histo[ALLOC_TIMING][4] << " " << histo[MARK_TIMING][4] << '\n';
+    std::cout << "500 " << histo[ALLOC_TIMING][5] << " " << histo[MARK_TIMING][5] << '\n';
+    std::cout << "1000 " << histo[ALLOC_TIMING][6] << " " << histo[MARK_TIMING][6] << '\n';
+    std::cout << "2000 " << histo[ALLOC_TIMING][7] << " " << histo[MARK_TIMING][7] << '\n';
+    std::cout << "5000 " << histo[ALLOC_TIMING][8] << " " << histo[MARK_TIMING][8] << '\n';
+    std::cout << "10000 " << histo[ALLOC_TIMING][9] << " " << histo[MARK_TIMING][9] << '\n';
+    std::cout << "20000 " << histo[ALLOC_TIMING][10] << " " << histo[MARK_TIMING][10] << '\n';
+    std::cout << "50000 " << histo[ALLOC_TIMING][11] << " " << histo[MARK_TIMING][11] << '\n';
+    std::cout << "100000 " << histo[ALLOC_TIMING][12] << " " << histo[MARK_TIMING][12] << '\n';
+    std::cout << "200000 " << histo[ALLOC_TIMING][13] << " " << histo[MARK_TIMING][13] << '\n';
+    std::cout << "500000 " << histo[ALLOC_TIMING][14] << " " << histo[MARK_TIMING][14] << '\n';
+    std::cout << "1000000 " << histo[ALLOC_TIMING][15] << " " << histo[MARK_TIMING][15] << '\n';
+    std::cout << "2000000 " << histo[ALLOC_TIMING][16] << " " << histo[MARK_TIMING][16] << '\n';
+    std::cout << "5000000 " << histo[ALLOC_TIMING][17] << " " << histo[MARK_TIMING][17] << '\n';
+    std::cout << "10000000 " << histo[ALLOC_TIMING][18] << " " << histo[MARK_TIMING][18] << '\n';
+    std::cout << "20000000 " << histo[ALLOC_TIMING][19] << " " << histo[MARK_TIMING][19] << '\n';
+    std::cout << "50000000 " << histo[ALLOC_TIMING][20] << " " << histo[MARK_TIMING][20] << '\n';
+    std::cout << "100000000 " << histo[ALLOC_TIMING][21] << " " << histo[MARK_TIMING][21] << '\n';
+    std::cout << "200000000 " << histo[ALLOC_TIMING][22] << " " << histo[MARK_TIMING][22] << '\n';
+    std::cout << "500000000 " << histo[ALLOC_TIMING][23] << " " << histo[MARK_TIMING][23] << '\n';
   }
 
   void et_statistics::reset()
@@ -410,9 +410,9 @@ namespace mkrecv
       }
     cts_temp = cts_data;
     hist.set_step((std::int64_t)(indices[0].step));
-    std::cout << "dest[DATA_DEST].ptr.ptr()  = " << (std::size_t)(dest[DATA_DEST].ptr->ptr()) << std::endl;
-    std::cout << "dest[TEMP_DEST].ptr.ptr()  = " << (std::size_t)(dest[TEMP_DEST].ptr->ptr()) << std::endl;
-    std::cout << "dest[TRASH_DEST].ptr.ptr() = " << (std::size_t)(dest[TRASH_DEST].ptr->ptr()) << std::endl;
+    std::cout << "dest[DATA_DEST].ptr.ptr()  = " << (std::size_t)(dest[DATA_DEST].ptr->ptr()) << '\n';
+    std::cout << "dest[TEMP_DEST].ptr.ptr()  = " << (std::size_t)(dest[TEMP_DEST].ptr->ptr()) << '\n';
+    std::cout << "dest[TRASH_DEST].ptr.ptr() = " << (std::size_t)(dest[TRASH_DEST].ptr->ptr()) << '\n';
   }
 
   allocator::~allocator()
@@ -450,7 +450,7 @@ namespace mkrecv
       {
         if (!hasStopped)
           {
-	    std::cout << "heap ignored heap_cnt " << ph->heap_cnt << " size " << size << " n_items " << ph->n_items << std::endl;
+	    std::cout << "heap ignored heap_cnt " << ph->heap_cnt << " size " << size << " n_items " << ph->n_items << '\n';
           }
 	tstat.nignored++;
 	dest[TRASH_DEST].count++;
@@ -506,11 +506,11 @@ namespace mkrecv
 	    dada.header_stream().release();
 	    hdr = NULL;
           }
-	std::cout << "sizes: heap size " << heap_size << " count " << heap_count << " first " << indices[0].first << " step " << indices[0].step << std::endl;
-	std::cout << "DATA_DEST:  capacity " << dest[DATA_DEST].capacity << " space " << dest[DATA_DEST].space << std::endl;
-	std::cout << "TEMP_DEST:  capacity " << dest[TEMP_DEST].capacity << " space " << dest[TEMP_DEST].space << std::endl;
-	std::cout << "TRASH_DEST: capacity " << dest[TRASH_DEST].capacity << " space " << dest[TRASH_DEST].space << std::endl;
-	std::cout << "heap " << ph->heap_cnt << " cts " << dest[DATA_DEST].cts << " " << dest[TEMP_DEST].cts << " " << dest[TRASH_DEST].cts << std::endl;
+	std::cout << "sizes: heap size " << heap_size << " count " << heap_count << " first " << indices[0].first << " step " << indices[0].step << '\n';
+	std::cout << "DATA_DEST:  capacity " << dest[DATA_DEST].capacity << " space " << dest[DATA_DEST].space << '\n';
+	std::cout << "TEMP_DEST:  capacity " << dest[TEMP_DEST].capacity << " space " << dest[TEMP_DEST].space << '\n';
+	std::cout << "TRASH_DEST: capacity " << dest[TRASH_DEST].capacity << " space " << dest[TRASH_DEST].space << '\n';
+	std::cout << "heap " << ph->heap_cnt << " cts " << dest[DATA_DEST].cts << " " << dest[TEMP_DEST].cts << " " << dest[TRASH_DEST].cts << '\n';
       }
     // Calculate all indices and check their value.
     // The first index component is something special because it is unique
@@ -522,7 +522,7 @@ namespace mkrecv
       }
     else if (item_value[0] < indices[0].first)
       {
-	//std::cout << "TS too old: " << ph->heap_cnt << " " << item_value[0] << " " << item_index[0] << " " << indices[0].first << " " << indices[0].step << " diff " << (indices[0].first - item_value[0])/indices[0].step << std::endl;
+	//std::cout << "TS too old: " << ph->heap_cnt << " " << item_value[0] << " " << item_index[0] << " " << indices[0].first << " " << indices[0].step << " diff " << (indices[0].first - item_value[0])/indices[0].step << '\n';
 	tstat.nskipped++;
 	indices[0].nskipped++;
 	dest_index = TRASH_DEST;
@@ -535,7 +535,7 @@ namespace mkrecv
 	    dest_index = TRASH_DEST;
 	      if (hasStarted)
 	      {
-	      std::cout << "SEQ overrun: " << ph->heap_cnt << " " << item_value[0] << " " << item_index[0] << " " << indices[0].first << " " << indices[0].step << std::endl;
+	      std::cout << "SEQ overrun: " << ph->heap_cnt << " " << item_value[0] << " " << item_index[0] << " " << indices[0].first << " " << indices[0].step << '\n';
 	      //if (tstat.noverrun == 1000) exit(1);
 	      }
 	  }
@@ -551,7 +551,7 @@ namespace mkrecv
 	  {
 	    tstat.noverrun++;
 	    dest_index = TRASH_DEST;
-	      std::cout << "PAR overrun: " << ph->heap_cnt << " " << item_value[0] << " " << item_index[0] << " " << indices[0].first << " " << indices[0].step << std::endl;
+	      std::cout << "PAR overrun: " << ph->heap_cnt << " " << item_value[0] << " " << item_index[0] << " " << indices[0].first << " " << indices[0].step << '\n';
 	      if (tstat.noverrun == 100) exit(1);
 	  }
 	else if (item_index[0] < dest[TEMP_DEST].capacity)
@@ -586,7 +586,7 @@ namespace mkrecv
       << " dest " << dest_index << " indices " << indices[0].index << " " << indices[1].index << " " << indices[2].index
       << " offset " << mem_offset
       << " ntotal " << tstat.ntotal << " noverrun " << tstat.noverrun << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
-      << std::endl;
+      << '\n';
     */
 #ifdef ENABLE_TIMING_MEASUREMENTS
     std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
@@ -627,7 +627,7 @@ namespace mkrecv
 	  }
 	std::cout << " payload " << tstat.nexpected << " " << tstat.nreceived
 		  << " cts " << dest[DATA_DEST].cts << " " << dest[TEMP_DEST].cts
-		  << std::endl;
+		  << '\n';
       }
   }
 
@@ -650,7 +650,7 @@ namespace mkrecv
 	      << " assigned " << dest[DATA_DEST].count << " " << dest[TEMP_DEST].count << " " << dest[TRASH_DEST].count
 	      << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
 	      << " payload " << tstat.nexpected << " " << tstat.nreceived
-	      << " cts " << dest[DATA_DEST].cts << " " << dest[TEMP_DEST].cts << std::endl;
+	      << " cts " << dest[DATA_DEST].cts << " " << dest[TEMP_DEST].cts << '\n';
     //hist.show();
   }
 
@@ -681,13 +681,13 @@ namespace mkrecv
 	tstat.ncompleted++;
       }
     show_mark_log();
-    //std::cout << "mark " << cnt << " isok " << isok << " dest " << d << " needed " << nd << " " << nt << " cts " << ctsd << " " << ctst << std::endl;
+    //std::cout << "mark " << cnt << " isok " << isok << " dest " << d << " needed " << nd << " " << nt << " cts " << ctsd << " " << ctst << '\n';
     if ((state == SEQUENTIAL_STATE) && (ctst == 0))
       {
 	if (!hasStopped && (dada_mode >= DYNAMIC_DADA_MODE))
 	  { // copy the optional side-channel items at the correct position
 	    // sci_base = buffer + size - (scape *nsci)
-            std::cout << "still needing " << dest[DATA_DEST].needed << " heaps." << std::endl;
+            std::cout << "still needing " << dest[DATA_DEST].needed << " heaps." << '\n';
 	    spead2::s_item_pointer_t  *sci_base = (spead2::s_item_pointer_t*)(dest[DATA_DEST].ptr->ptr()
 									      + dest[DATA_DEST].size
 									      - dest[DATA_DEST].space*nsci*sizeof(spead2::s_item_pointer_t));
@@ -701,7 +701,7 @@ namespace mkrecv
 	if (stop)
 	  {
 	    hasStopped = true;
-	    std::cout << "request to stop the transfer into the ringbuffer received." << std::endl;
+	    std::cout << "request to stop the transfer into the ringbuffer received." << '\n';
 	    if (dada_mode >= DYNAMIC_DADA_MODE)
 	      { // release the previously allocated slot without any data -> used as end signal
 		dada.data_stream().release();

@@ -23,7 +23,7 @@ namespace mkrecv
 			      {
 				this->proc_copy_temp();
 			      });
-    std::cout << "dest[DATA_DEST].ptr.ptr()  = " << (std::size_t)(dest[DATA_DEST].ptr->ptr()) << std::endl;
+    std::cout << "dest[DATA_DEST].ptr.ptr()  = " << (std::size_t)(dest[DATA_DEST].ptr->ptr()) << '\n';
   }
 
   storage_single_dada::~storage_single_dada()

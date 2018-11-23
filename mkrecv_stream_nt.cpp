@@ -90,16 +90,16 @@ namespace mkrecv
 
   void stream_nt::stop_received()
   {
-    std::cout << "fengine::stop_received()" << std::endl;
+    std::cout << "fengine::stop_received()" << '\n';
     spead2::recv::stream::stop_received();
-    std::cout << "  after spead2::recv::stream::stop_received()" << std::endl;
+    std::cout << "  after spead2::recv::stream::stop_received()" << '\n';
     stop_promise.set_value();
-    std::cout << "  after stop_promise.set_value()" << std::endl;
+    std::cout << "  after stop_promise.set_value()" << '\n';
   }
 
   std::int64_t stream_nt::join()
   {
-    std::cout << "stream::join()" << std::endl;
+    std::cout << "stream::join()" << '\n';
     std::future<void> future = stop_promise.get_future();
     future.get();
     return n_complete;

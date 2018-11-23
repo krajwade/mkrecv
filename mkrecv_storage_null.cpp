@@ -17,9 +17,9 @@ namespace mkrecv
 	trash_size = group_size; // 1 heap group
       }
     dest[DATA_DEST].allocate_buffer(memallocator, data_size);
-    std::cout << "dest[DATA_DEST].ptr.ptr()  = " << (std::size_t)(dest[DATA_DEST].ptr->ptr())  << std::endl;
+    std::cout << "dest[DATA_DEST].ptr.ptr()  = " << (std::size_t)(dest[DATA_DEST].ptr->ptr())  << '\n';
     dest[TRASH_DEST].allocate_buffer(memallocator, trash_size);
-    std::cout << "dest[TRASH_DEST].ptr.ptr() = " << (std::size_t)(dest[TRASH_DEST].ptr->ptr()) << std::endl;
+    std::cout << "dest[TRASH_DEST].ptr.ptr() = " << (std::size_t)(dest[TRASH_DEST].ptr->ptr()) << '\n';
   }
 
   storage_null::~storage_null()

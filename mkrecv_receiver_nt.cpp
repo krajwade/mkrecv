@@ -35,7 +35,7 @@ namespace mkrecv
 
   void signal_handler(int signalValue)
   {
-    std::cout << "received signal " << signalValue << std::endl;
+    std::cout << "received signal " << signalValue << '\n';
     g_stopped++;
     switch (g_stopped)
       {
@@ -117,7 +117,7 @@ namespace mkrecv
 
     opts = create_options();
     opts->parse_args(argc, argv);
-    std::cout << opts->header << std::endl;
+    std::cout << opts->header << '\n';
     for (i = 0; i < 16; i++)
       {
         affinity.push_back(i);
@@ -180,7 +180,7 @@ namespace mkrecv
 	  }
 	catch (std::runtime_error &e)
 	  {
-	    std::cerr << "Cannot connect to DADA Ringbuffer " << opts->dada_key << " exiting..." << std::endl;
+	    std::cerr << "Cannot connect to DADA Ringbuffer " << opts->dada_key << " exiting..." << '\n';
 	    exit(0);
 	  }
       }

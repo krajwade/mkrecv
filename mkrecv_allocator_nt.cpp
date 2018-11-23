@@ -41,9 +41,6 @@ namespace mkrecv
 
   spead2::memory_allocator::pointer allocator_nt::allocate(std::size_t size, void *hint)
   {
-#ifdef ENABLE_TIMING_MEASUREMENTS
-    std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
-#endif
     spead2::recv::packet_header    *ph = (spead2::recv::packet_header*)hint;
     spead2::recv::pointer_decoder   decoder(ph->heap_address_bits);
     spead2::s_item_pointer_t        item_value[MAX_INDEXPARTS];
@@ -56,6 +53,9 @@ namespace mkrecv
 
     // **** GUARDED BY SEMAPHORE ****
     //std::lock_guard<std::mutex> lock(dest_mutex);
+#ifdef ENABLE_TIMING_MEASUREMENTS
+    std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+#endif
     // Some heaps are ignored:
     //   If we have stopped
     //   If the heap is is 1
@@ -70,7 +70,7 @@ namespace mkrecv
       {
         if (!has_stopped)
           {
-	    std::cout << "heap ignored heap_cnt " << ph->heap_cnt << " size " << size << " n_items " << ph->n_items << std::endl;
+	    std::cout << "heap ignored heap_cnt " << ph->heap_cnt << " size " << size << " n_items " << ph->n_items << '\n';
           }
 	dest_index = store->alloc_place(0, 0, size, storage::TRASH_DEST, heap_place, sci_place);
 	//heap2dest[ph->heap_cnt] = dest_index;
@@ -107,14 +107,14 @@ namespace mkrecv
       {
 	// Extract payload size and heap size as long as we are in INIT_STATE
 	if (heap_size == HEAP_SIZE_DEF) heap_size = size;
-	std::cout << "first heap " << ph->heap_cnt << " size " << heap_size << std::endl;
+	std::cout << "first heap " << ph->heap_cnt << " size " << heap_size << '\n';
 	has_started = true;
       }
     // Get the memory positions for the heap payload and the side-channel items
     dest_index = store->alloc_place(item_value[0], heap_index, size, dest_index, heap_place, sci_place);
     //heap2dest[ph->heap_cnt]      = dest_index;    // store the relation between heap counter and destination
     //heap2timestamp[ph->heap_cnt] = item_value[0]; // store the relation between heap counter and timestamp
-    //std::cout << "  heap map " << head << " " << heap_id[head] << " " << heap_dest[head] << " " << heap_timestamp[head] << std::endl;
+    //std::cout << "  heap map " << head << " " << heap_id[head] << " " << heap_dest[head] << " " << heap_timestamp[head] << '\n';
     heap_id[head]        = ph->heap_cnt;
     heap_dest[head]      = dest_index;
     heap_timestamp[head] = item_value[0];
@@ -130,7 +130,7 @@ namespace mkrecv
       << " dest " << dest_index << " indices " << indices[0].index << " " << indices[1].index << " " << indices[2].index
       << " offset " << mem_offset
       << " ntotal " << tstat.ntotal << " noverrun " << tstat.noverrun << " needed " << dest[DATA_DEST].needed << " " << dest[TEMP_DEST].needed
-      << std::endl;
+      << '\n';
     */
 #ifdef ENABLE_TIMING_MEASUREMENTS
     if (heaps_total == 2000000) et.reset();
@@ -142,9 +142,6 @@ namespace mkrecv
 
   void allocator_nt::mark(spead2::s_item_pointer_t cnt, bool isok, spead2::s_item_pointer_t reclen)
   {
-#ifdef ENABLE_TIMING_MEASUREMENTS
-    std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
-#endif
     int                      dest_index;
     spead2::s_item_pointer_t timestamp;
 
@@ -152,6 +149,9 @@ namespace mkrecv
     {
       // **** GUARDED BY SEMAPHORE ****
       //std::lock_guard<std::mutex> lock(dest_mutex);
+#ifdef ENABLE_TIMING_MEASUREMENTS
+      std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+#endif
       int idx = (head + (MAX_OPEN_HEAPS - 1))%MAX_OPEN_HEAPS;
       int count = MAX_OPEN_HEAPS;
       do
@@ -167,7 +167,7 @@ namespace mkrecv
         } while (count != 0);
       if (count == 0)
         {
-          std::cout << "ERROR: Cannot find heap with id " << cnt << " in internal map" << std::endl;
+          std::cout << "ERROR: Cannot find heap with id " << cnt << " in internal map" << '\n';
           dest_index = storage::TRASH_DEST;
           timestamp = 0;
         }
@@ -175,12 +175,12 @@ namespace mkrecv
       //timestamp  = heap2timestamp[cnt];
       //heap2dest.erase(cnt);
       //heap2timestamp.erase(cnt);
+#ifdef ENABLE_TIMING_MEASUREMENTS
+      std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+      et.add_et(et_statistics::MARK_TIMING, std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count());
+#endif
     }
     store->free_place(timestamp, dest_index, reclen);
-#ifdef ENABLE_TIMING_MEASUREMENTS
-    std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
-    et.add_et(et_statistics::MARK_TIMING, std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count());
-#endif
   }
 
   void allocator_nt::request_stop()

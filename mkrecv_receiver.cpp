@@ -30,7 +30,7 @@ namespace mkrecv
 
   void signal_handler(int signalValue)
   {
-    std::cout << "received signal " << signalValue << std::endl;
+    std::cout << "received signal " << signalValue << '\n';
     g_stopped++;
     // 1. Set a flag on the memory allocator (we want to finish the current slot or we have to terminate (not sending!) the current slot)
     // 2. If the current slot is finished or terminated, terminate the streams (one for each multicast group)
@@ -106,7 +106,7 @@ namespace mkrecv
   {
     opts = create_options();
     opts->parse_args(argc, argv);
-    std::cout << opts->header << std::endl;
+    std::cout << opts->header << '\n';
     thread_pool.reset(new spead2::thread_pool(opts->threads));
     try
       {
@@ -114,7 +114,7 @@ namespace mkrecv
       }
     catch (std::runtime_error &e)
       {
-	std::cerr << "Cannot connect to DADA Ringbuffer " << opts->dada_key << " exiting..." << std::endl;
+	std::cerr << "Cannot connect to DADA Ringbuffer " << opts->dada_key << " exiting..." << '\n';
 	exit(0);
       }
     signal(SIGINT, signal_handler);
