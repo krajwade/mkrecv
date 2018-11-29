@@ -39,6 +39,9 @@ namespace mkrecv
   {
   protected:
     static const int MAX_OPEN_HEAPS  = 16;
+#ifdef ENABLE_CORE_MUTEX
+    static std::mutex             core_mutex[64];
+#endif
   protected:
     std::shared_ptr<mkrecv::options>                                         opts;
     std::shared_ptr<mkrecv::storage>                                         store;

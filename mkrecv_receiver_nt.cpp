@@ -118,7 +118,7 @@ namespace mkrecv
     opts = create_options();
     opts->parse_args(argc, argv);
     std::cout << opts->header << '\n';
-    for (i = 0; i < 16; i++)
+    for (i = 10; i < 18; i++)
       {
         affinity.push_back(i);
       }

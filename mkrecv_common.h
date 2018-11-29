@@ -3,8 +3,7 @@
 
 #define ENABLE_TIMING_MEASUREMENTS    1
 //#define USE_STD_MUTEX                 1
-
-
+//#define ENABLE_CORE_MUTEX  1
 
 #endif /* mkrecv_common_h */
 

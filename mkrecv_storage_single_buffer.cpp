@@ -116,7 +116,7 @@ namespace mkrecv
 	dest[DATA_DEST].needed  = dest[DATA_DEST].space;
 	timestamp_first  += dest[DATA_DEST].capacity*timestamp_step;
 	timestamp_data_level = timestamp_first + timestamp_data_count*timestamp_step;
-	std::cout << "-> parallel "; show_log();
+	//std::cout << "-> parallel "; show_log();
       }
     else if ((state == PARALLEL_STATE) && (timestamp >= timestamp_data_level))
       {
@@ -133,7 +133,7 @@ namespace mkrecv
             //std::cout << "warning, p -> s, needed < 0 " << dest[DATA_DEST].needed << " heaps_open " << dstat[DATA_DEST].heaps_open << "," << dstat[TEMP_DEST].heaps_open << '\n';
           }
         dest[TEMP_DEST].needed  = dest[TEMP_DEST].space;
-	std::cout << "-> sequential "; show_log();
+	//std::cout << "-> sequential "; show_log();
       }
   }
 

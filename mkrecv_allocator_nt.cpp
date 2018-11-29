@@ -1,3 +1,5 @@
+#include <sched.h>
+
 #ifdef ENABLE_TIMING_MEASUREMENTS
 #include <chrono>
 #endif
@@ -8,6 +10,10 @@
 
 namespace mkrecv
 {
+
+#ifdef ENABLE_CORE_MUTEX
+  std::mutex allocator_nt::core_mutex[64];
+#endif
 
   allocator_nt::allocator_nt(std::shared_ptr<options> opts, std::shared_ptr<mkrecv::storage> store) :
     opts(opts),
@@ -50,9 +56,14 @@ namespace mkrecv
     char                           *heap_place = NULL;
     spead2::s_item_pointer_t       *sci_place = NULL;
     std::size_t                     i;
+#ifdef ENABLE_CORE_MUTEX
+    int                             coreid = sched_getcpu();
+#endif
 
     // **** GUARDED BY SEMAPHORE ****
-    //std::lock_guard<std::mutex> lock(dest_mutex);
+#ifdef ENABLE_CORE_MUTEX
+    std::lock_guard<std::mutex> lock(core_mutex[coreid]);
+#endif
 #ifdef ENABLE_TIMING_MEASUREMENTS
     std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
 #endif
@@ -144,11 +155,16 @@ namespace mkrecv
   {
     int                      dest_index;
     spead2::s_item_pointer_t timestamp;
+#ifdef ENABLE_CORE_MUTEX
+    int                      coreid = sched_getcpu();
+#endif
 
     (void)isok;
     {
       // **** GUARDED BY SEMAPHORE ****
-      //std::lock_guard<std::mutex> lock(dest_mutex);
+#ifdef ENABLE_CORE_MUTEX
+      std::lock_guard<std::mutex> lock(core_mutex[coreid]);
+#endif
 #ifdef ENABLE_TIMING_MEASUREMENTS
       std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
 #endif

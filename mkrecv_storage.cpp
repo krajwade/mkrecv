@@ -121,7 +121,7 @@ namespace mkrecv
     heap_place = mem_base + heap_size*offset;
     sci_place  = sci_base + nsci*offset;
 #ifdef ENABLE_TIMING_MEASUREMENTS
-    if (gstat.heaps_total == 10*dest[DATA_DEST].size) et.reset();
+    if (gstat.heaps_total == 100*dest[DATA_DEST].size) et.reset();
     std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
     et.add_et(et_statistics::ALLOC_TIMING, std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count());
 #endif
@@ -169,7 +169,7 @@ namespace mkrecv
     if ((gstat.heaps_total - log_counter) >= LOG_FREQ)
       {
 	log_counter += LOG_FREQ;
-	show_log();
+	//show_log();
       }
 #ifndef USE_STD_MUTEX
     dest_sem.put();
