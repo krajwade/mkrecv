@@ -14,9 +14,10 @@ log = logging.getLogger('mkrecv.monitor')
 
 DELIMETER = None
 FORMATS = {
-    "XXXXXX":[("test1", float),("test2", float)]
+    "STAT":[("slot-size", int), ("heaps-completed", int),
+            ("heaps-discarded", int), ("heaps-needed", int),
+            ("payload-expected", int), ("payload-received", int)]
 }
-
 
 class MkrecvMonitor(Thread):
     def __init__(self, stdout):
@@ -37,14 +38,14 @@ class MkrecvMonitor(Thread):
         self._stop_event = Event()
 
     def add_watcher(self, watcher):
-         """
-         @brief   Add watcher to the montior
+        """
+        @brief   Add watcher to the montior
 
-         @param   watcher   A callable to be invoked on a notify_watchers call
+        @param   watcher   A callable to be invoked on a notify_watchers call
 
-         @detail  The watcher should take one argument in the form of
-                  a dictionary of parameters
-         """
+        @detail  The watcher should take one argument in the form of
+                 a dictionary of parameters
+        """
         log.debug("Adding watcher: {}".format(watcher))
         self._watchers.add(watcher)
 
@@ -116,10 +117,10 @@ class MkrecvMonitor(Thread):
 
 
 class StatisticsPlotter(object):
-    def __init__(self, monitor, tracked_value, title=None, ylabel="N", nvalues=100):
+    def __init__(self, monitor, value_generator, title=None, ylabel="N", nvalues=100):
         self._lock = Lock()
         self._monitor = monitor
-        self._tracked_value = tracked_value
+        self._value_generator = value_generator
         self._value_buffer = deque(maxlen=nvalues)
         self._timestamp_buffer = deque(maxlen=nvalues)
         self._fig = plt.figure()
@@ -140,11 +141,13 @@ class StatisticsPlotter(object):
         plt.pause(0.05)
 
     def update_ringbuffers(self, params):
-        if not self._tracked_value in params:
-            log.warning("Key '{}' not present in monitor parameters".format(self._tracked_value))
+        try:
+            value = self._value_generator(params)
+        except Exception as error:
+            log.exception("Unable to generate value")
             return
         with self._lock:
-            self._value_buffer.append(params[self._tracked_value])
+            self._value_buffer.append(value)
             self._timestamp_buffer.append(datetime.datetime.now())
 
 
@@ -157,10 +160,15 @@ def main(mkrecv_cmdline):
     signal.signal(signal.SIGINT, handler)
     monitor = MkrecvMonitor(process.stdout)
     monitor.start()
-    stats_plotter = StatisticsPlotter(monitor, "test1", title="Example monitor", ylabel="Value",  nvalues=100)
+    plotters = []
+    plotters.append(StatisticsPlotter(monitor, lambda params: params["payload-received"] / float(params["payload-expected"]),
+       title="Fraction of payload received", ylabel="Fraction", nvalues=100))
+    plotters.append(StatisticsPlotter(monitor, lambda params: params["heaps-needed"],
+       title="Heaps still needed", ylabel="Count", nvalues=100))
     while process.poll() is None:
         time.sleep(1)
-        stats_plotter.update_plot()
+        for plotter in plotters:
+            plotter.update_plot()
 
 if __name__ == "__main__":
     import sys

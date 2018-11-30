@@ -169,7 +169,7 @@ namespace mkrecv
     if ((gstat.heaps_total - log_counter) >= LOG_FREQ)
       {
 	log_counter += LOG_FREQ;
-	//show_log();
+	if (!opts->quiet) show_log();
       }
 #ifndef USE_STD_MUTEX
     dest_sem.put();

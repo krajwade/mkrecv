@@ -100,7 +100,15 @@ namespace mkrecv
     if ((state == SEQUENTIAL_STATE) && (timestamp >= timestamp_temp_level))
       {
 	// switch to parallel data/temp order
-        std::cout << "still needing " << dest[DATA_DEST].needed << " heaps." << '\n';
+	std::cout << "STAT "
+		  << dest[DATA_DEST].size << " "
+		  << dstat[DATA_DEST].heaps_completed << " "
+		  << dstat[DATA_DEST].heaps_discarded << " "
+		  << dstat[DATA_DEST].heaps_needed << " "
+		  << dstat[DATA_DEST].bytes_expected << " "
+		  << dstat[DATA_DEST].bytes_received
+		  << "\n";
+	//std::cout << "still needing " << dest[DATA_DEST].needed << " heaps." << '\n';
 	state = PARALLEL_STATE;
 	if (!has_stopped)
 	  { // copy the optional side-channel items at the correct position
@@ -116,7 +124,14 @@ namespace mkrecv
 	dest[DATA_DEST].needed  = dest[DATA_DEST].space;
 	timestamp_first  += dest[DATA_DEST].capacity*timestamp_step;
 	timestamp_data_level = timestamp_first + timestamp_data_count*timestamp_step;
-	//std::cout << "-> parallel "; show_log();
+	dstat[DATA_DEST].heaps_completed = 0;
+	dstat[DATA_DEST].heaps_discarded = 0;
+	dstat[DATA_DEST].bytes_expected = 0;
+	dstat[DATA_DEST].bytes_received = 0;
+	if (!opts->quiet)
+	  {
+	    std::cout << "-> parallel "; show_log();
+	  }
       }
     else if ((state == PARALLEL_STATE) && (timestamp >= timestamp_data_level))
       {
@@ -125,6 +140,10 @@ namespace mkrecv
 	if (!has_stopped)
 	  { // copy the heaps in temporary space into data space
 	    do_copy_temp();
+	    dstat[DATA_DEST].heaps_completed += dstat[TEMP_DEST].heaps_completed;
+	    dstat[DATA_DEST].heaps_discarded += dstat[TEMP_DEST].heaps_discarded;
+	    dstat[DATA_DEST].bytes_expected += dstat[TEMP_DEST].bytes_expected;
+	    dstat[DATA_DEST].bytes_received += dstat[TEMP_DEST].bytes_received;
 	  }
 	timestamp_temp_level = timestamp_first + timestamp_temp_count*timestamp_step;
 	dest[DATA_DEST].needed -= (dest[TEMP_DEST].space - dest[TEMP_DEST].needed);
@@ -133,7 +152,14 @@ namespace mkrecv
             //std::cout << "warning, p -> s, needed < 0 " << dest[DATA_DEST].needed << " heaps_open " << dstat[DATA_DEST].heaps_open << "," << dstat[TEMP_DEST].heaps_open << '\n';
           }
         dest[TEMP_DEST].needed  = dest[TEMP_DEST].space;
-	//std::cout << "-> sequential "; show_log();
+	dstat[TEMP_DEST].heaps_completed = 0;
+	dstat[TEMP_DEST].heaps_discarded = 0;
+	dstat[TEMP_DEST].bytes_expected = 0;
+	dstat[TEMP_DEST].bytes_received = 0;
+	if (!opts->quiet)
+	  {
+	    std::cout << "-> sequential "; show_log();
+	  }
       }
   }
 
