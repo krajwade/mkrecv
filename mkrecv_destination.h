@@ -23,6 +23,10 @@ namespace mkrecv
     std::size_t               space = 0;    // number of heaps which can go into this destination
     std::size_t               needed = 0;   // number of heaps needed until the destination is full
     std::size_t               count = 0;    // number of heaps assigned to this destination
+    std::size_t               completed = 0; // number of completed heaps
+    std::size_t               discarded = 0; // number of discarded (incomplete) heaps
+    std::size_t               expected = 0; // number of expected payload (from allocate)
+    std::size_t               received = 0; // number of received bytes (from mark)
     std::size_t               cts = 0;      // number of completed heaps before switching from sequential to parallel
     spead2::s_item_pointer_t *sci = NULL;   // memory for storing the sid-channel items which are copied afterwards into a slot
     destination();

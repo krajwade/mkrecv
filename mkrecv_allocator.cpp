@@ -580,6 +580,7 @@ namespace mkrecv
     dest[dest_index].count++;
     heap2dest[ph->heap_cnt] = dest_index; // store the relation between heap counter and destination
     tstat.nexpected += heap_size;
+    dest[dest_index].expected += heap_size;
     /*
       std::cout << "heap " << ph->heap_cnt << " items " << indices[0].value << " " << indices[1].value << " " << indices[2].value << " size " << size
       << " ->"
@@ -665,6 +666,7 @@ namespace mkrecv
     std::lock_guard<std::mutex> lock(dest_mutex);
     int d = heap2dest[cnt];
     dest[d].needed--;
+    dest[d].received += reclen;
     dest[d].cts--;
     heap2dest.erase(cnt);
     tstat.nreceived += reclen;
@@ -675,19 +677,29 @@ namespace mkrecv
     if (!isok)
       {
 	tstat.ndiscarded++;
+	dest[d].discarded++;
       }
     else
       {
 	tstat.ncompleted++;
+	dest[d].completed++;
       }
-    show_mark_log();
+    if (!opts->quiet) show_mark_log();
     //std::cout << "mark " << cnt << " isok " << isok << " dest " << d << " needed " << nd << " " << nt << " cts " << ctsd << " " << ctst << '\n';
     if ((state == SEQUENTIAL_STATE) && (ctst == 0))
       {
 	if (!hasStopped && (dada_mode >= DYNAMIC_DADA_MODE))
 	  { // copy the optional side-channel items at the correct position
 	    // sci_base = buffer + size - (scape *nsci)
-            std::cout << "still needing " << dest[DATA_DEST].needed << " heaps." << '\n';
+	    std::cout << "STAT "
+		      << dest[DATA_DEST].size << " "
+		      << dest[DATA_DEST].completed << " "
+		      << dest[DATA_DEST].discarded << " "
+		      << dest[DATA_DEST].needed << " "
+		      << dest[DATA_DEST].expected << " "
+		      << dest[DATA_DEST].received
+		      << "\n";
+            //std::cout << "still needing " << dest[DATA_DEST].needed << " heaps." << '\n';
 	    spead2::s_item_pointer_t  *sci_base = (spead2::s_item_pointer_t*)(dest[DATA_DEST].ptr->ptr()
 									      + dest[DATA_DEST].size
 									      - dest[DATA_DEST].space*nsci*sizeof(spead2::s_item_pointer_t));
@@ -697,6 +709,10 @@ namespace mkrecv
 	    dest[DATA_DEST].ptr->used_bytes(dest[DATA_DEST].ptr->total_bytes());
 	    dada.data_stream().release();
 	    dest[DATA_DEST].ptr = &dada.data_stream().next();
+	    dest[DATA_DEST].completed = 0;
+	    dest[DATA_DEST].discarded = 0;
+	    dest[DATA_DEST].expected = 0;
+	    dest[DATA_DEST].received = 0;
 	  }
 	if (stop)
 	  {
@@ -714,7 +730,7 @@ namespace mkrecv
 	dest[DATA_DEST].cts = cts_data;
 	// switch to parallel data/temp order
 	state = PARALLEL_STATE;
-	show_state_log();
+	if (!opts->quiet) show_state_log();
       }
     else if ((state == PARALLEL_STATE) && (ctsd == 0))
       {
@@ -726,13 +742,19 @@ namespace mkrecv
 		memcpy(dest[DATA_DEST].sci, dest[TEMP_DEST].sci, dest[TEMP_DEST].space*nsci*sizeof(spead2::s_item_pointer_t));
 		memset(dest[TEMP_DEST].sci, 0, dest[TEMP_DEST].space*nsci*sizeof(spead2::s_item_pointer_t));
 	      }
+	    dest[DATA_DEST].completed += dest[TEMP_DEST].completed;
+	    dest[DATA_DEST].discarded += dest[TEMP_DEST].discarded;
+	    dest[DATA_DEST].expected += dest[TEMP_DEST].expected;
+	    dest[DATA_DEST].received += dest[TEMP_DEST].received;
 	  }
 	dest[TEMP_DEST].needed  = dest[TEMP_DEST].space;
 	dest[DATA_DEST].needed -= dest[TEMP_DEST].space;
+	dest[TEMP_DEST].expected = 0;
+	dest[TEMP_DEST].received = 0;
 	dest[TEMP_DEST].cts = cts_temp;
 	// switch to sequential data/temp order
 	state = SEQUENTIAL_STATE;
-	show_state_log();
+	if (!opts->quiet) show_state_log();
       }
 #ifdef ENABLE_TIMING_MEASUREMENTS
     std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
