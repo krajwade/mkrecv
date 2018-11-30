@@ -10,7 +10,7 @@ log = logging.getLogger('mkrecv.monitor')
 
 DELIMETER = None
 FORMATS = {
-    "XXXXXX":[("test1", float),("test2", int)]
+    "STAT":[("slot-size", int),("heaps-completed", int),("heaps-discarded", int),("heaps-needed", int),("payload-expected", int),("payload-received", int)]
 }
 
 class MkrecvMonitor(Thread):
