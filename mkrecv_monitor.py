@@ -1,20 +1,33 @@
 import time
 import logging
 import signal
+import datetime
 import numpy as np
+import matplotlib.pyplot as plt
 from shlex import shlex
 from subprocess import Popen, PIPE
-from threading import Thread, Event
+from threading import Thread, Event, Lock
+from collections import deque
+
 
 log = logging.getLogger('mkrecv.monitor')
 
 DELIMETER = None
 FORMATS = {
-    "XXXXXX":[("test1", float),("test2", int)]
+    "XXXXXX":[("test1", float),("test2", float)]
 }
+
 
 class MkrecvMonitor(Thread):
     def __init__(self, stdout):
+        """
+        @brief   Wrapper for parsing the stdout from MKRECV processes.
+
+        @param   stdout   Stdout pipe from an MKRECV process.
+
+        @detail  MkrecvMonitor runs as a background thread that blocks on the MKRECV
+                 processes stdout pipe
+        """
         Thread.__init__(self)
         self.setDaemon(True)
         self._stdout = stdout
@@ -24,19 +37,40 @@ class MkrecvMonitor(Thread):
         self._stop_event = Event()
 
     def add_watcher(self, watcher):
+         """
+         @brief   Add watcher to the montior
+
+         @param   watcher   A callable to be invoked on a notify_watchers call
+
+         @detail  The watcher should take one argument in the form of
+                  a dictionary of parameters
+         """
         log.debug("Adding watcher: {}".format(watcher))
         self._watchers.add(watcher)
 
     def remove_watcher(self, watcher):
+        """
+        @brief   Remove a watcher from the montior
+
+        @param   watcher   A callable to be invoked on a notify_watchers call
+        """
         log.debug("Removing watcher: {}".format(watcher))
         self._watchers.remove(watcher)
 
-    def notify_watcher(self):
+    def notify_watchers(self):
+        """
+        @brief      Notifies all watchers of any updates.
+        """
         log.debug("Notifying watchers")
         for watcher in self._watchers:
             watcher(self._params)
 
     def parse_line(self, line):
+        """
+        @brief      Parse a line from an MKRECV processes stdout
+
+        @param      line  The line
+        """
         line = line.strip()
         log.debug("Parsing line: '{}'".format(line))
         if len(line) == 0:
@@ -50,7 +84,7 @@ class MkrecvMonitor(Thread):
             for (name, parser), value in zip(formatter,split[1:]):
                 self._params[name] = parser(value)
             log.info("Parameters: {}".format(self._params))
-            self.notify_watcher()
+            self.notify_watchers()
         else:
             log.debug("Invalid key: {}".format(key))
 
@@ -65,10 +99,54 @@ class MkrecvMonitor(Thread):
                 break
 
     def stop(self):
+        """
+        @brief      Stop the thread
+        """
         self._stop_event.set()
 
     def is_blocked(self, idle_time = 2.0):
+        """
+        @brief      Check if there is a prolonged block on the stdout read
+
+        @param      idle_time  The maximum time since an update after which blocking is assumed
+
+        @return     True if blocked, False otherwise.
+        """
         return time.time() - self._last_update > idle_time
+
+
+class StatisticsPlotter(object):
+    def __init__(self, monitor, tracked_value, title=None, ylabel="N", nvalues=100):
+        self._lock = Lock()
+        self._monitor = monitor
+        self._tracked_value = tracked_value
+        self._value_buffer = deque(maxlen=nvalues)
+        self._timestamp_buffer = deque(maxlen=nvalues)
+        self._fig = plt.figure()
+        self._ax = self._fig.add_subplot(111)
+        self._ax.set_title(title)
+        self._ax.set_xlabel("Time")
+        self._ax.set_ylabel(ylabel)
+        self._last_data = None
+        self._monitor.add_watcher(self.update_ringbuffers)
+
+    def update_plot(self):
+        if self._last_data:
+            self._last_data[0].remove()
+        with self._lock:
+            self._last_data = self._ax.plot(self._timestamp_buffer, self._value_buffer, c="b")
+            self._ax.relim()
+            self._ax.autoscale_view()
+        plt.pause(0.05)
+
+    def update_ringbuffers(self, params):
+        if not self._tracked_value in params:
+            log.warning("Key '{}' not present in monitor parameters".format(self._tracked_value))
+            return
+        with self._lock:
+            self._value_buffer.append(params[self._tracked_value])
+            self._timestamp_buffer.append(datetime.datetime.now())
+
 
 def main(mkrecv_cmdline):
     process = Popen(mkrecv_cmdline, stdout=PIPE, stderr=PIPE, close_fds=True, shell=True)
@@ -79,9 +157,10 @@ def main(mkrecv_cmdline):
     signal.signal(signal.SIGINT, handler)
     monitor = MkrecvMonitor(process.stdout)
     monitor.start()
-    process.wait()
-    print process.stdout.read()
-    print process.stderr.read()
+    stats_plotter = StatisticsPlotter(monitor, "test1", title="Example monitor", ylabel="Value",  nvalues=100)
+    while process.poll() is None:
+        time.sleep(1)
+        stats_plotter.update_plot()
 
 if __name__ == "__main__":
     import sys
