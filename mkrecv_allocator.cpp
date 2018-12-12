@@ -692,7 +692,7 @@ namespace mkrecv
 	  { // copy the optional side-channel items at the correct position
 	    // sci_base = buffer + size - (scape *nsci)
 	    std::cout << "STAT "
-		      << dest[DATA_DEST].size << " "
+		      << dest[DATA_DEST].space << " "
 		      << dest[DATA_DEST].completed << " "
 		      << dest[DATA_DEST].discarded << " "
 		      << dest[DATA_DEST].needed << " "
@@ -749,6 +749,8 @@ namespace mkrecv
 	  }
 	dest[TEMP_DEST].needed  = dest[TEMP_DEST].space;
 	dest[DATA_DEST].needed -= dest[TEMP_DEST].space;
+        dest[TEMP_DEST].completed = 0;
+        dest[TEMP_DEST].discarded = 0;
 	dest[TEMP_DEST].expected = 0;
 	dest[TEMP_DEST].received = 0;
 	dest[TEMP_DEST].cts = cts_temp;

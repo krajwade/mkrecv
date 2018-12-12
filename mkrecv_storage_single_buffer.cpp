@@ -101,13 +101,19 @@ namespace mkrecv
       {
 	// switch to parallel data/temp order
 	std::cout << "STAT "
-		  << dest[DATA_DEST].size << " "
+		  << dest[DATA_DEST].space << " "
 		  << dstat[DATA_DEST].heaps_completed << " "
 		  << dstat[DATA_DEST].heaps_discarded << " "
-		  << dstat[DATA_DEST].heaps_needed << " "
+		  << dest[DATA_DEST].needed << " "
 		  << dstat[DATA_DEST].bytes_expected << " "
-		  << dstat[DATA_DEST].bytes_received
+		  << dstat[DATA_DEST].bytes_received << " "
+                  << gstat.heaps_completed << " "
+                  << gstat.heaps_discarded << " "
+                  << gstat.heaps_needed << " "
+                  << gstat.bytes_expected << " "
+                  << gstat.bytes_received
 		  << "\n";
+        gstat.heaps_needed += dest[DATA_DEST].needed;
 	//std::cout << "still needing " << dest[DATA_DEST].needed << " heaps." << '\n';
 	state = PARALLEL_STATE;
 	if (!has_stopped)

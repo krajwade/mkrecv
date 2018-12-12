@@ -3,6 +3,36 @@
 namespace mkrecv
 {
 
+  storage_statistics::storage_statistics()
+  {
+    heaps_total = 0;
+    heaps_completed = 0;
+    heaps_discarded = 0;
+    heaps_skipped = 0;
+    heaps_overrun = 0;
+    heaps_ignored = 0;
+    heaps_open = 0;
+    heaps_needed = 0;
+    bytes_expected = 0;
+    bytes_received = 0;
+  }
+
+  void storage_statistics::reset()
+  {
+    if (reset_flag) return;
+    heaps_total = 0;
+    heaps_completed = 0;
+    heaps_discarded = 0;
+    heaps_skipped = 0;
+    heaps_overrun = 0;
+    heaps_ignored = 0;
+    heaps_open = 0;
+    heaps_needed = 0;
+    bytes_expected = 0;
+    bytes_received = 0;
+    reset_flag = true;
+  }
+
   storage::storage(std::shared_ptr<mkrecv::options> hopts) :
 #ifndef USE_STD_MUTEX
     dest_sem(1),
@@ -121,7 +151,11 @@ namespace mkrecv
     heap_place = mem_base + heap_size*offset;
     sci_place  = sci_base + nsci*offset;
 #ifdef ENABLE_TIMING_MEASUREMENTS
-    if (gstat.heaps_total == 100*dest[DATA_DEST].size) et.reset();
+    if (gstat.heaps_total == 100*dest[DATA_DEST].space) 
+      {
+        et.reset();
+        gstat.reset();
+      }
     std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
     et.add_et(et_statistics::ALLOC_TIMING, std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count());
 #endif

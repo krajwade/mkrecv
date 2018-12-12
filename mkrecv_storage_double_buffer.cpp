@@ -90,8 +90,21 @@ namespace mkrecv
     if (timestamp >= timestamp_temp_level)
       {
 	// switch to next buffer
-        std::cout << "still needing " << dest[dindex].needed << " heaps." << '\n';
+        //std::cout << "still needing " << dest[dindex].needed << " heaps." << '\n';
+	std::cout << "STAT "
+		  << dest[dindex].space << " "
+		  << dstat[dindex].heaps_completed << " "
+		  << dstat[dindex].heaps_discarded << " "
+		  << dest[dindex].needed << " "
+		  << dstat[dindex].bytes_expected << " "
+		  << dstat[dindex].bytes_received
+		  << "\n";
         gstat.heaps_needed += dest[dindex].needed;
+        dstat[dindex].heaps_completed = 0;
+        dstat[dindex].heaps_discarded = 0;
+        //dstat[dindex].heaps_needed = 0;
+        dstat[dindex].bytes_expected = 0;
+        dstat[dindex].bytes_received = 0;
 	if (!has_stopped)
 	  { // copy the optional side-channel items at the correct position
 	    // sci_base = buffer + size - (scape *nsci)
@@ -108,7 +121,10 @@ namespace mkrecv
 	dest[tindex].needed  = dest[tindex].space;
 	timestamp_first  += dest[dindex].capacity*timestamp_step;
 	timestamp_temp_level = timestamp_first + timestamp_data_count*timestamp_step;
-	std::cout << "-> sequential "; show_log();
+        if (!opts->quiet)
+          {
+	    std::cout << "-> sequential "; show_log();
+          }
       }
   }
 

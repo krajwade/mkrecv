@@ -30,6 +30,11 @@ namespace mkrecv
     std::size_t    heaps_needed    = 0;  // number of needed heaps
     std::size_t    bytes_expected  = 0;  // number of expected payload bytes
     std::size_t    bytes_received  = 0;  // number of received payload bytes
+  protected:
+    bool           reset_flag = false;
+  public:
+    storage_statistics();
+    void reset();
   };
 
   class storage
