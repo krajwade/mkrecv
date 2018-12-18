@@ -1,6 +1,6 @@
 # project name and specify the minumum cmake version.
 project (mkrecv CXX)
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 3.5)
 
 # @mhein3:
 # cmake -DCMAKE_BUILD_TYPE=DEBUG -DCMAKE_INSTALL_PREFIX=~ .
@@ -32,6 +32,7 @@ endif(NOT BINARY_INSTALL_DIR)
 
 # get project dependencies and compiler settings.
 include(dependencies)
+find_package(CUDA)
 
 # define the cheetah libraries
 set(MKRECV_LIBRARIES ${DEPENDENCY_LIBRARIES})

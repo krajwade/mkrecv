@@ -97,7 +97,12 @@ namespace mkrecv
 		  << dstat[dindex].heaps_discarded << " "
 		  << dest[dindex].needed << " "
 		  << dstat[dindex].bytes_expected << " "
-		  << dstat[dindex].bytes_received
+		  << dstat[dindex].bytes_received << " "
+                  << gstat.heaps_completed << " "
+                  << gstat.heaps_discarded << " "
+                  << gstat.heaps_needed << " "
+                  << gstat.bytes_expected << " "
+                  << gstat.bytes_received
 		  << "\n";
         gstat.heaps_needed += dest[dindex].needed;
         dstat[dindex].heaps_completed = 0;

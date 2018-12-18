@@ -1,0 +1,10 @@
+option(ENABLE_CUDA "Enable CUDA algorithms. Requires CUDA toolkit to be installed" OFF)
+if (ENABLE_CUDA)
+  find_package(CUDA)
+  if (CUDA_FOUND)
+    set(CUDA_INCLUDE_DIR "${CUDA_INCLUDE_DIRS}")
+    set(CUDA_LIBRRARIES "${CUDA_LIBRARIES}")
+  endif (CUDA_FOUND)
+  message("Found CUDA : ${CUDA_INCLUDE_DIR} ${CUDA_LIBRARIES}")
+endif (ENABLE_CUDA)
+

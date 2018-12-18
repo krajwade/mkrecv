@@ -43,7 +43,7 @@ namespace mkrecv
 	// The timestamp is smaller than the timestamp of the first heap in the current slot
 	// -> put this heap into trash and report it as a skipped heap
 	gstat.heaps_skipped++;
-	std::cout << "TS too old: " << timestamp << " " << timestamp_first << " " << timestamp_step << " -> " << group_index << '\n';
+	//std::cout << "TS too old: " << timestamp << " " << timestamp_first << " " << timestamp_step << " -> " << group_index << '\n';
 	dest_index = TRASH_DEST;
       }
     else if (state == SEQUENTIAL_STATE)
