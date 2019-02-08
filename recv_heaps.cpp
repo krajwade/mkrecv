@@ -20,7 +20,7 @@
 #include <pthread.h>
 
 #define MAX_THREADS           4
-#define MAX_HEAPS          8192
+#define MAX_HEAPS          256
 #define HEAP_HEADER_SIZE               sizeof(uint64_t)
 #define HEAP_ITEM_SIZE                 sizeof(uint64_t)
 #define MAX_HEAP_PAYLOAD_SIZE  16*1024*sizeof(uint8_t)
@@ -156,7 +156,9 @@ static void process_heap(mcast_context_t *context)
   uint64_t    heap_id = 0;
   uint64_t    heap_size = 0;
   uint64_t    heap_received = 0;
+  int         has_board = 0;
   uint64_t    board = 0;
+  int         has_channel = 0;
   uint64_t    channel = 0;
   int         index = -1;
 
@@ -180,8 +182,8 @@ static void process_heap(mcast_context_t *context)
     case 1: heap_id = item_value; break;
     case 2: heap_size = item_value; break;
     case 4: heap_received = item_value; break;
-    case 0x4101: board = item_value; break;
-    case 0x4103: channel = item_value; break;
+    //case 0x4101: board = item_value; has_board = 1; break;
+    //case 0x4103: channel = item_value; has_channel = 1; break;
     default:;
     }
   }
@@ -202,8 +204,8 @@ static void process_heap(mcast_context_t *context)
     context->heap_count++;
   }
   context->heap_received[index] += heap_received;
-  context->boards[board] = 1;
-  context->channels[channel] = 1;
+  if (has_board) context->boards[board] = 1;
+  if (has_channel) context->channels[channel] = 1;
   if (!g_quiet) printf("\n");
 }
 
@@ -221,8 +223,8 @@ static void *receive_heaps(void *arg)
   }
   while (1) {
     uint8_t   *ptr = context->data;
-    recvfrom(context->sock, ptr, context->available, 0, NULL, NULL);
-    //if (!g_quiet) printf("packet\n");
+    ssize_t br = recvfrom(context->sock, ptr, context->available, 0, NULL, NULL);
+    //if (!g_quiet) printf("packet size=%ld\n", br);
     process_heap(context);
     if (context->heap_count == MAX_HEAPS) return NULL;
   }

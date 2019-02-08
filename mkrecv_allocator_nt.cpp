@@ -123,6 +123,7 @@ namespace mkrecv
       }
     // Get the memory positions for the heap payload and the side-channel items
     dest_index = store->alloc_place(item_value[0], heap_index, size, dest_index, heap_place, sci_place);
+    std::cout << "heap " << ph->heap_cnt << " dest_index " << dest_index << " heap_index " << heap_index << " ts " << item_value[0] << "\n";
     //heap2dest[ph->heap_cnt]      = dest_index;    // store the relation between heap counter and destination
     //heap2timestamp[ph->heap_cnt] = item_value[0]; // store the relation between heap counter and timestamp
     //std::cout << "  heap map " << head << " " << heap_id[head] << " " << heap_dest[head] << " " << heap_timestamp[head] << '\n';
@@ -168,6 +169,7 @@ namespace mkrecv
 #ifdef ENABLE_TIMING_MEASUREMENTS
       std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
 #endif
+      std::cout << "mark " << cnt << " ok " << isok << " reclen " << reclen << "\n";
       int idx = (head + (MAX_OPEN_HEAPS - 1))%MAX_OPEN_HEAPS;
       int count = MAX_OPEN_HEAPS;
       do
