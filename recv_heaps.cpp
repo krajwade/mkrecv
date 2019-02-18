@@ -223,7 +223,7 @@ static void *receive_heaps(void *arg)
   }
   while (1) {
     uint8_t   *ptr = context->data;
-    ssize_t br = recvfrom(context->sock, ptr, context->available, 0, NULL, NULL);
+    /* ssize_t br = */ recvfrom(context->sock, ptr, context->available, 0, NULL, NULL);
     //if (!g_quiet) printf("packet size=%ld\n", br);
     process_heap(context);
     if (context->heap_count == MAX_HEAPS) return NULL;
