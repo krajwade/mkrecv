@@ -38,7 +38,7 @@ namespace mkrecv
   class allocator_nt : public spead2::memory_allocator
   {
   protected:
-    static const int MAX_OPEN_HEAPS  = 256;
+    static const std::size_t MAX_OPEN_HEAPS  = 256;
 #ifdef ENABLE_CORE_MUTEX
     static std::mutex             core_mutex[64];
 #endif

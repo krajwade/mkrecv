@@ -88,7 +88,7 @@ namespace mkrecv
         heap_id[head] = ph->heap_cnt;
         heap_dest[head] = dest_index;
         heap_timestamp[head] = 0;
-        head = (head + 1)%MAX_OPEN_HEAPS;
+        inc(head, MAX_OPEN_HEAPS-1); // (head + 1)%MAX_OPEN_HEAPS;
 	return pointer((std::uint8_t*)heap_place, deleter(shared_from_this(), (void *)std::uintptr_t(size)));
       }
     // Extract all item pointer values and transform them into a heap index (inside a heap group)
@@ -130,7 +130,7 @@ namespace mkrecv
     heap_id[head]        = ph->heap_cnt;
     heap_dest[head]      = dest_index;
     heap_timestamp[head] = item_value[0];
-    head = (head + 1)%MAX_OPEN_HEAPS;
+    inc(head, MAX_OPEN_HEAPS-1); // (head + 1)%MAX_OPEN_HEAPS;
     for (i = 0; i < nsci; i++)
       { // Put all side-channel items directly into memory
 	spead2::item_pointer_t pts = spead2::load_be<spead2::item_pointer_t>(ph->pointers + scis.at(i)*sizeof(spead2::item_pointer_t));
@@ -170,8 +170,9 @@ namespace mkrecv
       std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
 #endif
       //std::cout << "mark " << cnt << " ok " << isok << " reclen " << reclen << "\n";
-      int idx = (head + (MAX_OPEN_HEAPS - 1))%MAX_OPEN_HEAPS;
-      int count = MAX_OPEN_HEAPS;
+      std::size_t idx = head;
+      std::size_t count = MAX_OPEN_HEAPS;
+      dec(head, MAX_OPEN_HEAPS-1); // heaps + (MAX_OPEN_HEAPS - 1))%MAX_OPEN_HEAPS;
       do
         {
           if (heap_id[idx] == cnt)
@@ -180,7 +181,7 @@ namespace mkrecv
               timestamp  = heap_timestamp[idx];
               break;
             }
-         idx = (idx + (MAX_OPEN_HEAPS - 1))%MAX_OPEN_HEAPS;
+         dec(idx, MAX_OPEN_HEAPS - 1);
          count--;
         } while (count != 0);
       if (count == 0)
