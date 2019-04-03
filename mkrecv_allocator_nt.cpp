@@ -172,7 +172,7 @@ namespace mkrecv
       //std::cout << "mark " << cnt << " ok " << isok << " reclen " << reclen << "\n";
       std::size_t idx = head;
       std::size_t count = MAX_OPEN_HEAPS;
-      dec(head, MAX_OPEN_HEAPS-1); // heaps + (MAX_OPEN_HEAPS - 1))%MAX_OPEN_HEAPS;
+      dec(idx, MAX_OPEN_HEAPS-1); // heaps + (MAX_OPEN_HEAPS - 1))%MAX_OPEN_HEAPS;
       do
         {
           if (heap_id[idx] == cnt)
@@ -190,6 +190,16 @@ namespace mkrecv
           dest_index = storage::TRASH_DEST;
           timestamp = 0;
         }
+      else
+	{
+	  std::size_t ohead = head;
+	  dec(ohead,  MAX_OPEN_HEAPS-1); // The index of the latest entry
+	  if (idx == ohead)
+	    { // the marked head is the first in the internal map, we can remove this entry
+	      // by setting the head ine step backwards and overwrite the latest entry next time a heap arrives
+	      head = ohead;
+	    }
+	}
       //dest_index = heap2dest[cnt];
       //timestamp  = heap2timestamp[cnt];
       //heap2dest.erase(cnt);
