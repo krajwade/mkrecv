@@ -137,218 +137,6 @@ namespace mkrecv
       }
   }
 
-  void options::set_opt(int &val, const char *opt, const char *key)
-  {
-    //std::cout << "set_opt(" << val << ", " << opt << ", " << key << ")" << '\n';
-    //std::cout << "  count() = " << vm.count(opt) << '\n';
-    if ((vm.count(opt) == 0) && (key[0] != '\0')) {
-      // no option specified, try to get a value from the header
-      char sval[1024];
-      if (ascii_header_get(header, key, "%s", sval) == -1) {
-	//std::cout << "  header does not contain a value for " << key << '\n';
-      } else {
-	if (strcmp(sval, "unset") == 0) {
-	  //std::cout << "  header does contain unset for " << key << '\n';
-	} else {
-	  if (sscanf(sval, "%d", &val) != 1) {
-	    std::cerr << "header contains no integer or unset for key " << key << '\n';
-	  } else {
-	    //std::cout << "  header contains " << val << '\n';
-	  }
-	}
-      }
-    }
-    if (key[0] != '\0') {
-      ascii_header_set(header, key, "%d", val);
-      if (!check_header()) {
-	std::cerr << "ERROR, storing " << key << " with value " << val << " in header failed due to size restrictions. -> incomplete header due to clipping" << '\n';
-      }
-    }
-  }
-
-  void options::set_opt(std::size_t &val, const char *opt, const char *key)
-  {
-    //std::cout << "set_opt(" << val << ", " << opt << ", " << key << ")" << '\n';
-    //std::cout << "  count() = " << vm.count(opt) << '\n';
-    if ((vm.count(opt) == 0) && (key[0] != '\0')) {
-      // no option specified, try to get a value from the header
-      char sval[1024];
-      if (ascii_header_get(header, key, "%s", sval) == -1) {
-	//std::cout << "  header does not contain a value for " << key << '\n';
-      } else {
-	if (strcmp(sval, "unset") == 0) {
-	  //std::cout << "  header does contain unset for " << key << '\n';
-	} else {
-	  if (sscanf(sval, "%lu", &val) != 1) {
-	    std::cerr << "header contains no integer or unset for key " << key << '\n';
-	  } else {
-	    //std::cout << "  header contains " << val << '\n';
-	  }
-	}
-      }
-    }
-    if (key[0] != '\0') {
-      ascii_header_set(header, key, "%ld", val);
-      //std::cout << "  header becomes " << val << '\n';
-      if (!check_header()) {
-	std::cerr << "ERROR, storing " << key << " with value " << val << " in header failed due to size restrictions. -> incomplete header due to clipping" << '\n';
-      }
-    }
-  }
-
-  void options::set_opt(std::string &val, const char *opt, const char *key)
-  {
-    //std::cout << "set_opt(" << val << ", " << opt << ", " << key << ")" << '\n';
-    //std::cout << "  count() = " << vm.count(opt) << " val = " << val << '\n';
-    if ((vm.count(opt) == 0) && (key[0] != '\0')) {
-      // no option specified, try to get a value from the header
-      char sval[1024];
-      if (ascii_header_get(header, key, "%s", sval) == -1) {
-	//std::cout << "  header does not contain a value for " << key << '\n';
-      } else {
-	if (strcmp(sval, "unset") == 0) {
-	  //std::cout << "  header does contain unset for " << key << '\n';
-	} else {
-	  val = sval;
-	  //std::cout << "  header contains " << val << '\n';
-	}
-      }
-    }
-    if (key[0] != '\0') {
-      if (val.length() == 0) {
-	ascii_header_set(header, key, "unset");
-	//std::cout << "  header becomes unset" << '\n';
-      } else {
-	ascii_header_set(header, key, "%s", val.c_str());
-	//std::cout << "  header becomes " << val << '\n';
-      }
-      if (!check_header()) {
-	std::cerr << "ERROR, storing " << key << " with value " << val << " in header failed due to size restrictions. -> incomplete header due to clipping" << '\n';
-      }
-    }
-  }
-
-  void options::set_opt(bool &val, const char *opt, const char *key)
-  {
-    //std::cout << "set_opt(" << val << ", " << opt << ", " << key << ")" << '\n';
-    //std::cout << "  count() = " << vm.count(opt) << '\n';
-    if ((vm.count(opt) == 0) && (key[0] != '\0')) {
-      // no option specified, try to get a value from the header
-      char sval[1024];
-      if (ascii_header_get(header, key, "%s", sval) == -1) {
-	//std::cout << "  header does not contain a value for " << key << '\n';
-      } else {
-	if (strcmp(sval, "unset") == 0) {
-	  //std::cout << "  header does contain unset for " << key << '\n';
-	} else {
-	  if (sval[0] == 'F') val = false;
-	  if (sval[0] == 'f') val = false;
-	  if (sval[0] == 'T') val = true;
-	  if (sval[0] == 't') val = true;
-	  //std::cout << "  header contains " << val << '\n';
-	}
-      }
-    }
-    if (key[0] != '\0') {
-      if (val == true) {
-	ascii_header_set(header, key, "T");
-      } else {
-	ascii_header_set(header, key, "F");
-      }
-      if (!check_header()) {
-	std::cerr << "ERROR, storing " << key << " with value " << val << " in header failed due to size restrictions. -> incomplete header due to clipping" << '\n';
-      }
-    }
-  }
-
-  void options::set_opt(double &val, const char *opt, const char *key)
-  {
-    //std::cout << "set_opt(" << val << ", " << opt << ", " << key << ")" << '\n';
-    //std::cout << "  count() = " << vm.count(opt) << '\n';
-    if ((vm.count(opt) == 0) && (key[0] != '\0')) {
-      // no option specified, try to get a value from the header
-      char sval[1024];
-      if (ascii_header_get(header, key, "%s", sval) == -1) {
-	//std::cout << "  header does not contain a value for " << key << '\n';
-      } else {
-	if (strcmp(sval, "unset") == 0) {
-	  //std::cout << "  header does contain unset for " << key << '\n';
-	} else {
-	  if (sscanf(sval, "%lf", &val) != 1) {
-	    std::cerr << "header contains no float or unset for key " << key << '\n';
-	  } else {
-	    //std::cout << "  header contains " << val << '\n';
-	  }
-	}
-      }
-    }
-    if (key[0] != '\0') {
-      ascii_header_set(header, key, "%lf", val);
-      if (!check_header()) {
-	std::cerr << "ERROR, storing " << key << " with value " << val << " in header failed due to size restrictions. -> incomplete header due to clipping" << '\n';
-      }
-    }
-  }
-
-  void options::set_opt(std::vector<std::size_t> &val, const char *opt, const char *key)
-  {
-    std::string::size_type pos, lastPos = 0, length;
-    std::string sval;
-
-    //std::cout << "set_opt(" << val << ", " << opt << ", " << key << ")" << '\n';
-    //std::cout << "  count() = " << vm.count(opt) << " val = " << val << '\n';
-    if ((vm.count(opt) == 0) && (key[0] != '\0')) {
-      // no option specified, try to get a value from the header
-      char hsval[1024];
-      if (ascii_header_get(header, key, "%s", hsval) == -1) {
-	//std::cout << "  header does not contain a value for " << key << '\n';
-      } else {
-	if (strcmp(hsval, "unset") == 0) {
-	  //std::cout << "  header does contain unset for " << key << '\n';
-	} else {
-	  sval = hsval;
-	  //std::cout << "  header contains " << val << '\n';
-	}
-      }
-    }
-    // extract the list of item pointer indices
-    length = sval.length();
-    val.clear();
-    while(lastPos < length + 1) {
-      pos = sval.find_first_of(",", lastPos);
-      if (pos == std::string::npos)
-	{
-	  pos = length;
-	}
-      if (pos != lastPos)
-	{
-	  std::string el(sval.data()+lastPos, pos-lastPos);
-	  if (el.compare(0,2,"0x") == 0)
-	    {
-	      val.push_back(std::stol(std::string(el.begin() + 2, el.end()), nullptr, 16));
-	    }
-	  else
-	    {
-	      val.push_back(std::stol(el, nullptr, 10));
-	    }
-	}
-      lastPos = pos + 1;
-    }
-
-    if (key[0] != '\0') {
-      if (sval.length() == 0) {
-	ascii_header_set(header, key, "unset");
-	//std::cout << "  header becomes unset" << '\n';
-      } else {
-	ascii_header_set(header, key, "%s", sval.c_str());
-	//std::cout << "  header becomes " << val << '\n';
-      }
-      if (!check_header()) {
-	std::cerr << "ERROR, storing " << key << " with value " << sval << " in header failed due to size restrictions. -> incomplete header due to clipping" << '\n';
-      }
-    }
-  }
-
   void options::set_start_time(int64_t timestamp)
   {
     double epoch = sync_epoch + timestamp / sample_clock;
@@ -378,89 +166,232 @@ namespace mkrecv
       }
   }
 
-  void options::use_sources(std::vector<std::string> &val, const char *opt, const char *key)
+  /*
+    Parse an option given as default (string value), header file entry or program option and converts it into
+    an integer number. It is allowed to use decimals, hexadecimals (prefix 0x) or binary (prefix 0b) notation.
+    We have to distinguish three cases:
+    1. The parameter is specified as program option, this value does overwrite the default value and the value given in the header file.
+    2. The parameter is set in the header file but not as a program option, this value does overwrite the default value and it is stored in the header file (unchanged).
+    3. Only the default value is given, this value is stored in the header file (unchanged).
+  */
+  void options::finalize_parameter(std::string &val, const char *opt, const char *key)
   {
-    if ((vm.count(opt) == 0) && (key[0] != '\0'))
-      {
-	char cs[1024];
-	if (ascii_header_get(header, key, "%s", cs) == 1)
-	  {
-	    cs[sizeof(cs)-1] = '\0';
-	    std::string str(cs);
-	    std::string::size_type pos, lastPos = 0, length = str.length();
-	    while(lastPos < length + 1) {
-	      pos = str.find_first_of(",", lastPos);
-	      if(pos == std::string::npos) {
-		pos = length;
-	      }
-	      if(pos != lastPos)
-		val.push_back(std::string(str.data()+lastPos, pos-lastPos ));
-	      lastPos = pos + 1;
-	    }
-	  }
-      }
-  }
-
-  void options::update_sources()
-  {
-    for (auto it = sources.begin(); it != sources.end(); ++it)
-      {
-	std::string::size_type pos = (*it).find_first_of(":");
-	std::string            used_source;
-	if (pos == std::string::npos)
-	  { // no port number given in source string, use opts.port
-	    used_source = *it;
-	    used_source.append(":");
-	    used_source.append(port);
-	  }
-	else
-	  { // source string contains <ip>:<port> -> split in both parts
-	    std::string nwadr = std::string((*it).data(), pos);
-	    std::string nwport = std::string((*it).data() + pos + 1, (*it).length() - pos - 1);
-	    if (port != "")
-	      {
-		nwport = port;
-	      }
-	    used_source = nwadr;
-	    used_source.append(":");
-	    used_source.append(nwport);
-	  }
-	(*it).assign(used_source);
-	if (used_sources.length() != 0)
-	  {
-	    used_sources.append(",");
-	  }
-	used_sources.append(used_source);
-      }
-  }
-
-  void options::extract_values(std::vector<spead2::s_item_pointer_t> &val, const std::string &str)
-  {
-    std::string::size_type pos, lastPos = 0, length = str.length();
-
-    val.clear();
-    while(lastPos < length + 1) {
-      pos = str.find_first_of(",", lastPos);
-      if(pos == std::string::npos) {
-	pos = length;
-      }
-      if(pos != lastPos)
-	{
-	  std::string el(str.data()+lastPos, pos-lastPos);
-	  if (el.compare(0,2,"0x") == 0)
-	    {
-	      val.push_back(std::stol(std::string(el.begin() + 2, el.end()), nullptr, 16));
-	    }
-	  else
-	    {
-	      val.push_back(std::stol(el, nullptr, 10));
-	    }
+    bool store_in_header = false;
+    
+    //std::cout << "finalize_parameter(" << val << ", " << opt << ", " << key << ")";
+    if (vm.count(opt) != 0) { // Check if the parameter is given as program option
+      // -> use the program option value already given in val and store it in the header file
+      //std::cout << " option for " << opt << " is " << val;
+      store_in_header = true;
+    } else if (key[0] != '\0') { // Check if a value is given in the header file
+      char sval[1024];
+      if (ascii_header_get(header, key, "%s", sval) != -1) {
+	if (strcmp(sval, "unset") == 0) { // check if the value in the header is unset
+	  // -> use the default value already given in val and put it into the header file
+	  //std::cout << " header unset, default for " << opt << " is " << val;
+	  store_in_header = true;
+	} else {
+	  // -> use the value from the header file
+	  val = sval;
+	  //std::cout << " header for " << opt << " is " << val;
 	}
-      lastPos = pos + 1;
+      } else {
+	//std::cout << " default for " << opt << " is " << val;
+	store_in_header = true;
+      }
+    }
+    if (store_in_header && (key[0] != '\0')) {
+      if (val.length() == 0) {
+	ascii_header_set(header, key, "unset");
+	//std::cout << "  header becomes unset" << '\n';
+      } else {
+	ascii_header_set(header, key, "%s", val.c_str());
+	//std::cout << "  header becomes " << val << '\n';
+      }
+      if (!check_header()) {
+	std::cerr << "ERROR, storing " << key << " with value " << val << " in header failed due to size restrictions. -> incomplete header due to clipping" << '\n';
+      }
+    }
+    //std::cout << " -> " << val << '\n';
+  }
+
+  bool options::parse_fixnum(int &val, std::string &val_str)
+  {
+    try {
+      if (val_str.compare(0,2,"0x") == 0)
+	{
+	  val = std::stoi(std::string(val_str.begin() + 2, val_str.end()), nullptr, 16);
+	}
+      else if (val_str.compare(0,2,"0b") == 0)
+	{
+	  val = std::stoi(std::string(val_str.begin() + 2, val_str.end()), nullptr, 2);
+	}
+      else
+	{
+	  val = std::stoi(val_str, nullptr, 10);
+	}
+      return true;
+    } catch (std::exception& e) {
+      return false;
+    }
+  }
+  
+  bool options::parse_fixnum(spead2::s_item_pointer_t &val, std::string &val_str)
+  {
+    try {
+      if (val_str.compare(0,2,"0x") == 0)
+	{
+	  val = std::stol(std::string(val_str.begin() + 2, val_str.end()), nullptr, 16);
+	}
+      else if (val_str.compare(0,2,"0b") == 0)
+	{
+	  val = std::stol(std::string(val_str.begin() + 2, val_str.end()), nullptr, 2);
+	}
+      else
+	{
+	  val = std::stol(val_str, nullptr, 10);
+	}
+      return true;
+    } catch (std::exception& e) {
+      return false;
+    }
+  }
+  
+  bool options::parse_fixnum(std::size_t &val, std::string &val_str)
+  {
+    try {
+      if (val_str.compare(0,2,"0x") == 0)
+	{
+	  val = std::stol(std::string(val_str.begin() + 2, val_str.end()), nullptr, 16);
+	}
+      else if (val_str.compare(0,2,"0b") == 0)
+	{
+	  val = std::stol(std::string(val_str.begin() + 2, val_str.end()), nullptr, 2);
+	}
+      else
+	{
+	  val = std::stol(val_str, nullptr, 10);
+	}
+      return true;
+    } catch (std::exception& e) {
+      return false;
+    }
+  }
+
+  void options::parse_parameter(std::string &val, const char *opt, const char *key)
+  {
+    finalize_parameter(val, opt, key);
+    //std::cout << opt << "/" << key << " = " << val << '\n';
+  }
+
+  void options::parse_parameter(int &val, std::string &val_str, const char *opt, const char *key)
+  {
+    finalize_parameter(val_str, opt, key);
+    // we have the final value in val_str -> convert it into an integer number according to an optional prefix
+    if (!parse_fixnum(val, val_str))
+      {
+	std::cerr << "Exception: cannot convert " << val_str << " into int for option " << opt << "/" << key << '\n';
+	// put the default value already given in val into the header (the current value cannot be converted into std::size_t)
+	if (key[0] != '\0') {
+	  ascii_header_set(header, key, "%d", val);
+	  //std::cout << "  header becomes " << val << '\n';
+	  if (!check_header()) {
+	    std::cerr << "ERROR, storing " << key << " with value " << val << " in header failed due to size restrictions. -> incomplete header due to clipping" << '\n';
+	  }
+	}
+      }
+    //std::cout << opt << "/" << key << " = " << val << '\n';
+  }
+
+  void options::parse_parameter(std::size_t &val, std::string &val_str, const char *opt, const char *key)
+  {
+    finalize_parameter(val_str, opt, key);
+    // we have the final value in val_str -> convert it into an integer number according to an optional prefix
+    if (!parse_fixnum(val, val_str))
+      {
+	std::cerr << "Exception: cannot convert " << val_str << " into int for option " << opt << "/" << key << '\n';
+	// put the default value already given in val into the header (the current value cannot be converted into std::size_t)
+	if (key[0] != '\0') {
+	  ascii_header_set(header, key, "%ld", val);
+	  //std::cout << "  header becomes " << val << '\n';
+	  if (!check_header()) {
+	    std::cerr << "ERROR, storing " << key << " with value " << val << " in header failed due to size restrictions. -> incomplete header due to clipping" << '\n';
+	  }
+	}
+      }
+    //std::cout << opt << "/" << key << " = " << val << '\n';
+  }
+
+  void options::parse_parameter(double &val, std::string &val_str, const char *opt, const char *key)
+  {
+    finalize_parameter(val_str, opt, key);
+    // we have the final value in val_str -> convert it into an integer number according to an optional prefix
+    try {
+      val = std::stod(val_str, nullptr);
+    } catch (std::exception& e) {
+      std::cerr << "Exception: " << e.what() << " cannot convert " << val_str << " into double for option " << opt << "/" << key << '\n';
+      // put the default value already given in val into the header (the current value cannot be converted into std::size_t)
+      if (key[0] != '\0') {
+	ascii_header_set(header, key, "%f", val);
+	//std::cout << "  header becomes " << val << '\n';
+	if (!check_header()) {
+	  std::cerr << "ERROR, storing " << key << " with value " << val << " in header failed due to size restrictions. -> incomplete header due to clipping" << '\n';
+	}
+      }
+    }
+    //std::cout << opt << "/" << key << " = " << val << '\n';
+  }
+
+  /*
+    Parse a list of integer values where each value is either a direct value or a range definition.
+    All integer values (direct or in a range definition) are either a decimal, hexadecimal or binary number.
+    The syntax for an integer list is:
+    <list> := "unset" | ( <element> { "," <element> } ) .
+    <element> := <number> | ( <first> ":" <last> ":" <step> ) .
+    <number>  := <decimal> | <hexadecimal> | <binary> .
+   */
+  void options::parse_parameter(std::vector<spead2::s_item_pointer_t> &val, std::string &val_str, const char *opt, const char *key)
+  {
+    std::string::size_type str_from = 0, str_to, str_length;
+
+    finalize_parameter(val_str, opt, key);
+    // we have the final value in val_str -> convert it into an list of integer number according to an optional prefix and with range support
+    val.clear();
+    str_length = val_str.length();
+    while(str_from < str_length + 1) {
+      str_to = val_str.find_first_of(",", str_from);
+      if(str_to == std::string::npos) str_to = str_length;
+      if(str_to == str_from) break;
+      std::string               el_str(val_str.data() + str_from, str_to - str_from);
+      std::string::size_type    el_from = 0, el_to, el_length;
+      spead2::s_item_pointer_t  vals[3];
+      int                       nparts = 0;
+      el_length = el_str.length();
+      while((el_from < el_length + 1) && (nparts != 3)) {
+	el_to = el_str.find_first_of(":", el_from);
+	if(el_to == std::string::npos) el_to = el_length;
+	if(el_to == el_from) break;
+	std::string hel(el_str.data() + el_from, el_to - el_from);
+	if (!parse_fixnum(vals[nparts], hel)) {
+	  std::cerr << "Exception: cannot convert " << hel << " at position " << str_from << " into spead2::s_item_pointer_t for option " << opt << "/" << key << '\n';
+	  nparts = 0;
+	  break;
+	}
+	nparts++;
+	el_from = el_to + 1;
+      }
+      if (nparts < 3) vals[2] = 1;           // <first> ':' <last>  => <step> := 1
+      if (nparts < 2) vals[1] = vals[0] + 1; // <first>             => <step> := 1, <last> := <first> + 1
+      //std::cout << "  sequence from " << vals[0] << " to " << vals[1] << " (excluding) with step " << vals[2] << '\n';
+      while (vals[0] < vals[1]) {
+	val.push_back(vals[0]);
+	vals[0] += vals[2];
+      }
+      str_from = str_to + 1;
     }
     /*
-    int i;
     std::cout << "item value list:";
+    std::size_t i;
     for (i = 0; i < val.size(); i++)
       {
 	std::cout << " " << val.at(i) << "->" << i;
@@ -469,33 +400,104 @@ namespace mkrecv
     */
   }
 
-  void options::extract_values(std::vector<std::size_t> &val, const std::string &str)
+  void options::parse_parameter(std::vector<std::size_t> &val, std::string &val_str, const char *opt, const char *key)
   {
-    std::string::size_type pos, lastPos = 0, length = str.length();
+    std::string::size_type str_from = 0, str_to, str_length;
 
+    finalize_parameter(val_str, opt, key);
+    // we have the final value in val_str -> convert it into an list of integer number according to an optional prefix and with range support
     val.clear();
-    while(lastPos < length + 1) {
-      pos = str.find_first_of(",", lastPos);
-      if(pos == std::string::npos) {
-	pos = length;
-      }
-      if(pos != lastPos)
-	{
-	  std::string el(str.data()+lastPos, pos-lastPos);
-	  if (el.compare(0,2,"0x") == 0)
-	    {
-	      val.push_back(std::stol(std::string(el.begin() + 2, el.end()), nullptr, 16));
-	    }
-	  else
-	    {
-	      val.push_back(std::stol(el, nullptr, 10));
-	    }
+    str_length = val_str.length();
+    while(str_from < str_length + 1) {
+      str_to = val_str.find_first_of(",", str_from);
+      if(str_to == std::string::npos) str_to = str_length;
+      if(str_to == str_from) break;
+      std::string               el_str(val_str.data() + str_from, str_to - str_from);
+      std::string::size_type    el_from = 0, el_to, el_length;
+      std::size_t               vals[3];
+      int                       nparts = 0;
+      el_length = el_str.length();
+      while((el_from < el_length + 1) && (nparts != 3)) {
+	el_to = el_str.find_first_of(":", el_from);
+	if(el_to == std::string::npos) el_to = el_length;
+	if(el_to == el_from) break;
+	std::string hel(el_str.data() + el_from, el_to - el_from);
+	if (!parse_fixnum(vals[nparts], hel)) {
+	  std::cerr << "Exception: cannot convert " << hel << " at position " << str_from << " into std::size_t for option " << opt << "/" << key << '\n';
+	  nparts = 0;
+	  break;
 	}
-      lastPos = pos + 1;
+	nparts++;
+	el_from = el_to + 1;
+      }
+      if (nparts < 3) vals[2] = 1;           // <first> ':' <last>  => <step> := 1
+      if (nparts < 2) vals[1] = vals[0] + 1; // <first>             => <step> := 1, <last> := <first> + 1
+      //std::cout << "  sequence from " << vals[0] << " to " << vals[1] << " (excluding) with step " << vals[2] << '\n';
+      while (vals[0] < vals[1]) {
+	val.push_back(vals[0]);
+	vals[0] += vals[2];
+      }
+      str_from = str_to + 1;
     }
     /*
-    int i;
     std::cout << "item value list:";
+    std::size_t i;
+    for (i = 0; i < val.size(); i++)
+      {
+	std::cout << " " << val.at(i) << "->" << i;
+      }
+    std::cout << '\n';
+    */
+  }
+
+  void options::parse_parameter(std::vector<std::string> &val, std::string &val_str, const char *opt, const char *key)
+  {
+    std::string::size_type str_from = 0, str_to, str_length;
+
+    finalize_parameter(val_str, opt, key);
+    // we have the final value in val_str -> convert it into an list of IPs allowing "i.j.k.l+n" notation
+    val.clear();
+    str_length = val_str.length();
+    while(str_from < str_length + 1) {
+      str_to = val_str.find_first_of(",", str_from);
+      if(str_to == std::string::npos) str_to = str_length;
+      if(str_to == str_from) break;
+      std::string               el_str(val_str.data() + str_from, str_to - str_from);
+      std::string::size_type    el_from = 0, el_to, el_length;
+      int                       vals[5];
+      int                       nparts = 0;
+      el_length = el_str.length();
+      while((el_from < el_length + 1) && (nparts != 5)) {
+	el_to = el_str.find_first_of(".+", el_from);
+	if(el_to == std::string::npos) el_to = el_length;
+	if(el_to == el_from) break;
+	std::string hel(el_str.data() + el_from, el_to - el_from);
+	if (!parse_fixnum(vals[nparts], hel)) {
+	  std::cerr << "Exception: cannot convert " << hel << " at position " << str_from << " into std::size_t for option " << opt << "/" << key << '\n';
+	  nparts = 0;
+	  break;
+	}
+	nparts++;
+	el_from = el_to + 1;
+      }
+      str_from = str_to + 1;
+      if (nparts == 0) continue;
+      if (nparts < 5) vals[4] = 0;
+      //std::cout << "  IP sequence for " << vals[0] << "." << vals[1] << "." << vals[2] << "." << vals[3] << "+" << vals[4] << '\n';
+      vals[4]++; // the n means up to l+n _including_
+      while (vals[4] != 0) {
+	std::string ip_str;
+	char ip_adr[256];
+	snprintf(ip_adr, sizeof(ip_adr), "%d.%d.%d.%d", vals[0], vals[1], vals[2], vals[3]);
+	ip_str = ip_adr;
+	val.push_back(ip_str);
+	vals[3]++;
+	vals[4]--;
+      }
+    }
+    /*
+    std::cout << "item value list:";
+    std::size_t i;
     for (i = 0; i < val.size(); i++)
       {
 	std::cout << " " << val.at(i) << "->" << i;
@@ -519,41 +521,41 @@ namespace mkrecv
     desc.add_options()
       ("help",            "show this text")
       // optional header file contain configuration options and additional information
-      (HEADER_OPT,        make_opt(hdrname),         HEADER_DESC)
+      (HEADER_OPT,        make_opt(hdrname),             HEADER_DESC)
       // some flags
-      (QUIET_OPT,         make_opt(quiet),           QUIET_DESC)
-      (DESCRIPTORS_OPT,   make_opt(descriptors),     DESCRIPTORS_DESC)
-      (PYSPEAD_OPT,       make_opt(pyspead),         PYSPEAD_DESC)
-      (JOINT_OPT,         make_opt(joint),           JOINT_DESC)
+      (QUIET_OPT,         make_opt(quiet),               QUIET_DESC)
+      (DESCRIPTORS_OPT,   make_opt(descriptors),         DESCRIPTORS_DESC)
+      (PYSPEAD_OPT,       make_opt(pyspead),             PYSPEAD_DESC)
+      (JOINT_OPT,         make_opt(joint),               JOINT_DESC)
       // some options, default values should be ok to use, will _not_ go into header
-      (PACKET_OPT,        make_opt(packet),          PACKET_DESC)
-      (BUFFER_OPT,        make_opt(buffer),          BUFFER_DESC)
-      (NTHREADS_OPT,      make_opt(threads),         NTHREADS_DESC)
-      (NHEAPS_OPT,        make_opt(heaps),           NHEAPS_DESC)
+      (PACKET_OPT,        make_opt(packet_str),          PACKET_DESC)
+      (BUFFER_OPT,        make_opt(buffer_str),          BUFFER_DESC)
+      (NTHREADS_OPT,      make_opt(threads_str),         NTHREADS_DESC)
+      (NHEAPS_OPT,        make_opt(heaps_str),           NHEAPS_DESC)
       ("memcpy-nt",       make_opt(memcpy_nt),       "Use non-temporal memcpy")
       // DADA ringbuffer related stuff
-      (DADA_MODE_OPT,     make_opt(dada_mode),       DADA_MODE_DESC)
-      (DADA_KEY_OPT,      make_opt(dada_key),        DADA_KEY_DESC)
+      (DADA_MODE_OPT,     make_opt(dada_mode_str),       DADA_MODE_DESC)
+      (DADA_KEY_OPT,      make_opt(dada_key),            DADA_KEY_DESC)
       // network configuration
 #if SPEAD2_USE_IBV
-      (IBV_IF_OPT,        make_opt(ibv_if),          IBV_IF_DESC)
-      (IBV_VECTOR_OPT,    make_opt(ibv_comp_vector), IBV_VECTOR_DESC)
-      (IBV_MAX_POLL_OPT,  make_opt(ibv_max_poll),    IBV_MAX_POLL_DESC)
+      (IBV_IF_OPT,        make_opt(ibv_if),              IBV_IF_DESC)
+      (IBV_VECTOR_OPT,    make_opt(ibv_comp_vector_str), IBV_VECTOR_DESC)
+      (IBV_MAX_POLL_OPT,  make_opt(ibv_max_poll_str),    IBV_MAX_POLL_DESC)
 #endif
-      (UDP_IF_OPT,        make_opt(udp_if),          UDP_IF_DESC)
-      (PORT_OPT,          make_opt(port),            PORT_DESC)
-      (SYNC_EPOCH_OPT,    make_opt(sync_epoch),      SYNC_EPOCH_DESC)
-      (SAMPLE_CLOCK_OPT,  make_opt(sample_clock),    SAMPLE_CLOCK_DESC)
-      (HEAP_SIZE_OPT,     make_opt(heap_size),       HEAP_SIZE_DESC)
-      (NGROUPS_DATA_OPT,  make_opt(ngroups_data),    NGROUPS_DATA_DESC)
-      (NGROUPS_TEMP_OPT,  make_opt(ngroups_temp),    NGROUPS_TEMP_DESC)
-      (LEVEL_DATA_OPT,    make_opt(level_data),      LEVEL_DATA_DESC)
-      (LEVEL_TEMP_OPT,    make_opt(level_temp),      LEVEL_TEMP_DESC)
-      (NHEAPS_SWITCH_OPT, make_opt(nheaps_switch),   NHEAPS_SWITCH_DESC)
+      (UDP_IF_OPT,        make_opt(udp_if),              UDP_IF_DESC)
+      (PORT_OPT,          make_opt(port),                PORT_DESC)
+      (SYNC_EPOCH_OPT,    make_opt(sync_epoch_str),      SYNC_EPOCH_DESC)
+      (SAMPLE_CLOCK_OPT,  make_opt(sample_clock_str),    SAMPLE_CLOCK_DESC)
+      (HEAP_SIZE_OPT,     make_opt(heap_size_str),       HEAP_SIZE_DESC)
+      (NGROUPS_DATA_OPT,  make_opt(ngroups_data_str),    NGROUPS_DATA_DESC)
+      (NGROUPS_TEMP_OPT,  make_opt(ngroups_temp_str),    NGROUPS_TEMP_DESC)
+      (LEVEL_DATA_OPT,    make_opt(level_data_str),      LEVEL_DATA_DESC)
+      (LEVEL_TEMP_OPT,    make_opt(level_temp_str),      LEVEL_TEMP_DESC)
+      (NHEAPS_SWITCH_OPT, make_opt(nheaps_switch_str),   NHEAPS_SWITCH_DESC)
       ;
     // index calculation
     desc.add_options()
-      (NINDICES_OPT,     make_opt(nindices),         NINDICES_DESC)
+      (NINDICES_OPT,     make_opt(nindices_str),         NINDICES_DESC)
       ;
     for (i = 0; i < MAX_INDEXPARTS; i++)
       {
@@ -561,18 +563,18 @@ namespace mkrecv
 	char odesc[255];
 	snprintf(olabel, sizeof(olabel) - 1, IDX_ITEM_OPT,  i+1);
 	snprintf(odesc,  sizeof(odesc) - 1,  IDX_ITEM_DESC, i+1);
-	desc.add_options()(olabel, make_opt(indices[i].item), odesc);
+	desc.add_options()(olabel, make_opt(indices[i].item_str), odesc);
 	if (i == 0)
 	  {
 	    snprintf(olabel, sizeof(olabel) - 1, IDX_STEP_OPT,  i+1);
 	    snprintf(odesc,  sizeof(odesc) - 1,  IDX_STEP_DESC, i+1);
-	    desc.add_options()(olabel, make_opt(indices[i].step), odesc);
+	    desc.add_options()(olabel, make_opt(indices[i].step_str), odesc);
 	  }
 	else
 	  {
 	    snprintf(olabel, sizeof(olabel) - 1, IDX_MASK_OPT, i+1);
 	    snprintf(odesc,  sizeof(odesc) - 1,  IDX_MASK_DESC, i+1);
-	    desc.add_options()(olabel, make_opt(indices[i].mask), odesc);
+	    desc.add_options()(olabel, make_opt(indices[i].mask_str), odesc);
 	    snprintf(olabel, sizeof(olabel) - 1, IDX_LIST_OPT, i+1);
 	    snprintf(odesc,  sizeof(odesc) - 1,  IDX_LIST_DESC, i+1);
 	    desc.add_options()(olabel, make_opt(indices[i].list), odesc);
@@ -597,36 +599,31 @@ namespace mkrecv
   {
     int            i;
 
-    /* Flags, therefore all default values are false */
-    set_opt(quiet,           QUIET_OPT, QUIET_KEY);
-    set_opt(descriptors,     DESCRIPTORS_OPT, DESCRIPTORS_KEY);
-    set_opt(pyspead,         PYSPEAD_OPT, PYSPEAD_KEY);
-    set_opt(joint,           JOINT_OPT, JOINT_KEY);
     /* the following options should have sufficient default values */
-    set_opt(packet,          PACKET_OPT, PACKET_KEY);
-    set_opt(buffer,          BUFFER_OPT, BUFFER_KEY);
-    set_opt(threads,         NTHREADS_OPT, NTHREADS_KEY);
-    set_opt(heaps,           NHEAPS_OPT, NHEAPS_KEY);
+    parse_parameter(packet,          packet_str,          PACKET_OPT, PACKET_KEY);
+    parse_parameter(buffer,          buffer_str,          BUFFER_OPT, BUFFER_KEY);
+    parse_parameter(threads,         threads_str,         NTHREADS_OPT, NTHREADS_KEY);
+    parse_parameter(heaps,           heaps_str,           NHEAPS_OPT, NHEAPS_KEY);
     /* The following options describe the DADA ringbuffer use */
-    set_opt(dada_mode,       DADA_MODE_OPT, DADA_MODE_KEY);
-    set_opt(dada_key,        DADA_KEY_OPT, DADA_KEY_KEY);
+    parse_parameter(dada_mode,       dada_mode_str,       DADA_MODE_OPT, DADA_MODE_KEY);
+    parse_parameter(dada_key,                             DADA_KEY_OPT, DADA_KEY_KEY);
     /* The following options describe the connection to the F-Engines (network) */
 #if SPEAD2_USE_IBV
-    set_opt(ibv_if,          IBV_IF_OPT, IBV_IF_KEY);
-    set_opt(ibv_comp_vector, IBV_VECTOR_OPT, IBV_VECTOR_KEY);
-    set_opt(ibv_max_poll,    IBV_MAX_POLL_OPT, IBV_MAX_POLL_KEY);
+    parse_parameter(ibv_if,                               IBV_IF_OPT, IBV_IF_KEY);
+    parse_parameter(ibv_comp_vector, ibv_comp_vector_str, IBV_VECTOR_OPT, IBV_VECTOR_KEY);
+    parse_parameter(ibv_max_poll,    ibv_max_poll_str,    IBV_MAX_POLL_OPT, IBV_MAX_POLL_KEY);
 #endif
-    set_opt(udp_if,          UDP_IF_OPT, UDP_IF_KEY);
-    set_opt(port,            PORT_OPT, PORT_KEY);
-    set_opt(sample_clock,    SAMPLE_CLOCK_OPT, SAMPLE_CLOCK_KEY);
-    set_opt(sync_epoch,      SYNC_EPOCH_OPT, SYNC_EPOCH_KEY);
-    set_opt(heap_size,       HEAP_SIZE_OPT, HEAP_SIZE_KEY);
-    set_opt(ngroups_data,    NGROUPS_DATA_OPT, NGROUPS_DATA_KEY);
-    set_opt(ngroups_temp,    NGROUPS_TEMP_OPT, NGROUPS_TEMP_KEY);
-    set_opt(level_data,      LEVEL_DATA_OPT, LEVEL_DATA_KEY);
-    set_opt(level_temp,      LEVEL_TEMP_OPT, LEVEL_TEMP_KEY);
-    set_opt(nheaps_switch,   NHEAPS_SWITCH_OPT, NHEAPS_SWITCH_KEY);
-    set_opt(nindices,        NINDICES_OPT, NINDICES_KEY);
+    parse_parameter(udp_if,                               UDP_IF_OPT, UDP_IF_KEY);
+    parse_parameter(port,                                 PORT_OPT, PORT_KEY);
+    parse_parameter(sample_clock,    sample_clock_str,    SAMPLE_CLOCK_OPT, SAMPLE_CLOCK_KEY);
+    parse_parameter(sync_epoch,      sync_epoch_str,      SYNC_EPOCH_OPT, SYNC_EPOCH_KEY);
+    parse_parameter(heap_size,       heap_size_str,       HEAP_SIZE_OPT, HEAP_SIZE_KEY);
+    parse_parameter(ngroups_data,    ngroups_data_str,    NGROUPS_DATA_OPT, NGROUPS_DATA_KEY);
+    parse_parameter(ngroups_temp,    ngroups_temp_str,    NGROUPS_TEMP_OPT, NGROUPS_TEMP_KEY);
+    parse_parameter(level_data,      level_data_str,      LEVEL_DATA_OPT, LEVEL_DATA_KEY);
+    parse_parameter(level_temp,      level_temp_str,      LEVEL_TEMP_OPT, LEVEL_TEMP_KEY);
+    parse_parameter(nheaps_switch,   nheaps_switch_str,   NHEAPS_SWITCH_OPT, NHEAPS_SWITCH_KEY);
+    parse_parameter(nindices,        nindices_str,        NINDICES_OPT, NINDICES_KEY);
     if (nindices >= MAX_INDEXPARTS) nindices = MAX_INDEXPARTS-1;
     for (i = 0; i < nindices; i++)
       {
@@ -634,39 +631,26 @@ namespace mkrecv
 	char ikey[32];
 	snprintf(iopt, sizeof(iopt) - 1, IDX_ITEM_OPT, i+1);
 	snprintf(ikey, sizeof(ikey) - 1, IDX_ITEM_KEY, i+1);
-	set_opt(indices[i].item, iopt, ikey);
+	parse_parameter(indices[i].item, indices[i].item_str, iopt, ikey);
 	if (i == 0)
 	  {
 	    snprintf(iopt, sizeof(iopt) - 1, IDX_STEP_OPT, i+1);
 	    snprintf(ikey, sizeof(ikey) - 1, IDX_STEP_KEY, i+1);
-	    set_opt(indices[i].step, iopt, ikey);
+	    parse_parameter(indices[i].step, indices[i].step_str, iopt, ikey);
 	  }
 	else
 	  {
 	    snprintf(iopt, sizeof(iopt) - 1, IDX_MASK_OPT, i+1);
 	    snprintf(ikey, sizeof(ikey) - 1, IDX_MASK_KEY, i+1);
-	    set_opt(indices[i].mask, iopt, ikey);
+	    parse_parameter(indices[i].mask, indices[i].mask_str, iopt, ikey);
 	    snprintf(iopt, sizeof(iopt) - 1, IDX_LIST_OPT, i+1);
 	    snprintf(ikey, sizeof(ikey) - 1, IDX_LIST_KEY, i+1);
-	    set_opt(indices[i].list, iopt, ikey);
-	    extract_values(indices[i].values, indices[i].list);
+	    parse_parameter(indices[i].values, indices[i].list, iopt, ikey);
 	  }
       }
-    set_opt(sci_list, SCI_LIST_OPT, SCI_LIST_KEY);
-    extract_values(scis, sci_list);
+    parse_parameter(scis, sci_list, SCI_LIST_OPT, SCI_LIST_KEY);
     nsci = scis.size();
-    use_sources(sources,     SOURCES_OPT, SOURCES_KEY);
-    update_sources();
-    if (used_sources.length() == 0) {
-      ascii_header_set(header, SOURCES_KEY, "unset");
-      //std::cout << "  sources becomes unset" << '\n';
-    } else {
-      ascii_header_set(header, SOURCES_KEY, "%s", used_sources.c_str());
-      //std::cout << "  sources becomes " << used_sources << '\n';
-    }
-    if (!check_header()) {
-      std::cerr << "ERROR, storing " << SOURCES_KEY << " with value " << used_sources << " in header failed due to size restrictions. -> incomplete header due to clipping" << '\n';
-    }
+    parse_parameter(sources, sources_str, SOURCES_OPT, SOURCES_KEY);
   }
 
 }

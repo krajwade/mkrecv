@@ -76,11 +76,9 @@ namespace mkrecv
     for (std::vector<std::string>::iterator i = first_source; i != last_source; ++i)
       {
 	udp::resolver          resolver(thread_pool->get_io_service());
-	std::string::size_type pos = (*i).find_first_of(":");
-	std::string            nwadr = std::string((*i).data(), pos);
-	std::string            nwport = std::string((*i).data() + pos + 1, (*i).length() - pos - 1);
-	udp::resolver::query   query(nwadr, nwport);
+	udp::resolver::query   query((*i), opts->port);
 	udp::endpoint          endpoint = *resolver.resolve(query);
+	//std::cout << "make stream for " << (*i) << ":" << opts->port << '\n';
 	endpoints.push_back(endpoint);
       }
 #if SPEAD2_USE_IBV

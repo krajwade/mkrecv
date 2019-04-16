@@ -75,7 +75,7 @@ namespace mkrecv
     heaps_total++;
     bool ignore_heap = has_stopped;
     ignore_heap |= (ph->heap_cnt == 1);
-    ignore_heap |= ((heap_size != HEAP_SIZE_DEF) && (heap_size != size));
+    ignore_heap |= ((heap_size != 0) && (heap_size != size));
     ignore_heap |= ((std::size_t)(ph->n_items) < nindices);
     if (ignore_heap)
       {
@@ -117,7 +117,7 @@ namespace mkrecv
     if (!has_started && (dest_index == storage::DATA_DEST))
       {
 	// Extract payload size and heap size as long as we are in INIT_STATE
-	if (heap_size == HEAP_SIZE_DEF) heap_size = size;
+	if (heap_size == 0) heap_size = size;
 	std::cout << "first heap " << ph->heap_cnt << " size " << heap_size << '\n';
 	has_started = true;
       }

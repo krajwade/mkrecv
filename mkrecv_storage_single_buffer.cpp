@@ -10,7 +10,7 @@ namespace mkrecv
     std::size_t  temp_size  = MAX_TEMPORARY_SPACE;
     std::size_t  trash_size = MAX_TEMPORARY_SPACE;
 
-    if (heap_size != HEAP_SIZE_DEF)
+    if (heap_size != 0)
       {
 	std::size_t group_size;
 	group_size = heap_count*(heap_size + nsci*sizeof(spead2::s_item_pointer_t));
