@@ -161,8 +161,6 @@
 #define SCI_LIST_KEY       "SCI_LIST"
 #define SCI_LIST_DESC      "list of item pointers going into a side-channel inside a ringbuffer slot"
 
-#define VAL2STR(_x) #_x
-
 namespace po = boost::program_options;
 
 namespace mkrecv
