@@ -464,11 +464,11 @@ namespace mkrecv
       if(str_to == str_from) break;
       std::string               el_str(val_str.data() + str_from, str_to - str_from);
       std::string::size_type    el_from = 0, el_to, el_length;
-      int                       vals[5];
+      int                       vals[6];
       int                       nparts = 0;
       el_length = el_str.length();
-      while((el_from < el_length + 1) && (nparts != 5)) {
-	el_to = el_str.find_first_of(".+", el_from);
+      while((el_from < el_length + 1) && (nparts != 6)) {
+	el_to = el_str.find_first_of(".+:", el_from);
 	if(el_to == std::string::npos) el_to = el_length;
 	if(el_to == el_from) break;
 	std::string hel(el_str.data() + el_from, el_to - el_from);
@@ -482,20 +482,21 @@ namespace mkrecv
       }
       str_from = str_to + 1;
       if (nparts == 0) continue;
+      if (nparts < 6) vals[5] = 1;
       if (nparts < 5) vals[4] = 0;
-      //std::cout << "  IP sequence for " << vals[0] << "." << vals[1] << "." << vals[2] << "." << vals[3] << "+" << vals[4] << '\n';
-      vals[4]++; // the n means up to l+n _including_
-      while (vals[4] != 0) {
+      std::cout << "  IP sequence for " << vals[0] << "." << vals[1] << "." << vals[2] << "." << vals[3] << "+" << vals[4] << ":" << vals[5] << '\n';
+      vals[4] += 1; // the n means up to l+n _including_
+      while (vals[4] > 0) {
 	std::string ip_str;
 	char ip_adr[256];
 	snprintf(ip_adr, sizeof(ip_adr), "%d.%d.%d.%d", vals[0], vals[1], vals[2], vals[3]);
 	ip_str = ip_adr;
 	val.push_back(ip_str);
-	vals[3]++;
-	vals[4]--;
+	vals[3] += vals[5];
+	vals[4] -= vals[5];
       }
     }
-    /*
+    ///*
     std::cout << "item value list:";
     std::size_t i;
     for (i = 0; i < val.size(); i++)
@@ -503,7 +504,7 @@ namespace mkrecv
 	std::cout << " " << val.at(i) << "->" << i;
       }
     std::cout << '\n';
-    */
+    //*/
   }
 
   bool options::check_header()
