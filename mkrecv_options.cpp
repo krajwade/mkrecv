@@ -176,20 +176,28 @@ namespace mkrecv
   */
   void options::finalize_parameter(std::string &val, const char *opt, const char *key)
   {
-    bool store_in_header = false;
-    
     //std::cout << "finalize_parameter(" << val << ", " << opt << ", " << key << ")";
     if (vm.count(opt) != 0) { // Check if the parameter is given as program option
       // -> use the program option value already given in val and store it in the header file
       //std::cout << " option for " << opt << " is " << val;
-      store_in_header = true;
+      if (key[0] != '\0') {
+	if (val.length() == 0) {
+	  ascii_header_set(header, key, "unset");
+	  //std::cout << "  header becomes unset" << '\n';
+	} else {
+	  ascii_header_set(header, key, "%s", val.c_str());
+	  //std::cout << "  header becomes " << val << '\n';
+	}
+	if (!check_header()) {
+	  std::cerr << "ERROR, storing " << key << " with value " << val << " in header failed due to size restrictions. -> incomplete header due to clipping" << '\n';
+	}
+      }
     } else if (key[0] != '\0') { // Check if a value is given in the header file
       char sval[1024];
       if (ascii_header_get(header, key, "%s", sval) != -1) {
 	if (strcmp(sval, "unset") == 0) { // check if the value in the header is unset
-	  // -> use the default value already given in val and put it into the header file
+	  // -> use the default value already given in val
 	  //std::cout << " header unset, default for " << opt << " is " << val;
-	  store_in_header = true;
 	} else {
 	  // -> use the value from the header file
 	  val = sval;
@@ -197,19 +205,6 @@ namespace mkrecv
 	}
       } else {
 	//std::cout << " default for " << opt << " is " << val;
-	store_in_header = true;
-      }
-    }
-    if (store_in_header && (key[0] != '\0')) {
-      if (val.length() == 0) {
-	ascii_header_set(header, key, "unset");
-	//std::cout << "  header becomes unset" << '\n';
-      } else {
-	ascii_header_set(header, key, "%s", val.c_str());
-	//std::cout << "  header becomes " << val << '\n';
-      }
-      if (!check_header()) {
-	std::cerr << "ERROR, storing " << key << " with value " << val << " in header failed due to size restrictions. -> incomplete header due to clipping" << '\n';
       }
     }
     //std::cout << " -> " << val << '\n';
