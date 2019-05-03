@@ -118,6 +118,10 @@ namespace mkrecv
     opts = create_options();
     opts->parse_args(argc, argv);
     std::cout << opts->header << '\n';
+    if (opts->quiet)
+      {
+        psrdada_cpp::set_log_level("warning");
+      }
     for (i = 10; i < 18; i++)
       {
         affinity.push_back(i);
