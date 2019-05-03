@@ -98,7 +98,7 @@ namespace mkrecv
 #endif
     if ((state == INIT_STATE) && (dest_index == DATA_DEST))
       {
-	if (heap_size == HEAP_SIZE_DEF) heap_size = size;
+	if (heap_size == 0) heap_size = size;
 	state = SEQUENTIAL_STATE;
 	std::cout << "sizes: heap size " << heap_size << " count " << heap_count << " first " << timestamp_first << " step " << timestamp_step << '\n';
 	if (dest[DATA_DEST].active)

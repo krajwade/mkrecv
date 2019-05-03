@@ -382,7 +382,7 @@ namespace mkrecv
     nsci = opts->nsci;
     scis = opts->scis;
     // allocate memory
-    if (heap_size != HEAP_SIZE_DEF)
+    if (heap_size != 0)
       {
 	std::size_t group_size;
 	group_size = heap_count*(heap_size + nsci*sizeof(spead2::s_item_pointer_t));
@@ -403,7 +403,7 @@ namespace mkrecv
     dest[TEMP_DEST].allocate_buffer(memallocator, temp_size);
     dest[TRASH_DEST].allocate_buffer(memallocator, trash_size);
     cts_data = opts->nheaps_switch;
-    if (cts_data == NHEAPS_SWITCH_DEF)
+    if (cts_data == 0)
       {
 	cts_data = dest[TEMP_DEST].space/4;
 	if (cts_data < heap_count) cts_data = heap_count;
@@ -444,7 +444,7 @@ namespace mkrecv
     // Ignore heaps which have a id (cnt) equal to 1, the wrong heap size or if we have stopped
     bool ignore_heap = hasStopped;
     ignore_heap |= (ph->heap_cnt == 1);
-    ignore_heap |= ((heap_size != HEAP_SIZE_DEF) && (heap_size != size));
+    ignore_heap |= ((heap_size != 0) && (heap_size != size));
     ignore_heap |= ((std::size_t)(ph->n_items) < nindices);
     if (ignore_heap)
       {
@@ -490,7 +490,7 @@ namespace mkrecv
       {
 	// Extract payload size and heap size as long as we are in INIT_STATE
 	payload_size = ph->payload_length;
-	if (heap_size == HEAP_SIZE_DEF) heap_size = size;
+	if (heap_size == 0) heap_size = size;
 	dest[DATA_DEST].set_heap_size(heap_size, heap_count, 0, nsci);
 	dest[TEMP_DEST].set_heap_size(heap_size, heap_count, 0, nsci);
 	dest[TRASH_DEST].set_heap_size(heap_size, heap_count, 0, nsci);
