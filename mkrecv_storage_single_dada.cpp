@@ -4,13 +4,20 @@ namespace mkrecv
 {
 
   storage_single_dada::storage_single_dada(std::shared_ptr<mkrecv::options> hopts, key_t key, std::string mlname) :
-    storage_single_buffer(hopts, false),
+    storage_single_buffer(hopts, false, false),  // only TRASH_DEST is allocated
     mlog(mlname),
     dada(key, mlog),
     hdr(NULL)
   {
+    std::size_t    data_size = dada.data_buffer_size();
+    std::size_t    temp_size = data_size/2;
+
     hdr = &dada.header_stream().next();
-    dest[DATA_DEST].set_buffer(&dada.data_stream().next(), dada.data_buffer_size());
+    dest[DATA_DEST].set_buffer(&dada.data_stream().next(), data_size);
+
+    dest[TEMP_DEST].allocate_buffer(memallocator, temp_size);
+    std::cout << "dest[TEMP_DEST].ptr.ptr()  = " << (std::size_t)(dest[TEMP_DEST].ptr->ptr()) << '\n';
+
     header_thread = std::thread([this] ()
 				{
 				  this->proc_header();

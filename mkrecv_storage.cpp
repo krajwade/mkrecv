@@ -50,6 +50,8 @@ namespace mkrecv
 	heap_count *= count;
       }
     timestamp_step = opts->indices[0].step;
+    timestamp_mod  = (opts->indices[0].mod/timestamp_step)*timestamp_step; // enforce that timestamp_mod is a multiple of timestamp_step
+    if (timestamp_mod == 0) timestamp_mod = timestamp_step;
     nsci = opts->nsci;
     scis = opts->scis;
     memallocator = std::make_shared<spead2::mmap_allocator>(0, true);
@@ -100,6 +102,8 @@ namespace mkrecv
       {
 	if (heap_size == 0) heap_size = size;
 	state = SEQUENTIAL_STATE;
+	// ensure that at least 2 timesteps are skipped
+	timestamp_first = ((timestamp + timestamp_step + timestamp_mod) / timestamp_mod) * timestamp_mod;
 	std::cout << "sizes: heap size " << heap_size << " count " << heap_count << " first " << timestamp_first << " step " << timestamp_step << '\n';
 	if (dest[DATA_DEST].active)
 	  {
@@ -116,7 +120,6 @@ namespace mkrecv
 	    dest[TRASH_DEST].set_heap_size(heap_size, heap_count, 0, nsci);
 	    std::cout << "TRASH_DEST: capacity " << dest[TRASH_DEST].capacity << " space " << dest[TRASH_DEST].space << '\n';
 	  }
-	timestamp_first = timestamp + 2*timestamp_step; // 2 is a safety margin to avoid incomplete heaps
 	timestamp_data_count = dest[TEMP_DEST].capacity + ((dest[DATA_DEST].capacity - dest[TEMP_DEST].capacity)*opts->level_data)/100;
 	timestamp_temp_count = dest[DATA_DEST].capacity + (dest[TEMP_DEST].capacity*opts->level_temp)/100;
 	timestamp_temp_level = timestamp_first + timestamp_temp_count*timestamp_step;

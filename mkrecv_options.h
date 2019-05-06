@@ -15,6 +15,8 @@
 
 #include "dada_def.h"
 
+//#define COMBINED_IP_PORT
+
 #define MAX_INDEXPARTS 4
 
 #define DADA_TIMESTR "%Y-%m-%d-%H:%M:%S"
@@ -119,9 +121,13 @@
 #define IDX_ITEM_KEY      "IDX%d_ITEM"
 #define IDX_ITEM_DESC     "Item pointer index for index component %d"
 
-#define IDX_STEP_OPT      "idx%d-step"
-#define IDX_STEP_KEY      "IDX%d_STEP"
-#define IDX_STEP_DESC     "The difference between successive item pointer values for index component %d"
+#define IDX_STEP_OPT      "idx1-step"
+#define IDX_STEP_KEY      "IDX1_STEP"
+#define IDX_STEP_DESC     "The difference between successive timestamps"
+
+#define IDX_MOD_OPT       "idx1-modulo"
+#define IDX_MOD_KEY       "IDX1_MODULO"
+#define IDX_MOD_DESC      "Sets the first timestamp to a multiple of this value"
 
 #define IDX_MASK_OPT      "idx%d-mask"
 #define IDX_MASK_KEY      "IDX%d_MASK"
@@ -177,6 +183,8 @@ namespace mkrecv
     std::size_t                           mask     = 0xffffffffffff;  // IDXi_MASK
     std::string                           step_str = "0";
     std::size_t                           step     =  0;  // IDXi_STEP
+    std::string                           mod_str  = "0";
+    std::size_t                           mod      =  0;  // IDXi_MODULO
     std::string                           list     = "";  // IDXi_LIST
     std::vector<spead2::s_item_pointer_t> values;
   };

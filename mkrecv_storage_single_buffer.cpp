@@ -3,7 +3,7 @@
 namespace mkrecv
 {
 
-  storage_single_buffer::storage_single_buffer(std::shared_ptr<mkrecv::options> hopts, bool alloc_data) :
+  storage_single_buffer::storage_single_buffer(std::shared_ptr<mkrecv::options> hopts, bool alloc_data, bool alloc_temp) :
     storage(hopts)
   {
     std::size_t  data_size  = MAX_DATA_SPACE;
@@ -14,17 +14,20 @@ namespace mkrecv
       {
 	std::size_t group_size;
 	group_size = heap_count*(heap_size + nsci*sizeof(spead2::s_item_pointer_t));
-	data_size  = opts->ngroups_data*group_size; // N heap groups (N = option NGROUPS_DATA)
-	temp_size  = opts->ngroups_temp*group_size; // N heap groups (N = option NGROUPS_TEMP)
-	trash_size =                    group_size; // 1 heap group
+	data_size  = opts->ngroups_data  *group_size; // N   heap groups (N = option NGROUPS_DATA)
+	temp_size  = opts->ngroups_data/2*group_size; // N/2 heap groups (N = option NGROUPS_DATA)
+	trash_size =                      group_size; // 1   heap group
       }
     if (alloc_data)
       {
 	dest[DATA_DEST].allocate_buffer(memallocator, data_size);
 	std::cout << "dest[DATA_DEST].ptr.ptr()  = " << (std::size_t)(dest[DATA_DEST].ptr->ptr()) << '\n';
       }
-    dest[TEMP_DEST].allocate_buffer(memallocator, temp_size);
-    std::cout << "dest[TEMP_DEST].ptr.ptr()  = " << (std::size_t)(dest[TEMP_DEST].ptr->ptr()) << '\n';
+    if (alloc_temp)
+      {
+	dest[TEMP_DEST].allocate_buffer(memallocator, temp_size);
+	std::cout << "dest[TEMP_DEST].ptr.ptr()  = " << (std::size_t)(dest[TEMP_DEST].ptr->ptr()) << '\n';
+      }
     dest[TRASH_DEST].allocate_buffer(memallocator, trash_size);
     std::cout << "dest[TRASH_DEST].ptr.ptr() = " << (std::size_t)(dest[TRASH_DEST].ptr->ptr()) << '\n';
   }

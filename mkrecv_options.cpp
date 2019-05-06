@@ -445,6 +445,11 @@ namespace mkrecv
     */
   }
 
+  /*
+    two kinds of notation:
+    1. <a0> "." <a1> "." <a2> "." <a3> [ "+" <offset> [ "|" <step> ] ] [ ":" <port> ] .
+    2. <a0> "." <a1> "." <a2> "." <a3> [ "+" <offset> [ ":" <step> ] ] .
+   */
   void options::parse_parameter(std::vector<std::string> &val, std::string &val_str, const char *opt, const char *key)
   {
     std::string::size_type str_from = 0, str_to, str_length;
@@ -459,33 +464,107 @@ namespace mkrecv
       if(str_to == str_from) break;
       std::string               el_str(val_str.data() + str_from, str_to - str_from);
       std::string::size_type    el_from = 0, el_to, el_length;
-      int                       vals[6];
-      int                       nparts = 0;
+      int                       vals[8];
+      int                       nadr = 0;
+      int                       ipart;
+      char                      pch = '.'; // prefix char: '.' -> address byte, '+' -> offset, '|' -> step, ':' -> port
+      bool                      isok = true;
+#ifdef COMBINED_IP_PORT
+      bool                      has_port = false;
+#endif
+      for (ipart = 0; ipart < 8; ipart++) vals[ipart] = 0;
       el_length = el_str.length();
-      while((el_from < el_length + 1) && (nparts != 6)) {
-	el_to = el_str.find_first_of(".+:", el_from);
+      while((el_from < el_length + 1)) {
+	el_to = el_str.find_first_of(".+|:", el_from);
 	if(el_to == std::string::npos) el_to = el_length;
 	if(el_to == el_from) break;
 	std::string hel(el_str.data() + el_from, el_to - el_from);
-	if (!parse_fixnum(vals[nparts], hel)) {
-	  std::cerr << "Exception: cannot convert " << hel << " at position " << str_from << " into std::size_t for option " << opt << "/" << key << '\n';
-	  nparts = 0;
+#ifdef COMBINED_IP_PORT
+	// 0 .. 3  = address part
+	// 4       = offset
+	// 5       = step;
+	// 6       = port
+	// 7       = trash/unknown
+	switch (pch) {
+	case '.':
+	  if (nadr < 4) {
+	    ipart = nadr++;
+	  } else {
+	    ipart = 7; // -> trash
+	  }
+	  break;
+	case '+':
+	  ipart = 4;
+	  break;
+	case '|':
+	  ipart = 5;
+	  break;
+	case ':':
+	  ipart = 6;
+	  has_port = true;
+	  break;
+	default:
+	  ipart = 7; // -> trash
+	}
+#else
+	// 0 .. 3  = address part
+	// 4       = offset
+	// 5       = step;
+	// 7       = trash/unknown
+	switch (pch) {
+	case '.':
+	  if (nadr < 4) {
+	    ipart = nadr++;
+	  } else {
+	    ipart = 7; // -> trash
+	  }
+	  break;
+	case '+':
+	  ipart = 4;
+	  break;
+	case ':':
+	  ipart = 5;
+	  break;
+	default:
+	  ipart = 7; // -> trash
+	}
+#endif
+	if (!parse_fixnum(vals[ipart], hel)) {
+	  std::cerr << "Exception: cannot convert " << hel << " at position " << str_from << " into int for option " << opt << "/" << key << '\n';
+	  isok = false;
 	  break;
 	}
-	nparts++;
+	if (el_to < el_length) pch = el_str.at(el_to);
 	el_from = el_to + 1;
       }
       str_from = str_to + 1;
-      if (nparts == 0) continue;
-      if (nparts < 6) vals[5] = 1;
-      if (nparts < 5) vals[4] = 0;
+      if (!isok) continue;
+      if (nadr != 4) {
+	std::cerr << "Not a valid IPv4 address, less than 4 address bytes: " << el_str << '\n';
+	continue;
+      }
+      if (vals[5] == 0) vals[5] = 1;
+#ifdef COMBINED_IP_PORT
+      std::cout << "  IP sequence for " << vals[0] << "." << vals[1] << "." << vals[2] << "." << vals[3] << "+" << vals[4] << "|" << vals[5] << ":" << vals[6] << '\n';
+#else
       std::cout << "  IP sequence for " << vals[0] << "." << vals[1] << "." << vals[2] << "." << vals[3] << "+" << vals[4] << ":" << vals[5] << '\n';
+#endif
       vals[4] += 1; // the n means up to l+n _including_
       while (vals[4] > 0) {
 	std::string ip_str;
 	char ip_adr[256];
 	snprintf(ip_adr, sizeof(ip_adr), "%d.%d.%d.%d", vals[0], vals[1], vals[2], vals[3]);
 	ip_str = ip_adr;
+#ifdef COMBINED_IP_PORT
+	ip_str += ":";
+	if (has_port) {
+	  char ip_port[16];
+	  snprintf(ip_port, sizeof(ip_adr), "%d", vals[6]);
+	  ip_str += ip_port;
+	} else {
+	  ip_str += port;
+	}
+#endif
 	val.push_back(ip_str);
 	vals[3] += vals[5];
 	vals[4] -= vals[5];
@@ -558,21 +637,20 @@ namespace mkrecv
 	char olabel[32];
 	char odesc[255];
 	snprintf(olabel, sizeof(olabel) - 1, IDX_ITEM_OPT,  i+1);
-	snprintf(odesc,  sizeof(odesc) - 1,  IDX_ITEM_DESC, i+1);
+	snprintf(odesc,  sizeof(odesc)  - 1, IDX_ITEM_DESC, i+1);
 	desc.add_options()(olabel, make_opt(indices[i].item_str), odesc);
 	if (i == 0)
 	  {
-	    snprintf(olabel, sizeof(olabel) - 1, IDX_STEP_OPT,  i+1);
-	    snprintf(odesc,  sizeof(odesc) - 1,  IDX_STEP_DESC, i+1);
-	    desc.add_options()(olabel, make_opt(indices[i].step_str), odesc);
+	    desc.add_options()(IDX_STEP_OPT, make_opt(indices[i].step_str), IDX_STEP_DESC);
+	    desc.add_options()(IDX_MOD_OPT,  make_opt(indices[i].mod_str),  IDX_MOD_DESC);
 	  }
 	else
 	  {
-	    snprintf(olabel, sizeof(olabel) - 1, IDX_MASK_OPT, i+1);
-	    snprintf(odesc,  sizeof(odesc) - 1,  IDX_MASK_DESC, i+1);
+	    snprintf(olabel, sizeof(olabel) - 1, IDX_MASK_OPT,  i+1);
+	    snprintf(odesc,  sizeof(odesc)  - 1, IDX_MASK_DESC, i+1);
 	    desc.add_options()(olabel, make_opt(indices[i].mask_str), odesc);
-	    snprintf(olabel, sizeof(olabel) - 1, IDX_LIST_OPT, i+1);
-	    snprintf(odesc,  sizeof(odesc) - 1,  IDX_LIST_DESC, i+1);
+	    snprintf(olabel, sizeof(olabel) - 1, IDX_LIST_OPT,  i+1);
+	    snprintf(odesc,  sizeof(odesc)  - 1, IDX_LIST_DESC, i+1);
 	    desc.add_options()(olabel, make_opt(indices[i].list), odesc);
 	  }
       }
@@ -630,9 +708,8 @@ namespace mkrecv
 	parse_parameter(indices[i].item, indices[i].item_str, iopt, ikey);
 	if (i == 0)
 	  {
-	    snprintf(iopt, sizeof(iopt) - 1, IDX_STEP_OPT, i+1);
-	    snprintf(ikey, sizeof(ikey) - 1, IDX_STEP_KEY, i+1);
-	    parse_parameter(indices[i].step, indices[i].step_str, iopt, ikey);
+	    parse_parameter(indices[i].step, indices[i].step_str, IDX_STEP_OPT, IDX_STEP_KEY);
+	    parse_parameter(indices[i].mod,  indices[i].mod_str,  IDX_MOD_OPT,  IDX_MOD_KEY);
 	  }
 	else
 	  {

@@ -66,6 +66,7 @@ namespace mkrecv
     std::size_t                        heap_count;  // number of heaps inside one group
     spead2::s_item_pointer_t           timestamp_first = 0;  // serial number of the first group (needed for index calculation)
     spead2::s_item_pointer_t           timestamp_step = 0;   // the serial number difference between consecutive groups
+    spead2::s_item_pointer_t           timestamp_mod  = 0;   // first timestamp is a multiple of this value
     spead2::s_item_pointer_t           timestamp_data_count = 0;
     spead2::s_item_pointer_t           timestamp_temp_count = 0;
     spead2::s_item_pointer_t           timestamp_data_level = 0; // timestamp for switching to sequential mode

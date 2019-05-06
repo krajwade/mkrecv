@@ -10,7 +10,7 @@ namespace mkrecv
   class storage_single_buffer : public storage
   {
   public:
-    storage_single_buffer(std::shared_ptr<mkrecv::options> opts, bool alloc_data = true);
+    storage_single_buffer(std::shared_ptr<mkrecv::options> opts, bool alloc_data = true, bool alloc_temp = true);
     ~storage_single_buffer();
     void request_stop();
     bool is_stopped();
