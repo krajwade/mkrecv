@@ -176,17 +176,17 @@ namespace mkrecv
   */
   void options::finalize_parameter(std::string &val, const char *opt, const char *key)
   {
-    //std::cout << "finalize_parameter(" << val << ", " << opt << ", " << key << ")";
+    if (!quiet) std::cout << "finalize_parameter(" << val << ", " << opt << ", " << key << ")";
     if (vm.count(opt) != 0) { // Check if the parameter is given as program option
       // -> use the program option value already given in val and store it in the header file
-      //std::cout << " option for " << opt << " is " << val;
+      if (!quiet) std::cout << " option for " << opt << " is " << val;
       if (key[0] != '\0') {
 	if (val.length() == 0) {
 	  ascii_header_set(header, key, "unset");
-	  //std::cout << "  header becomes unset" << '\n';
+	  if (!quiet) std::cout << "  header becomes unset" << '\n';
 	} else {
 	  ascii_header_set(header, key, "%s", val.c_str());
-	  //std::cout << "  header becomes " << val << '\n';
+	  if (!quiet) std::cout << "  header becomes " << val << '\n';
 	}
 	if (!check_header()) {
 	  std::cerr << "ERROR, storing " << key << " with value " << val << " in header failed due to size restrictions. -> incomplete header due to clipping" << '\n';
@@ -197,17 +197,17 @@ namespace mkrecv
       if (ascii_header_get(header, key, "%s", sval) != -1) {
 	if (strcmp(sval, "unset") == 0) { // check if the value in the header is unset
 	  // -> use the default value already given in val
-	  //std::cout << " header unset, default for " << opt << " is " << val;
+	  if (!quiet) std::cout << " header unset, default for " << opt << " is " << val;
 	} else {
 	  // -> use the value from the header file
 	  val = sval;
-	  //std::cout << " header for " << opt << " is " << val;
+	  if (!quiet) std::cout << " header for " << opt << " is " << val;
 	}
       } else {
-	//std::cout << " default for " << opt << " is " << val;
+	if (!quiet) std::cout << " default for " << opt << " is " << val;
       }
     }
-    //std::cout << " -> " << val << '\n';
+    if (!quiet) std::cout << " -> " << val << '\n';
   }
 
   bool options::parse_fixnum(int &val, std::string &val_str)
@@ -295,7 +295,7 @@ namespace mkrecv
 	  }
 	}
       }
-    //std::cout << opt << "/" << key << " = " << val << '\n';
+    if (!quiet) std::cout << opt << "/" << key << " = " << val << '\n';
   }
 
   void options::parse_parameter(std::size_t &val, std::string &val_str, const char *opt, const char *key)
@@ -314,7 +314,7 @@ namespace mkrecv
 	  }
 	}
       }
-    //std::cout << opt << "/" << key << " = " << val << '\n';
+    if (!quiet) std::cout << opt << "/" << key << " = " << val << '\n';
   }
 
   void options::parse_parameter(double &val, std::string &val_str, const char *opt, const char *key)
@@ -334,7 +334,7 @@ namespace mkrecv
 	}
       }
     }
-    //std::cout << opt << "/" << key << " = " << val << '\n';
+    if (!quiet) std::cout << opt << "/" << key << " = " << val << '\n';
   }
 
   /*
@@ -377,22 +377,22 @@ namespace mkrecv
       }
       if (nparts < 3) vals[2] = 1;           // <first> ':' <last>  => <step> := 1
       if (nparts < 2) vals[1] = vals[0] + 1; // <first>             => <step> := 1, <last> := <first> + 1
-      //std::cout << "  sequence from " << vals[0] << " to " << vals[1] << " (excluding) with step " << vals[2] << '\n';
+      if (!quiet) std::cout << "  sequence from " << vals[0] << " to " << vals[1] << " (excluding) with step " << vals[2] << '\n';
       while (vals[0] < vals[1]) {
 	val.push_back(vals[0]);
 	vals[0] += vals[2];
       }
       str_from = str_to + 1;
     }
-    /*
-    std::cout << "item value list:";
-    std::size_t i;
-    for (i = 0; i < val.size(); i++)
-      {
-	std::cout << " " << val.at(i) << "->" << i;
-      }
-    std::cout << '\n';
-    */
+    if (!quiet) {
+      std::cout << "item value list:";
+      std::size_t i;
+      for (i = 0; i < val.size(); i++)
+	{
+	  std::cout << " " << val.at(i) << "->" << i;
+	}
+      std::cout << '\n';
+    }
   }
 
   void options::parse_parameter(std::vector<std::size_t> &val, std::string &val_str, const char *opt, const char *key)
@@ -427,22 +427,22 @@ namespace mkrecv
       }
       if (nparts < 3) vals[2] = 1;           // <first> ':' <last>  => <step> := 1
       if (nparts < 2) vals[1] = vals[0] + 1; // <first>             => <step> := 1, <last> := <first> + 1
-      //std::cout << "  sequence from " << vals[0] << " to " << vals[1] << " (excluding) with step " << vals[2] << '\n';
+      if (!quiet) std::cout << "  sequence from " << vals[0] << " to " << vals[1] << " (excluding) with step " << vals[2] << '\n';
       while (vals[0] < vals[1]) {
 	val.push_back(vals[0]);
 	vals[0] += vals[2];
       }
       str_from = str_to + 1;
     }
-    /*
-    std::cout << "item value list:";
-    std::size_t i;
-    for (i = 0; i < val.size(); i++)
-      {
-	std::cout << " " << val.at(i) << "->" << i;
-      }
-    std::cout << '\n';
-    */
+    if (!quiet) {
+      std::cout << "item value list:";
+      std::size_t i;
+      for (i = 0; i < val.size(); i++)
+	{
+	  std::cout << " " << val.at(i) << "->" << i;
+	}
+      std::cout << '\n';
+    }
   }
 
   /*
@@ -545,9 +545,9 @@ namespace mkrecv
       }
       if (vals[5] == 0) vals[5] = 1;
 #ifdef COMBINED_IP_PORT
-      std::cout << "  IP sequence for " << vals[0] << "." << vals[1] << "." << vals[2] << "." << vals[3] << "+" << vals[4] << "|" << vals[5] << ":" << vals[6] << '\n';
+      if (!quiet) std::cout << "  IP sequence for " << vals[0] << "." << vals[1] << "." << vals[2] << "." << vals[3] << "+" << vals[4] << "|" << vals[5] << ":" << vals[6] << '\n';
 #else
-      std::cout << "  IP sequence for " << vals[0] << "." << vals[1] << "." << vals[2] << "." << vals[3] << "+" << vals[4] << ":" << vals[5] << '\n';
+      if (!quiet) std::cout << "  IP sequence for " << vals[0] << "." << vals[1] << "." << vals[2] << "." << vals[3] << "+" << vals[4] << ":" << vals[5] << '\n';
 #endif
       vals[4] += 1; // the n means up to l+n _including_
       while (vals[4] > 0) {
@@ -570,15 +570,15 @@ namespace mkrecv
 	vals[4] -= vals[5];
       }
     }
-    ///*
-    std::cout << "item value list:";
-    std::size_t i;
-    for (i = 0; i < val.size(); i++)
-      {
-	std::cout << " " << val.at(i) << "->" << i;
-      }
-    std::cout << '\n';
-    //*/
+    if (!quiet) {
+      std::cout << "item value list:";
+      std::size_t i;
+      for (i = 0; i < val.size(); i++)
+	{
+	  std::cout << " " << val.at(i) << "->" << i;
+	}
+      std::cout << '\n';
+    }
   }
 
   bool options::check_header()

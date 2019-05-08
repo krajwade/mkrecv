@@ -19,11 +19,13 @@ namespace mkrecv
     mask  = opt.mask;
     step  = opt.step;
     count = opt.values.size();
+    //std::cout << "count " << count << " list items\n";
     if (count == 0) count = 1;
     for (i = 0; i < opt.values.size(); i++)
       {
 	values.push_back(opt.values[i]);
 	value2index[opt.values[i]] = i;
+	//std::cout << "  map " << opt.values[i] << " to " << i << '\n';
       }
   }
 
