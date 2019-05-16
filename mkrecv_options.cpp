@@ -92,7 +92,20 @@ namespace mkrecv
 	*/
 	if (vm.count("source"))
 	  {
-	    sources = vm["source"].as<std::vector<std::string>>();
+	    sources_opt = vm["source"].as<std::vector<std::string>>();
+	    if (sources_opt.size() != 0)
+	      {
+		bool is_first = true;
+		for (std::vector<std::string>::iterator ipi = sources_opt.begin(); ipi != sources_opt.end(); ++ipi)
+		  {
+		    if (!is_first)
+		      {
+			sources_str += ',';
+		      }
+		    sources_str += *ipi;
+		    is_first = false;
+		  }
+	      }
 	  }
 	//if (hdrname != "")
 	if (vm.count(HEADER_OPT) != 0)

@@ -226,6 +226,7 @@ namespace mkrecv
     std::string               udp_if              = "";
     std::string               port                = "";
     std::string               sources_str         = "";
+    std::vector<std::string>  sources_opt;
     std::vector<std::string>  sources;
     std::string               sync_epoch_str      = "0";
     double                    sync_epoch          =  0;
