@@ -172,20 +172,26 @@ namespace po = boost::program_options;
 namespace mkrecv
 {
 
-  static const char  ASCII_HEADER_SENTINEL = 4;
+  static constexpr char  ASCII_HEADER_SENTINEL = 4;
+  typedef enum {DEFAULT_USED, CONFIG_USED, OPTION_USED} USED_TYPE;
 
   class index_options
   {
   public:
-    std::string                           item_str = "0";
-    std::size_t                           item     =  0;  // IDXi_ITEM
-    std::string                           mask_str = "0xffffffffffff";
-    std::size_t                           mask     = 0xffffffffffff;  // IDXi_MASK
-    std::string                           step_str = "0";
-    std::size_t                           step     =  0;  // IDXi_STEP
-    std::string                           mod_str  = "0";
-    std::size_t                           mod      =  0;  // IDXi_MODULO
-    std::string                           list     = "";  // IDXi_LIST
+    std::string                           item_str       = "0";
+    USED_TYPE                             item_used_type = DEFAULT_USED;
+    std::size_t                           item           =  0;  // IDXi_ITEM
+    std::string                           mask_str       = "0xffffffffffff";
+    USED_TYPE                             mask_used_type = DEFAULT_USED;
+    std::size_t                           mask           = 0xffffffffffff;  // IDXi_MASK
+    std::string                           step_str       = "0";
+    USED_TYPE                             step_used_type = DEFAULT_USED;
+    std::size_t                           step           =  0;  // IDXi_STEP
+    std::string                           mod_str        = "0";
+    USED_TYPE                             mod_used_type  = DEFAULT_USED;
+    std::size_t                           mod            =  0;  // IDXi_MODULO
+    std::string                           list           = "";  // IDXi_LIST
+    USED_TYPE                             list_used_type = DEFAULT_USED;
     std::vector<spead2::s_item_pointer_t> values;
   };
 
@@ -271,18 +277,19 @@ namespace mkrecv
     virtual void create_args();
     virtual void apply_header();
   protected:
-    void finalize_parameter(std::string &val_str, const char *opt, const char *key);
+    USED_TYPE finalize_parameter(std::string &val_str, const char *opt, const char *key);
     bool parse_fixnum(int &val, std::string &val_str);
     bool parse_fixnum(spead2::s_item_pointer_t &val, std::string &val_str);
     bool parse_fixnum(std::size_t &val, std::string &val_str);
-    void parse_parameter(std::string &val, const char *opt, const char *key);
-    void parse_parameter(int &val, std::string &val_str, const char *opt, const char *key);
-    void parse_parameter(std::size_t &val, std::string &val_str, const char *opt, const char *key);
-    void parse_parameter(double &val, std::string &val_str, const char *opt, const char *key);
-    void parse_parameter(bool &val, std::string &val_str, const char *opt, const char *key);
-    void parse_parameter(std::vector<spead2::s_item_pointer_t> &val, std::string &val_str, const char *opt, const char *key);
-    void parse_parameter(std::vector<std::size_t> &val, std::string &val_str, const char *opt, const char *key);
-    void parse_parameter(std::vector<std::string> &val, std::string &val_str, const char *opt, const char *key);
+    USED_TYPE parse_parameter(std::string &val, const char *opt, const char *key);
+    USED_TYPE parse_parameter(int &val, std::string &val_str, const char *opt, const char *key);
+    USED_TYPE parse_parameter(std::size_t &val, std::string &val_str, const char *opt, const char *key);
+    USED_TYPE parse_parameter(double &val, std::string &val_str, const char *opt, const char *key);
+    USED_TYPE parse_parameter(bool &val, std::string &val_str, const char *opt, const char *key);
+    USED_TYPE parse_parameter(std::vector<spead2::s_item_pointer_t> &val, std::string &val_str, const char *opt, const char *key);
+    USED_TYPE parse_parameter(std::vector<std::size_t> &val, std::string &val_str, const char *opt, const char *key);
+    USED_TYPE parse_parameter(std::vector<std::string> &val, std::string &val_str, const char *opt, const char *key);
+    bool check_index_specification();
   };
 
 }

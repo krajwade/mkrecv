@@ -187,11 +187,13 @@ namespace mkrecv
     2. The parameter is set in the header file but not as a program option, this value does overwrite the default value and it is stored in the header file (unchanged).
     3. Only the default value is given, this value is stored in the header file (unchanged).
   */
-  void options::finalize_parameter(std::string &val, const char *opt, const char *key)
+  USED_TYPE options::finalize_parameter(std::string &val, const char *opt, const char *key)
   {
+    USED_TYPE ut;
     if (!quiet) std::cout << "finalize_parameter(" << val << ", " << opt << ", " << key << ")";
     if (vm.count(opt) != 0) { // Check if the parameter is given as program option
       // -> use the program option value already given in val and store it in the header file
+      ut = OPTION_USED;
       if (!quiet) std::cout << " option for " << opt << " is " << val;
       if (key[0] != '\0') {
 	if (val.length() == 0) {
@@ -210,17 +212,21 @@ namespace mkrecv
       if (ascii_header_get(header, key, "%s", sval) != -1) {
 	if (strcmp(sval, "unset") == 0) { // check if the value in the header is unset
 	  // -> use the default value already given in val
+	  ut = DEFAULT_USED;
 	  if (!quiet) std::cout << " header unset, default for " << opt << " is " << val;
 	} else {
 	  // -> use the value from the header file
+	  ut = CONFIG_USED;
 	  val = sval;
 	  if (!quiet) std::cout << " header for " << opt << " is " << val;
 	}
       } else {
+	ut = DEFAULT_USED;
 	if (!quiet) std::cout << " default for " << opt << " is " << val;
       }
     }
     if (!quiet) std::cout << " -> " << val << '\n';
+    return ut;
   }
 
   bool options::parse_fixnum(int &val, std::string &val_str)
@@ -286,15 +292,16 @@ namespace mkrecv
     }
   }
 
-  void options::parse_parameter(std::string &val, const char *opt, const char *key)
+  USED_TYPE options::parse_parameter(std::string &val, const char *opt, const char *key)
   {
-    finalize_parameter(val, opt, key);
+    USED_TYPE ut = finalize_parameter(val, opt, key);
     //std::cout << opt << "/" << key << " = " << val << '\n';
+    return ut;
   }
 
-  void options::parse_parameter(int &val, std::string &val_str, const char *opt, const char *key)
+  USED_TYPE options::parse_parameter(int &val, std::string &val_str, const char *opt, const char *key)
   {
-    finalize_parameter(val_str, opt, key);
+    USED_TYPE ut = finalize_parameter(val_str, opt, key);
     // we have the final value in val_str -> convert it into an integer number according to an optional prefix
     if (!parse_fixnum(val, val_str))
       {
@@ -309,11 +316,12 @@ namespace mkrecv
 	}
       }
     if (!quiet) std::cout << opt << "/" << key << " = " << val << '\n';
+    return ut;
   }
 
-  void options::parse_parameter(std::size_t &val, std::string &val_str, const char *opt, const char *key)
+  USED_TYPE options::parse_parameter(std::size_t &val, std::string &val_str, const char *opt, const char *key)
   {
-    finalize_parameter(val_str, opt, key);
+    USED_TYPE ut = finalize_parameter(val_str, opt, key);
     // we have the final value in val_str -> convert it into an integer number according to an optional prefix
     if (!parse_fixnum(val, val_str))
       {
@@ -328,11 +336,12 @@ namespace mkrecv
 	}
       }
     if (!quiet) std::cout << opt << "/" << key << " = " << val << '\n';
+    return ut;
   }
 
-  void options::parse_parameter(double &val, std::string &val_str, const char *opt, const char *key)
+  USED_TYPE options::parse_parameter(double &val, std::string &val_str, const char *opt, const char *key)
   {
-    finalize_parameter(val_str, opt, key);
+    USED_TYPE ut = finalize_parameter(val_str, opt, key);
     // we have the final value in val_str -> convert it into an integer number according to an optional prefix
     try {
       val = std::stod(val_str, nullptr);
@@ -348,6 +357,7 @@ namespace mkrecv
       }
     }
     if (!quiet) std::cout << opt << "/" << key << " = " << val << '\n';
+    return ut;
   }
 
   /*
@@ -358,11 +368,11 @@ namespace mkrecv
     <element> := <number> | ( <first> ":" <last> ":" <step> ) .
     <number>  := <decimal> | <hexadecimal> | <binary> .
    */
-  void options::parse_parameter(std::vector<spead2::s_item_pointer_t> &val, std::string &val_str, const char *opt, const char *key)
+  USED_TYPE options::parse_parameter(std::vector<spead2::s_item_pointer_t> &val, std::string &val_str, const char *opt, const char *key)
   {
     std::string::size_type str_from = 0, str_to, str_length;
 
-    finalize_parameter(val_str, opt, key);
+    USED_TYPE ut = finalize_parameter(val_str, opt, key);
     // we have the final value in val_str -> convert it into an list of integer number according to an optional prefix and with range support
     val.clear();
     str_length = val_str.length();
@@ -406,13 +416,14 @@ namespace mkrecv
 	}
       std::cout << '\n';
     }
+    return ut;
   }
 
-  void options::parse_parameter(std::vector<std::size_t> &val, std::string &val_str, const char *opt, const char *key)
+  USED_TYPE options::parse_parameter(std::vector<std::size_t> &val, std::string &val_str, const char *opt, const char *key)
   {
     std::string::size_type str_from = 0, str_to, str_length;
 
-    finalize_parameter(val_str, opt, key);
+    USED_TYPE ut = finalize_parameter(val_str, opt, key);
     // we have the final value in val_str -> convert it into an list of integer number according to an optional prefix and with range support
     val.clear();
     str_length = val_str.length();
@@ -456,6 +467,7 @@ namespace mkrecv
 	}
       std::cout << '\n';
     }
+    return ut;
   }
 
   /*
@@ -463,11 +475,11 @@ namespace mkrecv
     1. <a0> "." <a1> "." <a2> "." <a3> [ "+" <offset> [ "|" <step> ] ] [ ":" <port> ] .
     2. <a0> "." <a1> "." <a2> "." <a3> [ "+" <offset> [ ":" <step> ] ] .
    */
-  void options::parse_parameter(std::vector<std::string> &val, std::string &val_str, const char *opt, const char *key)
+  USED_TYPE options::parse_parameter(std::vector<std::string> &val, std::string &val_str, const char *opt, const char *key)
   {
     std::string::size_type str_from = 0, str_to, str_length;
 
-    finalize_parameter(val_str, opt, key);
+    USED_TYPE ut = finalize_parameter(val_str, opt, key);
     // we have the final value in val_str -> convert it into an list of IPs allowing "i.j.k.l+n" notation
     val.clear();
     str_length = val_str.length();
@@ -592,6 +604,38 @@ namespace mkrecv
 	}
       std::cout << '\n';
     }
+    return ut;
+  }
+
+  bool options::check_index_specification()
+  {
+    int i;
+    bool  result = true;
+
+    // check 1. index specification (timestamp)
+    if (nindices == 0) {
+      std::cerr << "ERROR: at least the first index (timestamp/serial number) must be specified\n";
+      result = false;
+    }
+    if (indices[0].item_used_type == DEFAULT_USED) {
+      std::cerr << "ERROR: please specify the item pointer which contains the timestamp/serial number (IDX1_ITEM)\n";
+      result = false;
+    }
+    if (indices[0].step_used_type == DEFAULT_USED) {
+      std::cerr << "ERROR: please specify the difference between successivee timestamp/serial numbers (IDX1_STEP)\n";
+      result = false;
+    }
+    for (i = 1; i < nindices; i++) {
+      if (indices[i].item_used_type == DEFAULT_USED) {
+	std::cerr << "ERROR: please specify the item pointer which contains the index value (IDX" << (i+1) << "_ITEM)\n";
+	result = false;
+      }
+      if (indices[i].list_used_type == DEFAULT_USED) {
+	std::cerr << "ERROR: please specify the item pointer values (IDX" << (i+1) << "_LIST)\n";
+	result = false;
+      }
+    }
+    return result;
   }
 
   bool options::check_header()
@@ -718,25 +762,29 @@ namespace mkrecv
 	char ikey[32];
 	snprintf(iopt, sizeof(iopt) - 1, IDX_ITEM_OPT, i+1);
 	snprintf(ikey, sizeof(ikey) - 1, IDX_ITEM_KEY, i+1);
-	parse_parameter(indices[i].item, indices[i].item_str, iopt, ikey);
+	indices[i].item_used_type = parse_parameter(indices[i].item, indices[i].item_str, iopt, ikey);
 	if (i == 0)
 	  {
-	    parse_parameter(indices[i].step, indices[i].step_str, IDX_STEP_OPT, IDX_STEP_KEY);
-	    parse_parameter(indices[i].mod,  indices[i].mod_str,  IDX_MOD_OPT,  IDX_MOD_KEY);
+	    indices[i].step_used_type = parse_parameter(indices[i].step, indices[i].step_str, IDX_STEP_OPT, IDX_STEP_KEY);
+	    indices[i].mod_used_type  = parse_parameter(indices[i].mod,  indices[i].mod_str,  IDX_MOD_OPT,  IDX_MOD_KEY);
 	  }
 	else
 	  {
 	    snprintf(iopt, sizeof(iopt) - 1, IDX_MASK_OPT, i+1);
 	    snprintf(ikey, sizeof(ikey) - 1, IDX_MASK_KEY, i+1);
-	    parse_parameter(indices[i].mask, indices[i].mask_str, iopt, ikey);
+	    indices[i].mask_used_type = parse_parameter(indices[i].mask, indices[i].mask_str, iopt, ikey);
 	    snprintf(iopt, sizeof(iopt) - 1, IDX_LIST_OPT, i+1);
 	    snprintf(ikey, sizeof(ikey) - 1, IDX_LIST_KEY, i+1);
-	    parse_parameter(indices[i].values, indices[i].list, iopt, ikey);
+	    indices[i].list_used_type = parse_parameter(indices[i].values, indices[i].list, iopt, ikey);
 	  }
       }
     parse_parameter(scis, sci_list, SCI_LIST_OPT, SCI_LIST_KEY);
     nsci = scis.size();
     parse_parameter(sources, sources_str, SOURCES_OPT, SOURCES_KEY);
+    if (!check_index_specification()) {
+      std::cerr << "ABORTING: please change your program options and/or the configuration file\n";
+      exit(-1);
+    }
   }
 
 }
