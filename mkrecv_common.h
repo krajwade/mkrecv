@@ -5,6 +5,8 @@
 //#define USE_STD_MUTEX                 1
 //#define ENABLE_CORE_MUTEX  1
 
+#define SCI_EMPTY -1
+
 namespace mkrecv {
 
   template<class T>

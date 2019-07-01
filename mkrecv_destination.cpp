@@ -1,5 +1,6 @@
 #include <cstdlib>
 
+#include "mkrecv_common.h"
 #include "mkrecv_destination.h"
 
 namespace mkrecv {
@@ -72,7 +73,7 @@ namespace mkrecv {
 	sci = new spead2::s_item_pointer_t[space*nbsci];
 	for (i = 0; i < space*nbsci; i++)
 	  {
-	    sci[i] = 0;
+	    sci[i] = SCI_EMPTY;
 	  }
       }
   }

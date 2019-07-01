@@ -1,3 +1,4 @@
+#include "mkrecv_common.h"
 #include "mkrecv_storage_single_dada.h"
 
 namespace mkrecv
@@ -70,7 +71,7 @@ namespace mkrecv
 									+ dest[DATA_DEST].size
 									- dest[DATA_DEST].space*nsci*sizeof(spead2::s_item_pointer_t));
       memcpy(sci_base, dest[DATA_DEST].sci, dest[DATA_DEST].space*nsci*sizeof(spead2::s_item_pointer_t));
-      memset(dest[DATA_DEST].sci, 0, dest[DATA_DEST].space*nsci*sizeof(spead2::s_item_pointer_t));
+      memset(dest[DATA_DEST].sci, SCI_EMPTY, dest[DATA_DEST].space*nsci*sizeof(spead2::s_item_pointer_t));
       // Release the current slot and get a new one
       dest[DATA_DEST].ptr->used_bytes(dest[DATA_DEST].ptr->total_bytes());
       dada.data_stream().release();
@@ -89,7 +90,7 @@ namespace mkrecv
       if (nsci != 0)
 	{ // copy the side-channel items in temporary space into data space and clear the source
 	  memcpy(dest[DATA_DEST].sci, dest[TEMP_DEST].sci, dest[TEMP_DEST].space*nsci*sizeof(spead2::s_item_pointer_t));
-	  memset(dest[TEMP_DEST].sci, 0, dest[TEMP_DEST].space*nsci*sizeof(spead2::s_item_pointer_t));
+	  memset(dest[TEMP_DEST].sci, SCI_EMPTY, dest[TEMP_DEST].space*nsci*sizeof(spead2::s_item_pointer_t));
 	}
     } while (true);
   }
