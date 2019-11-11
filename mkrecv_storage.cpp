@@ -202,7 +202,7 @@ namespace mkrecv
 	dstat[dest_index].heaps_discarded++;
       }
     dest[dest_index].needed--;
-    handle_free_place(timestamp, dest_index);
+    if (dest_index != TRASH_DEST) handle_free_place(timestamp, dest_index);
     if ((gstat.heaps_total - log_counter) >= LOG_FREQ)
       {
 	log_counter += LOG_FREQ;
