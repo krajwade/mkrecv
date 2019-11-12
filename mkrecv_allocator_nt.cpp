@@ -129,7 +129,7 @@ namespace mkrecv
       std::cout << "HEAP " << ph->heap_cnt << " " << ph->heap_length << " " << ph->payload_offset << " " << ph->payload_length;
       for (i = 0; i < (size_t)(ph->n_items); i++) {
 	spead2::item_pointer_t pts = spead2::load_be<spead2::item_pointer_t>(ph->pointers + i*sizeof(spead2::item_pointer_t));
-	std::cout << " I[" << i << "] = " << decoder.get_immediate(pts) << " " << decoder.get_id(pts) << " " << decoder.get_immediate(pts);
+	std::cout << " I[" << i << "] = " << decoder.is_immediate(pts) << " " << decoder.get_id(pts) << " " << decoder.get_immediate(pts);
       }
       std::cout << std::endl;
     }
