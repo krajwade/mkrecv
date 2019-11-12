@@ -52,6 +52,7 @@ namespace mkrecv
     spead2::s_item_pointer_t        item_value[MAX_INDEXPARTS];
     std::size_t                     item_index;
     int                             dest_index = storage::DATA_DEST;
+    int                             odest_index = storage::DATA_DEST;
     std::size_t                     heap_index = 0;;
     char                           *heap_place = NULL;
     spead2::s_item_pointer_t       *sci_place = NULL;
@@ -122,7 +123,16 @@ namespace mkrecv
 	has_started = true;
       }
     // Get the memory positions for the heap payload and the side-channel items
+    odest_index = dest_index;
     dest_index = store->alloc_place(item_value[0], heap_index, size, dest_index, heap_place, sci_place);
+    if ((dest_index == storage::TRASH_DEST) && (odest_index != storage::TRASH_DEST) && !opts->quiet) {
+      std::cout << "HEAP " << ph->heap_cnt << " " << ph->heap_length << " " << ph->payload_offset << " " << ph->payload_length;
+      for (i = 0; i < (size_t)(ph->n_items); i++) {
+	spead2::item_pointer_t pts = spead2::load_be<spead2::item_pointer_t>(ph->pointers + i*sizeof(spead2::item_pointer_t));
+	std::cout << " I[" << i << "] = " << decoder.get_immediate(pts) << " " << decoder.get_id(pts) << " " << decoder.get_immediate(pts);
+      }
+      std::cout << std::endl;
+    }
     //std::cout << "heap " << ph->heap_cnt << " dest_index " << dest_index << " heap_index " << heap_index << " ts " << item_value[0] << "\n";
     //heap2dest[ph->heap_cnt]      = dest_index;    // store the relation between heap counter and destination
     //heap2timestamp[ph->heap_cnt] = item_value[0]; // store the relation between heap counter and timestamp
