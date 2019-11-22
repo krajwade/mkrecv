@@ -60,7 +60,7 @@ set(mkrecv_src_nt
   mkrecv_allocator_nt.cpp
   mkrecv_destination.cpp
   mkrecv_stream_nt.cpp
-)
+  )
 
 #set(mkrecv_inc
 #)
@@ -107,11 +107,14 @@ target_link_libraries(mkrecv ${MKRECV_LIBRARIES})
 add_executable(mkrecv_nt mkrecv_main_nt.cpp ${mkrecv_src_nt})
 target_link_libraries(mkrecv_nt ${MKRECV_LIBRARIES})
 
+add_executable(mkrecv_test mkrecv_test.cpp ${mkrecv_src_nt})
+target_link_libraries(mkrecv_test ${MKRECV_LIBRARIES})
+
 add_executable(recv_heaps recv_heaps.cpp)
 
 add_executable(decode_heap decode_heap.cpp)
 
-install (TARGETS mkrecv mkrecv_nt recv_heaps decode_heap
+install (TARGETS mkrecv mkrecv_nt mkrecv_test recv_heaps decode_heap
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib)

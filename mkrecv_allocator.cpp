@@ -11,23 +11,88 @@ namespace mkrecv
   {
   }
 
-  void index_part::set(const index_options &opt)
+  index_part::~index_part()
+  {
+    if (map != NULL) {
+      delete map;
+      map = NULL;
+    }
+  }
+
+  void index_part::set(const index_options &opt, std::size_t index_size)
   {
     size_t  i;
+    spead2::s_item_pointer_t  val;
+    size_t                    valsize  = 0;
+    spead2::s_item_pointer_t  valmask  = 0;
 
     item  = opt.item*sizeof(spead2::item_pointer_t);
     mask  = opt.mask;
     step  = opt.step;
     count = opt.values.size();
-    //std::cout << "count " << count << " list items\n";
+    std::cout << "count " << count << " list items\n";
     if (count == 0) count = 1;
-    for (i = 0; i < opt.values.size(); i++)
-      {
-	values.push_back(opt.values[i]);
-	value2index[opt.values[i]] = i;
-	//std::cout << "  map " << opt.values[i] << " to " << i << '\n';
+    for (i = 0; i < opt.values.size(); i++) {
+      spead2::s_item_pointer_t k = opt.values[i]; // key   := element in the option list (--idx<i>-list)
+      std::size_t              v = i*index_size;  // value := heap index [B] calculated from list position and index_size
+      valbits |= k;
+      values.push_back(k);
+      value2index[k] = v;
+      std::cout << "  hmap " << k << " -> " << v << '\n';
+    }
+    if (valbits != 0) {
+      val = valbits;
+      while ((val & 1) == 0) {
+	valshift++;
+	val = val >> 1;
       }
+      if (valshift != 0) {
+	valmin = 1 << valshift;
+      }
+      valmax = val;
+      while (val != 0) {
+	valsize++;
+	val = val >> 1;
+      }
+      valmask = (1 << valsize) - 1;
+    }
+    std::cout << "  valbits " << valbits << " size " << valsize << " shift " << valshift << " valmask " << valmask << " valmin " << valmin << " valmax " << valmax << '\n';
+    if (valmax < 4096) {
+      // we use a direct approach for mapping pointer item values into indices
+      map = new std::size_t[valmax + 1];
+      for (val = 0; val <= valmax; val++) {
+	map[val] = (std::size_t)-1;
+      }
+      for (i = 0; i < opt.values.size(); i++) {
+	spead2::s_item_pointer_t k   = opt.values[i]; // key   := element in the option list (--idx<i>-list)
+	std::size_t              v   = i*index_size;  // value := heap index [B] calculated from list position and index_size
+	spead2::s_item_pointer_t idx = (k >> valshift);  // index in direct map (k shifted by valshift in order to remove the 0-bits)
+	map[idx] = v;
+	std::cout << "  dmap " << k << " -> " << idx << " -> " << v << '\n';
+      }
+    }
   }
+
+  std::size_t index_part::v2i(spead2::s_item_pointer_t v, bool uhm)
+  {
+    if (uhm || (map == NULL)) {
+      try {
+	return value2index.at(v);
+      }
+      catch (const std::out_of_range& oor) {
+	return (std::size_t)-1;
+      }
+    } else if (v & ~valbits) {
+      return -1;
+    } else if (v < valmin) {
+      return -1;
+    } else {
+      spead2::s_item_pointer_t hv = v >> valshift;
+      if (hv > valmax) return -1;
+      return map[hv];
+    }
+  }
+
 
   ts_histo::ts_histo()
   {
@@ -367,6 +432,7 @@ namespace mkrecv
     hdr(NULL)
   {
     int i;
+    std::size_t  index_size = 1;
     std::size_t  data_size  = MAX_DATA_SPACE;
     std::size_t  temp_size  = MAX_TEMPORARY_SPACE;
     std::size_t  trash_size = MAX_TEMPORARY_SPACE;
@@ -374,12 +440,11 @@ namespace mkrecv
     memallocator = std::make_shared<spead2::mmap_allocator>(0, true);
     // copy index_option into a local index_part
     nindices = opts->nindices;
-    heap_count = 1;
-    for (i = 0; i < MAX_INDEXPARTS; i++)
-      {
-	indices[i].set(opts->indices[i]);
-	heap_count *= indices[i].count;
-      }
+    for (i = nindices - 1; i >= 0; i--) {
+      indices[i].set(opts->indices[i], index_size);
+      index_size *= indices[i].count;
+    }
+    heap_count = index_size;
     heap_size = opts->heap_size;
     nsci = opts->nsci;
     scis = opts->scis;
@@ -477,10 +542,8 @@ namespace mkrecv
     // All other index components are used in the same way
     for (i = 1; i < nindices; i++)
       {
-	try {
-	  item_index[i] = indices[i].value2index.at(item_value[i]);
-	}
-	catch (const std::out_of_range& oor) {
+	item_index[i] = indices[i].v2i(item_value[i]);
+	if (item_index[i] == (std::size_t)-1) {
 	  item_index[i] = 0;
 	  indices[i].nskipped++;
 	  dest_index = TRASH_DEST;
@@ -567,7 +630,6 @@ namespace mkrecv
     heap_index = item_index[0];
     for (i = 1; i < nindices; i++)
       {
-	heap_index *= indices[i].count;
 	heap_index += item_index[i];
       }
     if (dest_index == DATA_DEST) hasStarted = true;

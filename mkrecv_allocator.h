@@ -66,8 +66,17 @@ namespace mkrecv
     std::size_t               count    = 0;
     std::size_t               nerror   = 0;
     std::size_t               nskipped = 0;
+  private:
+    spead2::s_item_pointer_t  valbits  = 0;
+    size_t                    valshift = 0;
+    spead2::s_item_pointer_t  valmin   = 0;
+    spead2::s_item_pointer_t  valmax   = 0;
+    std::size_t              *map      = NULL;
+  public:
     index_part();
-    void set(const index_options &opt);
+    ~index_part();
+    void set(const index_options &opt, std::size_t index_size);
+    std::size_t v2i(spead2::s_item_pointer_t v, bool uhm = false);
   };
 
   class ts_histo

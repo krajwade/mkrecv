@@ -20,15 +20,15 @@ namespace mkrecv
     store(store)
   {
     int i;
+    std::size_t  index_size = 1;
 
     // copy index_option into a local index_part
     nindices = opts->nindices;
-    heap_count = 1;
-    for (i = 0; i < MAX_INDEXPARTS; i++)
-      {
-	indices[i].set(opts->indices[i]);
-	heap_count *= indices[i].count;
-      }
+    for (i = nindices - 1; i >= 0; i--) {
+      indices[i].set(opts->indices[i], index_size);
+      index_size *= indices[i].count;
+    }
+    heap_count = index_size;
     heap_size = opts->heap_size;
     nsci = opts->nsci;
     scis = opts->scis;
@@ -53,7 +53,7 @@ namespace mkrecv
     std::size_t                     item_index;
     int                             dest_index = storage::DATA_DEST;
     int                             odest_index = storage::DATA_DEST;
-    std::size_t                     heap_index = 0;;
+    std::size_t                     heap_index = 0;
     char                           *heap_place = NULL;
     spead2::s_item_pointer_t       *sci_place = NULL;
     std::size_t                     i;
@@ -98,16 +98,13 @@ namespace mkrecv
 	spead2::item_pointer_t pts = spead2::load_be<spead2::item_pointer_t>(ph->pointers + indices[i].item);
 	// a mask is used to restrict the used bits of an item value (default -> use all bits)
 	item_value[i] = (std::size_t)(decoder.get_immediate(pts) & indices[i].mask);
-	if (i == 0) continue; // The timestamp is directly use by the storage to calculate the base adress of a heap group
-	try {
-	  item_index = indices[i].value2index.at(item_value[i]);
-	  heap_index *= indices[i].count;
-	  heap_index += item_index;
-	}
-	catch (const std::out_of_range& oor) {
-	  // The item pointer value is unknown -> put this heap into the trash (ignore it)
+	if (i == 0) continue; // The timestamp is directly used by the storage to calculate the base address of a heap group
+	item_index = indices[i].v2i(item_value[i]);
+	if (item_index == (std::size_t)-1) {
 	  indices[i].nskipped++;
 	  dest_index = storage::TRASH_DEST;
+	} else {
+	  heap_index += item_index;
 	}
       }
     if (dest_index == storage::DATA_DEST)
