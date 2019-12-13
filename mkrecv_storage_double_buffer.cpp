@@ -112,7 +112,7 @@ namespace mkrecv
         dstat[dindex].bytes_received = 0;
 	if (!has_stopped)
 	  { // copy the optional side-channel items at the correct position
-	    // sci_base = buffer + size - (scape *nsci)
+	    // sci_base = buffer + size - (space*nsci)
 	    do_switch_slot();
             dindex = (dindex + 1)%2;
 	  }

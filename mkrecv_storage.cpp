@@ -11,6 +11,9 @@ namespace mkrecv
     heaps_skipped = 0;
     heaps_overrun = 0;
     heaps_ignored = 0;
+    heaps_too_old = 0;
+    heaps_present = 0;
+    heaps_too_new = 0;
     heaps_open = 0;
     heaps_needed = 0;
     bytes_expected = 0;
@@ -26,6 +29,9 @@ namespace mkrecv
     heaps_skipped = 0;
     heaps_overrun = 0;
     heaps_ignored = 0;
+    heaps_too_old = 0;
+    heaps_present = 0;
+    heaps_too_new = 0;
     heaps_open = 0;
     heaps_needed = 0;
     bytes_expected = 0;

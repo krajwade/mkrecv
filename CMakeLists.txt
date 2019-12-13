@@ -36,6 +36,7 @@ find_package(CUDA)
 
 # define the cheetah libraries
 set(MKRECV_LIBRARIES ${DEPENDENCY_LIBRARIES})
+set(MKRECV_LIBRARIES_RNT ${DEPENDENCY_LIBRARIES_RNT})
 
 include_directories(..)
 include_directories(${PROJECT_BINARY_DIR})
@@ -107,6 +108,9 @@ target_link_libraries(mkrecv ${MKRECV_LIBRARIES})
 add_executable(mkrecv_nt mkrecv_main_nt.cpp ${mkrecv_src_nt})
 target_link_libraries(mkrecv_nt ${MKRECV_LIBRARIES})
 
+add_executable(mkrecv_rnt mkrecv_rnt.cpp)
+target_link_libraries(mkrecv_rnt ${MKRECV_LIBRARIES_RNT})
+
 add_executable(mkrecv_test mkrecv_test.cpp ${mkrecv_src_nt})
 target_link_libraries(mkrecv_test ${MKRECV_LIBRARIES})
 
@@ -114,7 +118,7 @@ add_executable(recv_heaps recv_heaps.cpp)
 
 add_executable(decode_heap decode_heap.cpp)
 
-install (TARGETS mkrecv mkrecv_nt mkrecv_test recv_heaps decode_heap
+install (TARGETS mkrecv mkrecv_nt mkrecv_rnt mkrecv_test recv_heaps decode_heap
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib)

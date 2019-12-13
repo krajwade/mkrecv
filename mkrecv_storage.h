@@ -26,6 +26,9 @@ namespace mkrecv
     std::size_t    heaps_skipped   = 0;  // number of skipped heaps due to timestamp value
     std::size_t    heaps_overrun   = 0;  // number of lost heaps due to overrun
     std::size_t    heaps_ignored   = 0;  // number of ignored heaps (requested destination is TRASH)
+    std::size_t    heaps_too_old   = 0;  // number of heaps were the timestamp is too old
+    std::size_t    heaps_present   = 0;  // number of heaps with the correct timestamp
+    std::size_t    heaps_too_new   = 0;  // number of heaps were the timestamp is too new
     std::size_t    heaps_open      = 0;  // number of open heaps
     std::size_t    heaps_needed    = 0;  // number of needed heaps
     std::size_t    bytes_expected  = 0;  // number of expected payload bytes

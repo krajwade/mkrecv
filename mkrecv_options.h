@@ -74,6 +74,10 @@
 #define DADA_KEY_KEY       "DADA_KEY"
 #define DADA_KEY_DESC      "PSRDADA ring buffer key"
 
+#define DADA_NSLOTS_OPT    "dada-nslots"
+#define DADA_NSLOTS_KEY    "DADA_NSLOTS"
+#define DADA_NSLOTS_DESC   "Maximum number of open dada ringbuffer slots"
+
 /* The following options describe the connection to the network */
 
 #if SPEAD2_USE_IBV
@@ -221,6 +225,8 @@ namespace mkrecv
     std::string               dada_mode_str       = "4";
     std::size_t               dada_mode           =  4;
     std::string               dada_key            = "dada";
+    std::string               dada_nslots_str     = "2";
+    std::size_t               dada_nslots         =  2;
     // network configuration
 #if SPEAD2_USE_IBV
     std::string               ibv_if              = "";
