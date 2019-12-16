@@ -1148,7 +1148,8 @@ namespace mkrecv
       bstat[dest_index].heaps_discarded++;
     }
     if (dest_index < nbuffers) {
-      if (timestamp >= timestamp_level) {
+      if ((timestamp >= timestamp_level) && !switch_triggered) {
+	switch_triggered = true;
 	if (!has_stopped) {
 	  // copy the optional side-channel items at the correct position
 	  // sci_base = buffer + size - (scape *nsci)
@@ -1334,6 +1335,8 @@ namespace mkrecv
 	dest_sem.get();
 #endif
 	buffer_active++;
+	timestamp_level += timestamp_step*slot_ngroups;
+	switch_triggered = false;
 #ifndef USE_STD_MUTEX
 	dest_sem.put();
 #endif

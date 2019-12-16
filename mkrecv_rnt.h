@@ -407,6 +407,7 @@ namespace mkrecv
     std::mutex                         switch_mutex;
     std::condition_variable            switch_cv;
     std::thread                        switch_thread;
+    bool                               switch_triggered = false;
   public:
     storage(std::shared_ptr<mkrecv::options> opts);
     ~storage();
