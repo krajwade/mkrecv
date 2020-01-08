@@ -72,6 +72,10 @@ int main(int argc, const char **argv)
   std::cout << "IDX 3: " <<  31 << " -> " << indices[2].v2i( 31) << '\n';
   std::cout << "IDX 3: " << 173 << " -> " << indices[2].v2i(173) << '\n';
   std::cout << "IDX 3: " << 320 << " -> " << indices[2].v2i(320) << '\n';
+  std::cout << "IDX 3: " <<   0 << " -> " << indices[2].v2i( 0) << '\n';
+  std::cout << "IDX 3: " <<   7 << " -> " << indices[2].v2i( 7) << '\n';
+  std::cout << "IDX 3: " <<   8 << " -> " << indices[2].v2i( 8) << '\n';
+  std::cout << "IDX 3: " <<  16 << " -> " << indices[2].v2i(16) << '\n';
 
   std::chrono::high_resolution_clock::time_point hmt1 = std::chrono::high_resolution_clock::now();
   for (i = 0; i < NLOOPS; i++) {
@@ -125,4 +129,7 @@ int main(int argc, const char **argv)
 ./mkrecv_test --nindices 3 --idx1-item 0 --idx1-step 4096 --idx2-item 1 --idx2-list 0,1,2,3 --idx3-item 3 --idx3-list 41,43,45,57
 
 ./mkrecv_test --nindices 3 --idx1-item 0 --idx1-step 4096 --idx2-item 1 --idx2-list 0,1,2,3 --idx3-item 3 --idx3-list 164,168,172,228
+
+./mkrecv_test --nindices 3 --idx1-item 0 --idx1-step 4096 --idx2-item 1 --idx2-list 0,1,2,3 --idx3-item 3 --idx3-list 0,8,16,24,32,40,48,56
+
  */

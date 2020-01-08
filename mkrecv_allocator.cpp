@@ -35,6 +35,7 @@ namespace mkrecv
     for (i = 0; i < opt.values.size(); i++) {
       spead2::s_item_pointer_t k = opt.values[i]; // key   := element in the option list (--idx<i>-list)
       std::size_t              v = i*index_size;  // value := heap index [B] calculated from list position and index_size
+      if ((i == 0) || (k < valmin)) valmin = k;
       valbits |= k;
       values.push_back(k);
       value2index[k] = v;
@@ -45,9 +46,6 @@ namespace mkrecv
       while ((val & 1) == 0) {
 	valshift++;
 	val = val >> 1;
-      }
-      if (valshift != 0) {
-	valmin = 1 << valshift;
       }
       valmax = val;
       while (val != 0) {
