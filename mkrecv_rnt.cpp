@@ -90,67 +90,67 @@ namespace mkrecv
       histo[fi][0]++;
     } else if (nanoseconds <= 100.0) {
       if (nanoseconds <= 20.0) {
-	histo[fi][1]++;
+        histo[fi][1]++;
       } else if (nanoseconds <= 50.0) {
-	histo[fi][2]++;
+        histo[fi][2]++;
       } else {
-	histo[fi][3]++;
+        histo[fi][3]++;
       }
     } else if (nanoseconds <= 1000.0) {
       if (nanoseconds <= 200.0) {
-	histo[fi][4]++;
+        histo[fi][4]++;
       } else if (nanoseconds <= 500.0) {
-	histo[fi][5]++;
+        histo[fi][5]++;
       } else {
-	histo[fi][6]++;
+        histo[fi][6]++;
       }
     } else if (nanoseconds <= 10000.0) {
       if (nanoseconds <= 2000.0) {
-	histo[fi][7]++;
+        histo[fi][7]++;
       } else if (nanoseconds <= 5000.0) {
-	histo[fi][8]++;
+        histo[fi][8]++;
       } else {
-	histo[fi][9]++;
+        histo[fi][9]++;
       }
     } else if (nanoseconds <= 100000.0) {
       if (nanoseconds <= 20000.0) {
-	histo[fi][10]++;
+        histo[fi][10]++;
       } else if (nanoseconds <= 50000.0) {
-	histo[fi][11]++;
+        histo[fi][11]++;
       } else {
-	histo[fi][12]++;
+        histo[fi][12]++;
       }
     } else if (nanoseconds <= 1000000.0) {
       if (nanoseconds <= 200000.0) {
-	histo[fi][13]++;
+        histo[fi][13]++;
       } else if (nanoseconds <= 500000.0) {
-	histo[fi][14]++;
+        histo[fi][14]++;
       } else {
-	histo[fi][15]++;
+        histo[fi][15]++;
       }
     } else if (nanoseconds <= 10000000.0) {
       if (nanoseconds <= 2000000.0) {
-	histo[fi][16]++;
+        histo[fi][16]++;
       } else if (nanoseconds <= 5000000.0) {
-	histo[fi][17]++;
+        histo[fi][17]++;
       } else {
-	histo[fi][18]++;
+        histo[fi][18]++;
       }
     } else if (nanoseconds <= 100000000.0) {
       if (nanoseconds <= 20000000.0) {
-	histo[fi][19]++;
+        histo[fi][19]++;
       } else if (nanoseconds <= 50000000.0) {
-	histo[fi][20]++;
+        histo[fi][20]++;
       } else {
-	histo[fi][21]++;
+        histo[fi][21]++;
       }
     } else if (nanoseconds <= 1000000000.0) {
       if (nanoseconds <= 200000000.0) {
-	histo[fi][22]++;
+        histo[fi][22]++;
       } else if (nanoseconds <= 500000000.0) {
-	histo[fi][23]++;
+        histo[fi][23]++;
       } else {
-	histo[fi][24]++;
+        histo[fi][24]++;
       }
     } else {
       histo[fi][LARGER_SLOT]++;
@@ -244,16 +244,16 @@ namespace mkrecv
     if (valbits != 0) {
       val = valbits;
       while ((val & 1) == 0) {
-	valshift++;
-	val = val >> 1;
+        valshift++;
+        val = val >> 1;
       }
       if (valshift != 0) {
-	valmin = 1 << valshift;
+        valmin = 1 << valshift;
       }
       valmax = val;
       while (val != 0) {
-	valsize++;
-	val = val >> 1;
+        valsize++;
+        val = val >> 1;
       }
       valmask = (1 << valsize) - 1;
     }
@@ -262,14 +262,14 @@ namespace mkrecv
       // we use a direct approach for mapping pointer item values into indices
       map = new std::int64_t[valmax + 1];
       for (val = 0; val <= valmax; val++) {
-	map[val] = (std::int64_t)-1;
+        map[val] = (std::int64_t)-1;
       }
       for (i = 0; i < (std::int64_t)values.size(); i++) {
-	spead2::s_item_pointer_t k   = values[i]; // key   := element in the option list (--idx<i>-list)
-	std::int64_t              v   = i*index_size;  // value := heap index [B] calculated from list position and index_size
-	spead2::s_item_pointer_t idx = (k >> valshift);  // index in direct map (k shifted by valshift in order to remove the 0-bits)
-	map[idx] = v;
-	std::cout << "  dmap " << k << " -> " << idx << " -> " << v << '\n';
+        spead2::s_item_pointer_t k   = values[i]; // key   := element in the option list (--idx<i>-list)
+        std::int64_t              v   = i*index_size;  // value := heap index [B] calculated from list position and index_size
+        spead2::s_item_pointer_t idx = (k >> valshift);  // index in direct map (k shifted by valshift in order to remove the 0-bits)
+        map[idx] = v;
+        std::cout << "  dmap " << k << " -> " << idx << " -> " << v << '\n';
       }
     }
   }
@@ -278,10 +278,10 @@ namespace mkrecv
   {
     if (uhm || (map == NULL)) {
       try {
-	return value2index.at(v);
+        return value2index.at(v);
       }
       catch (const std::out_of_range& oor) {
-	return (std::int64_t)-1;
+        return (std::int64_t)-1;
       }
     } else if (v & ~valbits) {
       return -1;
@@ -342,8 +342,8 @@ namespace mkrecv
   {
     if (!ready)
       {
-	ready = true;
-	create_args();
+        ready = true;
+        create_args();
       }
     o << "Usage: mkrecv [options] { Multicast-IP }\n";
     o << desc;
@@ -359,38 +359,38 @@ namespace mkrecv
     all.add(hidden);
     try {
       po::store(po::command_line_parser(argc, argv)
-		.style(po::command_line_style::default_style & ~po::command_line_style::allow_guessing)
-		.options(all)
-		.positional(positional)
-		.run(), vm);
+                .style(po::command_line_style::default_style & ~po::command_line_style::allow_guessing)
+                .options(all)
+                .positional(positional)
+                .run(), vm);
       po::notify(vm);
       if (vm.count("help")) {
-	usage(std::cout);
-	std::exit(0);
+        usage(std::cout);
+        std::exit(0);
       }
       /*
-	if (!vm.count("source"))
-	throw po::error("At least one IP is required");
+        if (!vm.count("source"))
+        throw po::error("At least one IP is required");
       */
       if (vm.count("source")) {
-	sources_opt = vm["source"].as<std::vector<std::string>>();
-	if (sources_opt.size() != 0) {
-	  bool is_first = true;
-	  for (std::vector<std::string>::iterator ipi = sources_opt.begin(); ipi != sources_opt.end(); ++ipi) {
-	    if (!is_first) {
-	      sources_str += ',';
-	    }
-	    sources_str += *ipi;
-	    is_first = false;
-	  }
-	}
+        sources_opt = vm["source"].as<std::vector<std::string>>();
+        if (sources_opt.size() != 0) {
+          bool is_first = true;
+          for (std::vector<std::string>::iterator ipi = sources_opt.begin(); ipi != sources_opt.end(); ++ipi) {
+            if (!is_first) {
+              sources_str += ',';
+            }
+            sources_str += *ipi;
+            is_first = false;
+          }
+        }
       }
       //if (hdrname != "")
       if (vm.count(HEADER_OPT) != 0) {
-	// read the given template header file and adapt some configuration parameters
-	//hdrname = vm[HEADER_OPT].as<std::string>();
-	//std::cout << "try to load file " << hdrname << '\n';
-	load_header();
+        // read the given template header file and adapt some configuration parameters
+        //hdrname = vm[HEADER_OPT].as<std::string>();
+        //std::cout << "try to load file " << hdrname << '\n';
+        load_header();
       }
       apply_header(); // use values from header or default values
       return;
@@ -412,13 +412,13 @@ namespace mkrecv
       uint64_t length = is.tellg();
       is.seekg (0, is.beg);
       if (length > DADA_DEFAULT_HEADER_SIZE) {
-	std::cerr << "options::load_header(), given file " << hdrname << " contains more than " << DADA_DEFAULT_HEADER_SIZE << " characters, ognoring this file." << '\n';
-	return;
+        std::cerr << "options::load_header(), given file " << hdrname << " contains more than " << DADA_DEFAULT_HEADER_SIZE << " characters, ognoring this file." << '\n';
+        return;
       }
       //std::cout << "options::load_header(), loading file " << hdrname << '\n';
       is.read(header, length);
       if (!is) {
-	std::cerr << "error: only " << is.gcount() << " could be read" << '\n';
+        std::cerr << "error: only " << is.gcount() << " could be read" << '\n';
       }
       is.close();
     }
@@ -468,33 +468,33 @@ namespace mkrecv
       ut = OPTION_USED;
       if (!quiet) std::cout << " option for " << opt << " is " << val;
       if (key[0] != '\0') {
-	if (val.length() == 0) {
-	  ascii_header_set(header, key, "unset");
-	  if (!quiet) std::cout << "  header becomes unset" << '\n';
-	} else {
-	  ascii_header_set(header, key, "%s", val.c_str());
-	  if (!quiet) std::cout << "  header becomes " << val << '\n';
-	}
-	if (!check_header()) {
-	  std::cerr << "ERROR, storing " << key << " with value " << val << " in header failed due to size restrictions. -> incomplete header due to clipping" << '\n';
-	}
+        if (val.length() == 0) {
+          ascii_header_set(header, key, "unset");
+          if (!quiet) std::cout << "  header becomes unset" << '\n';
+        } else {
+          ascii_header_set(header, key, "%s", val.c_str());
+          if (!quiet) std::cout << "  header becomes " << val << '\n';
+        }
+        if (!check_header()) {
+          std::cerr << "ERROR, storing " << key << " with value " << val << " in header failed due to size restrictions. -> incomplete header due to clipping" << '\n';
+        }
       }
     } else if (key[0] != '\0') { // Check if a value is given in the header file
       char sval[1024];
       if (ascii_header_get(header, key, "%s", sval) != -1) {
-	if (strcmp(sval, "unset") == 0) { // check if the value in the header is unset
-	  // -> use the default value already given in val
-	  ut = DEFAULT_USED;
-	  if (!quiet) std::cout << " header unset, default for " << opt << " is " << val;
-	} else {
-	  // -> use the value from the header file
-	  ut = CONFIG_USED;
-	  val = sval;
-	  if (!quiet) std::cout << " header for " << opt << " is " << val;
-	}
+        if (strcmp(sval, "unset") == 0) { // check if the value in the header is unset
+          // -> use the default value already given in val
+          ut = DEFAULT_USED;
+          if (!quiet) std::cout << " header unset, default for " << opt << " is " << val;
+        } else {
+          // -> use the value from the header file
+          ut = CONFIG_USED;
+          val = sval;
+          if (!quiet) std::cout << " header for " << opt << " is " << val;
+        }
       } else {
-	ut = DEFAULT_USED;
-	if (!quiet) std::cout << " default for " << opt << " is " << val;
+        ut = DEFAULT_USED;
+        if (!quiet) std::cout << " default for " << opt << " is " << val;
       }
     }
     if (!quiet) std::cout << " -> " << val << '\n';
@@ -505,11 +505,11 @@ namespace mkrecv
   {
     try {
       if (val_str.compare(0,2,"0x") == 0) {
-	val = std::stol(std::string(val_str.begin() + 2, val_str.end()), nullptr, 16);
+        val = std::stol(std::string(val_str.begin() + 2, val_str.end()), nullptr, 16);
       } else if (val_str.compare(0,2,"0b") == 0) {
-	val = std::stol(std::string(val_str.begin() + 2, val_str.end()), nullptr, 2);
+        val = std::stol(std::string(val_str.begin() + 2, val_str.end()), nullptr, 2);
       } else {
-	val = std::stol(val_str, nullptr, 10);
+        val = std::stol(val_str, nullptr, 10);
       }
       return true;
     } catch (std::exception& e) {
@@ -532,11 +532,11 @@ namespace mkrecv
       std::cerr << "Exception: cannot convert " << val_str << " into int for option " << opt << "/" << key << '\n';
       // put the default value already given in val into the header (the current value cannot be converted into std::int64_t)
       if (key[0] != '\0') {
-	ascii_header_set(header, key, "%ld", val);
-	//std::cout << "  header becomes " << val << '\n';
-	if (!check_header()) {
-	  std::cerr << "ERROR, storing " << key << " with value " << val << " in header failed due to size restrictions. -> incomplete header due to clipping" << '\n';
-	}
+        ascii_header_set(header, key, "%ld", val);
+        //std::cout << "  header becomes " << val << '\n';
+        if (!check_header()) {
+          std::cerr << "ERROR, storing " << key << " with value " << val << " in header failed due to size restrictions. -> incomplete header due to clipping" << '\n';
+        }
       }
     }
     if (!quiet) std::cout << opt << "/" << key << " = " << val << '\n';
@@ -553,11 +553,11 @@ namespace mkrecv
       std::cerr << "Exception: " << e.what() << " cannot convert " << val_str << " into double for option " << opt << "/" << key << '\n';
       // put the default value already given in val into the header (the current value cannot be converted into std::int64_t)
       if (key[0] != '\0') {
-	ascii_header_set(header, key, "%f", val);
-	//std::cout << "  header becomes " << val << '\n';
-	if (!check_header()) {
-	  std::cerr << "ERROR, storing " << key << " with value " << val << " in header failed due to size restrictions. -> incomplete header due to clipping" << '\n';
-	}
+        ascii_header_set(header, key, "%f", val);
+        //std::cout << "  header becomes " << val << '\n';
+        if (!check_header()) {
+          std::cerr << "ERROR, storing " << key << " with value " << val << " in header failed due to size restrictions. -> incomplete header due to clipping" << '\n';
+        }
       }
     }
     if (!quiet) std::cout << opt << "/" << key << " = " << val << '\n';
@@ -591,24 +591,24 @@ namespace mkrecv
       std::int64_t              nparts = 0;
       el_length = el_str.length();
       while((el_from < el_length + 1) && (nparts != 3)) {
-	el_to = el_str.find_first_of(":", el_from);
-	if(el_to == std::string::npos) el_to = el_length;
-	if(el_to == el_from) break;
-	std::string hel(el_str.data() + el_from, el_to - el_from);
-	if (!parse_fixnum(vals[nparts], hel)) {
-	  std::cerr << "Exception: cannot convert " << hel << " at position " << str_from << " into std::int64_t for option " << opt << "/" << key << '\n';
-	  nparts = 0;
-	  break;
-	}
-	nparts++;
-	el_from = el_to + 1;
+        el_to = el_str.find_first_of(":", el_from);
+        if(el_to == std::string::npos) el_to = el_length;
+        if(el_to == el_from) break;
+        std::string hel(el_str.data() + el_from, el_to - el_from);
+        if (!parse_fixnum(vals[nparts], hel)) {
+          std::cerr << "Exception: cannot convert " << hel << " at position " << str_from << " into std::int64_t for option " << opt << "/" << key << '\n';
+          nparts = 0;
+          break;
+        }
+        nparts++;
+        el_from = el_to + 1;
       }
       if (nparts < 3) vals[2] = 1;           // <first> ':' <last>  => <step> := 1
       if (nparts < 2) vals[1] = vals[0] + 1; // <first>             => <step> := 1, <last> := <first> + 1
       if (!quiet) std::cout << "  sequence from " << vals[0] << " to " << vals[1] << " (excluding) with step " << vals[2] << '\n';
       while (vals[0] < vals[1]) {
-	val.push_back(vals[0]);
-	vals[0] += vals[2];
+        val.push_back(vals[0]);
+        vals[0] += vals[2];
       }
       str_from = str_to + 1;
     }
@@ -616,7 +616,7 @@ namespace mkrecv
       std::cout << "item value list:";
       std::size_t i;
       for (i = 0; i < val.size(); i++) {
-	std::cout << " " << val.at(i) << "->" << i;
+        std::cout << " " << val.at(i) << "->" << i;
       }
       std::cout << '\n';
     }
@@ -653,73 +653,73 @@ namespace mkrecv
       for (ipart = 0; ipart < 8; ipart++) vals[ipart] = 0;
       el_length = el_str.length();
       while((el_from < el_length + 1)) {
-	el_to = el_str.find_first_of(".+|:", el_from);
-	if(el_to == std::string::npos) el_to = el_length;
-	if(el_to == el_from) break;
-	std::string hel(el_str.data() + el_from, el_to - el_from);
+        el_to = el_str.find_first_of(".+|:", el_from);
+        if(el_to == std::string::npos) el_to = el_length;
+        if(el_to == el_from) break;
+        std::string hel(el_str.data() + el_from, el_to - el_from);
 #ifdef COMBINED_IP_PORT
-	// 0 .. 3  = address part
-	// 4       = offset
-	// 5       = step;
-	// 6       = port
-	// 7       = trash/unknown
-	switch (pch) {
-	case '.':
-	  if (nadr < 4) {
-	    ipart = nadr++;
-	  } else {
-	    ipart = 7; // -> trash
-	  }
-	  break;
-	case '+':
-	  ipart = 4;
-	  break;
-	case '|':
-	  ipart = 5;
-	  break;
-	case ':':
-	  ipart = 6;
-	  has_port = true;
-	  break;
-	default:
-	  ipart = 7; // -> trash
-	}
+        // 0 .. 3  = address part
+        // 4       = offset
+        // 5       = step;
+        // 6       = port
+        // 7       = trash/unknown
+        switch (pch) {
+        case '.':
+          if (nadr < 4) {
+            ipart = nadr++;
+          } else {
+            ipart = 7; // -> trash
+          }
+          break;
+        case '+':
+          ipart = 4;
+          break;
+        case '|':
+          ipart = 5;
+          break;
+        case ':':
+          ipart = 6;
+          has_port = true;
+          break;
+        default:
+          ipart = 7; // -> trash
+        }
 #else
-	// 0 .. 3  = address part
-	// 4       = offset
-	// 5       = step;
-	// 7       = trash/unknown
-	switch (pch) {
-	case '.':
-	  if (nadr < 4) {
-	    ipart = nadr++;
-	  } else {
-	    ipart = 7; // -> trash
-	  }
-	  break;
-	case '+':
-	  ipart = 4;
-	  break;
-	case ':':
-	  ipart = 5;
-	  break;
-	default:
-	  ipart = 7; // -> trash
-	}
+        // 0 .. 3  = address part
+        // 4       = offset
+        // 5       = step;
+        // 7       = trash/unknown
+        switch (pch) {
+        case '.':
+          if (nadr < 4) {
+            ipart = nadr++;
+          } else {
+            ipart = 7; // -> trash
+          }
+          break;
+        case '+':
+          ipart = 4;
+          break;
+        case ':':
+          ipart = 5;
+          break;
+        default:
+          ipart = 7; // -> trash
+        }
 #endif
-	if (!parse_fixnum(vals[ipart], hel)) {
-	  std::cerr << "Exception: cannot convert " << hel << " at position " << str_from << " into int for option " << opt << "/" << key << '\n';
-	  isok = false;
-	  break;
-	}
-	if (el_to < el_length) pch = el_str.at(el_to);
-	el_from = el_to + 1;
+        if (!parse_fixnum(vals[ipart], hel)) {
+          std::cerr << "Exception: cannot convert " << hel << " at position " << str_from << " into int for option " << opt << "/" << key << '\n';
+          isok = false;
+          break;
+        }
+        if (el_to < el_length) pch = el_str.at(el_to);
+        el_from = el_to + 1;
       }
       str_from = str_to + 1;
       if (!isok) continue;
       if (nadr != 4) {
-	std::cerr << "Not a valid IPv4 address, less than 4 address bytes: " << el_str << '\n';
-	continue;
+        std::cerr << "Not a valid IPv4 address, less than 4 address bytes: " << el_str << '\n';
+        continue;
       }
       if (vals[5] == 0) vals[5] = 1;
 #ifdef COMBINED_IP_PORT
@@ -729,32 +729,32 @@ namespace mkrecv
 #endif
       vals[4] += 1; // the n means up to l+n _including_
       while (vals[4] > 0) {
-	std::string ip_str;
-	char ip_adr[256];
-	snprintf(ip_adr, sizeof(ip_adr), "%ld.%ld.%ld.%ld", vals[0], vals[1], vals[2], vals[3]);
-	ip_str = ip_adr;
+        std::string ip_str;
+        char ip_adr[256];
+        snprintf(ip_adr, sizeof(ip_adr), "%ld.%ld.%ld.%ld", vals[0], vals[1], vals[2], vals[3]);
+        ip_str = ip_adr;
 #ifdef COMBINED_IP_PORT
-	ip_str += ":";
-	if (has_port) {
-	  char ip_port[16];
-	  snprintf(ip_port, sizeof(ip_adr), "%ld", vals[6]);
-	  ip_str += ip_port;
-	} else {
-	  ip_str += port;
-	}
+        ip_str += ":";
+        if (has_port) {
+          char ip_port[16];
+          snprintf(ip_port, sizeof(ip_adr), "%ld", vals[6]);
+          ip_str += ip_port;
+        } else {
+          ip_str += port;
+        }
 #endif
-	val.push_back(ip_str);
-	vals[3] += vals[5];
-	vals[4] -= vals[5];
+        val.push_back(ip_str);
+        vals[3] += vals[5];
+        vals[4] -= vals[5];
       }
     }
     if (!quiet) {
       std::cout << "item value list:";
       std::size_t i;
       for (i = 0; i < val.size(); i++)
-	{
-	  std::cout << " " << val.at(i) << "->" << i;
-	}
+        {
+          std::cout << " " << val.at(i) << "->" << i;
+        }
       std::cout << '\n';
     }
     return ut;
@@ -780,12 +780,12 @@ namespace mkrecv
     }
     for (i = 1; i < nindices; i++) {
       if (indices[i].item_used_type == DEFAULT_USED) {
-	std::cerr << "ERROR: please specify the item pointer which contains the index value (IDX" << (i+1) << "_ITEM)\n";
-	result = false;
+        std::cerr << "ERROR: please specify the item pointer which contains the index value (IDX" << (i+1) << "_ITEM)\n";
+        result = false;
       }
       if (indices[i].list_used_type == DEFAULT_USED) {
-	std::cerr << "ERROR: please specify the item pointer values (IDX" << (i+1) << "_LIST)\n";
-	result = false;
+        std::cerr << "ERROR: please specify the item pointer values (IDX" << (i+1) << "_LIST)\n";
+        result = false;
       }
     }
     return result;
@@ -844,15 +844,15 @@ namespace mkrecv
       snprintf(odesc,  sizeof(odesc)  - 1, IDX_ITEM_DESC, i+1);
       desc.add_options()(olabel, make_opt(indices[i].item_str), odesc);
       if (i == 0) {
-	desc.add_options()(IDX_STEP_OPT, make_opt(indices[i].step_str), IDX_STEP_DESC);
-	desc.add_options()(IDX_MOD_OPT,  make_opt(indices[i].mod_str),  IDX_MOD_DESC);
+        desc.add_options()(IDX_STEP_OPT, make_opt(indices[i].step_str), IDX_STEP_DESC);
+        desc.add_options()(IDX_MOD_OPT,  make_opt(indices[i].mod_str),  IDX_MOD_DESC);
       } else {
-	snprintf(olabel, sizeof(olabel) - 1, IDX_MASK_OPT,  i+1);
-	snprintf(odesc,  sizeof(odesc)  - 1, IDX_MASK_DESC, i+1);
-	desc.add_options()(olabel, make_opt(indices[i].mask_str), odesc);
-	snprintf(olabel, sizeof(olabel) - 1, IDX_LIST_OPT,  i+1);
-	snprintf(odesc,  sizeof(odesc)  - 1, IDX_LIST_DESC, i+1);
-	desc.add_options()(olabel, make_opt(indices[i].list), odesc);
+        snprintf(olabel, sizeof(olabel) - 1, IDX_MASK_OPT,  i+1);
+        snprintf(odesc,  sizeof(odesc)  - 1, IDX_MASK_DESC, i+1);
+        desc.add_options()(olabel, make_opt(indices[i].mask_str), odesc);
+        snprintf(olabel, sizeof(olabel) - 1, IDX_LIST_OPT,  i+1);
+        snprintf(odesc,  sizeof(odesc)  - 1, IDX_LIST_DESC, i+1);
+        desc.add_options()(olabel, make_opt(indices[i].list), odesc);
       }
     }
     desc.add_options()
@@ -900,15 +900,15 @@ namespace mkrecv
       snprintf(ikey, sizeof(ikey) - 1, IDX_ITEM_KEY, i+1);
       indices[i].item_used_type = parse_parameter(indices[i].item, indices[i].item_str, iopt, ikey);
       if (i == 0) {
-	indices[i].step_used_type = parse_parameter(indices[i].step, indices[i].step_str, IDX_STEP_OPT, IDX_STEP_KEY);
-	indices[i].mod_used_type  = parse_parameter(indices[i].mod,  indices[i].mod_str,  IDX_MOD_OPT,  IDX_MOD_KEY);
+        indices[i].step_used_type = parse_parameter(indices[i].step, indices[i].step_str, IDX_STEP_OPT, IDX_STEP_KEY);
+        indices[i].mod_used_type  = parse_parameter(indices[i].mod,  indices[i].mod_str,  IDX_MOD_OPT,  IDX_MOD_KEY);
       } else {
-	snprintf(iopt, sizeof(iopt) - 1, IDX_MASK_OPT, i+1);
-	snprintf(ikey, sizeof(ikey) - 1, IDX_MASK_KEY, i+1);
-	indices[i].mask_used_type = parse_parameter(indices[i].mask, indices[i].mask_str, iopt, ikey);
-	snprintf(iopt, sizeof(iopt) - 1, IDX_LIST_OPT, i+1);
-	snprintf(ikey, sizeof(ikey) - 1, IDX_LIST_KEY, i+1);
-	indices[i].list_used_type = parse_parameter(indices[i].values, indices[i].list, iopt, ikey);
+        snprintf(iopt, sizeof(iopt) - 1, IDX_MASK_OPT, i+1);
+        snprintf(ikey, sizeof(ikey) - 1, IDX_MASK_KEY, i+1);
+        indices[i].mask_used_type = parse_parameter(indices[i].mask, indices[i].mask_str, iopt, ikey);
+        snprintf(iopt, sizeof(iopt) - 1, IDX_LIST_OPT, i+1);
+        snprintf(ikey, sizeof(ikey) - 1, IDX_LIST_KEY, i+1);
+        indices[i].list_used_type = parse_parameter(indices[i].values, indices[i].list, iopt, ikey);
       }
     }
     parse_parameter(scis, sci_list, SCI_LIST_OPT, SCI_LIST_KEY);
@@ -939,18 +939,22 @@ namespace mkrecv
     //   If the heap is is 1
     //   If the heap size is wrong (needs a value for HEAP_SIZE of --heap-size)
     //   If there are not enough item pointers do calculate heap_index
-    if (ph->heap_cnt == 1)                      return -1;
-    if (heap_nbytes != (std::int64_t)size)                    return -1;
-    if ((std::int64_t)(ph->n_items) < nindices) return -1;
+    if (ph->heap_cnt == 1)                      
+			return -1;
+    if (heap_nbytes != (std::int64_t)size)                    
+			return -1;
+    if ((std::int64_t)(ph->n_items) < nindices) 
+			return -1;
     // Extract all item pointer values and transform them into a heap index (inside a heap group)
     for (i = 0; i < nindices; i++) {
       spead2::item_pointer_t pts = spead2::load_be<spead2::item_pointer_t>(ph->pointers + indices[i].item);
       if (i == 0) {
-	timestamp = decoder.get_immediate(pts);
+        timestamp = decoder.get_immediate(pts);
       } else {
-	std::int64_t item_index = indices[i].v2i((std::int64_t)(decoder.get_immediate(pts) & indices[i].mask));
-	if (item_index == (std::int64_t)-1) return -1;
-	heap_index += item_index;
+        std::int64_t item_index = indices[i].v2i((std::int64_t)(decoder.get_immediate(pts) & indices[i].mask));
+        if (item_index == (std::int64_t)-1) 
+					return -1;
+        heap_index += item_index;
       }
     }
     return heap_index;
@@ -977,13 +981,13 @@ namespace mkrecv
     timestamp_mod  = (opts->indices[0].mod/timestamp_step)*timestamp_step; // enforce that timestamp_mod is a multiple of timestamp_step
     if (timestamp_mod == 0) timestamp_mod = timestamp_step;
     header_thread = std::thread([this] ()
-				{
-				  this->create_header();
-				});
+                                {
+                                  this->create_header();
+                                });
     switch_thread = std::thread([this] ()
-				{
-				  this->move_ringbuffer();
-				});
+                                {
+                                  this->move_ringbuffer();
+                                });
   }
 
   storage::~storage()
@@ -1000,9 +1004,9 @@ namespace mkrecv
   //   OUT    hg_sci     := start address for side channel items of a heap group defined by timestamp
   //   RETURN dest_index := (real) destination index: [0 .. nbuffers-2] -> DATA, nbuffers-1 -> TRASH
   std::int64_t storage::alloc_data(spead2::s_item_pointer_t timestamp,
-				   std::int64_t explen,
-				   char *&hg_payload,
-				   spead2::s_item_pointer_t *&hg_sci)
+                                   std::int64_t explen,
+                                   char *&hg_payload,
+                                   spead2::s_item_pointer_t *&hg_sci)
   {
     std::int64_t dest_index, group_index;
     
@@ -1024,12 +1028,12 @@ namespace mkrecv
       timestamp_first = ((timestamp + timestamp_step + timestamp_mod) / timestamp_mod) * timestamp_mod;
       timestamp_level = timestamp_first + timestamp_step*timestamp_offset;
       std::cout << "sizes: buffer " << nbuffers << " " << slot_nbytes << " " << slot_ngroups
-		<< " heap " << heap_nbytes << " " << group_nheaps
-		<< " timestamp " << timestamp_first << " " << timestamp_step << " " << timestamp_level
-		<< '\n';
+                << " heap " << heap_nbytes << " " << group_nheaps
+                << " timestamp " << timestamp_first << " " << timestamp_step << " " << timestamp_level
+                << '\n';
       { // start thread which allocates, fills and releases the header
-	std::unique_lock<std::mutex> lck(header_mutex);
-	header_cv.notify_all();
+        std::unique_lock<std::mutex> lck(header_mutex);
+        header_cv.notify_all();
       }
     }
     if (timestamp < timestamp_first) {
@@ -1038,17 +1042,17 @@ namespace mkrecv
       group_index = 0;
       gstat.heaps_too_old++;
     } else {
-      dest_index  = (timestamp - timestamp_first)/slot_ngroups;
-      group_index = (timestamp - timestamp_first)%slot_ngroups;
+      dest_index  = ((timestamp - timestamp_first) / timestamp_step) / slot_ngroups;
+      group_index = ((timestamp - timestamp_first) / timestamp_step) % slot_ngroups;
       if (dest_index >= buffer_active) {
-	// this timestamp is too far in the future -> trash
-	dest_index  = nbuffers;
-	group_index = 0;
-	gstat.heaps_too_new++;
+        // this timestamp is too far in the future -> trash
+        dest_index  = nbuffers;
+        group_index = 0;
+        gstat.heaps_too_new++;
       } else {
-	// correct the artificial destination/slot index with buffer_first
-	dest_index = (dest_index + buffer_first)%buffer_active;
-	gstat.heaps_present++;
+        // correct the artificial destination/slot index with buffer_first
+        dest_index = (dest_index + buffer_first)%buffer_active;
+        gstat.heaps_present++;
       }
     }
     bstat[dest_index].heaps_total++;
@@ -1080,9 +1084,9 @@ namespace mkrecv
   //   OUT    hg_sci     := start address for side channel items of a heap group defined by timestamp
   //   RETURN dest_index := (real) destination index: [0 .. nbuffers-2] -> DATA, nbuffers-1 -> TRASH
   std::int64_t storage::alloc_trash(spead2::s_item_pointer_t timestamp,
-				    std::int64_t explen,
-				    char *&hg_payload,
-				    spead2::s_item_pointer_t *&hg_sci)
+                                    std::int64_t explen,
+                                    char *&hg_payload,
+                                    spead2::s_item_pointer_t *&hg_sci)
   {
     (void)timestamp;
     std::int64_t dest_index, group_index;
@@ -1149,36 +1153,36 @@ namespace mkrecv
     }
     if (dest_index < nbuffers) {
       if ((timestamp >= timestamp_level) && !switch_triggered) {
-	switch_triggered = true;
-	if (!has_stopped) {
-	  // copy the optional side-channel items at the correct position
-	  // sci_base = buffer + size - (scape *nsci)
-	  { // start thread which releases the first active slot (buffer_first), allocates a new slot and updates timestamp_first, buffer_first, statistics and pointers
-	    std::unique_lock<std::mutex> lck(switch_mutex);
-	    switch_cv.notify_all();
-	  }
-	}
-	if (stop && !has_stopped) {
-	  has_stopped = true;
-	  std::cout << "request to stop the transfer into the ringbuffer received." << '\n';
-	  if (ipcio_update_block_write (dada->data_block, 0) < 0) {
-	    multilog(mlog, LOG_ERR, "close_buffer: ipcio_update_block_write failed\n");
-	    throw std::runtime_error("Could not close ipcio data block");
-	  }
-	}
+        switch_triggered = true;
+        if (!has_stopped) {
+          // copy the optional side-channel items at the correct position
+          // sci_base = buffer + size - (scape *nsci)
+          { // start thread which releases the first active slot (buffer_first), allocates a new slot and updates timestamp_first, buffer_first, statistics and pointers
+            std::unique_lock<std::mutex> lck(switch_mutex);
+            switch_cv.notify_all();
+          }
+        }
+        if (stop && !has_stopped) {
+          has_stopped = true;
+          std::cout << "request to stop the transfer into the ringbuffer received." << '\n';
+          if (ipcio_update_block_write (dada->data_block, 0) < 0) {
+            multilog(mlog, LOG_ERR, "close_buffer: ipcio_update_block_write failed\n");
+            throw std::runtime_error("Could not close ipcio data block");
+          }
+        }
       }
     }
     if ((gstat.heaps_total - log_counter) >= LOG_FREQ) {
       log_counter += LOG_FREQ;
       if (!opts->quiet) {
-	std::cout << "heaps:";
-	std::cout << " total "     << gstat.heaps_total     << " " << bstat[nbuffers].heaps_total;
-	std::cout << " completed " << gstat.heaps_completed << " " << bstat[nbuffers].heaps_completed;
-	std::cout << " discarded " << gstat.heaps_discarded << " " << bstat[nbuffers].heaps_discarded;
-	std::cout << " open "      << gstat.heaps_open      << " " << bstat[nbuffers].heaps_open;
-	std::cout << " age "       << gstat.heaps_too_old   << " " << gstat.heaps_present << " " << gstat.heaps_too_new;
-	std::cout << " payload "   << gstat.bytes_expected  << " " << gstat.bytes_received;
-	std::cout << '\n';
+        std::cout << "heaps:";
+        std::cout << " total "     << gstat.heaps_total     << " " << bstat[nbuffers].heaps_total;
+        std::cout << " completed " << gstat.heaps_completed << " " << bstat[nbuffers].heaps_completed;
+        std::cout << " discarded " << gstat.heaps_discarded << " " << bstat[nbuffers].heaps_discarded;
+        std::cout << " open "      << gstat.heaps_open      << " " << bstat[nbuffers].heaps_open;
+        std::cout << " age "       << gstat.heaps_too_old   << " " << gstat.heaps_present << " " << gstat.heaps_too_new;
+        std::cout << " payload "   << gstat.bytes_expected  << " " << gstat.bytes_received;
+        std::cout << '\n';
       }
     }
 #ifndef USE_STD_MUTEX
@@ -1242,11 +1246,11 @@ namespace mkrecv
     // prepare the trash memory using mmap()
     trash_nbytes = group_nbytes + sizeof(spead2::s_item_pointer_t)*nsci*group_nheaps; // include side channel items for one heap group
     trash_base = (char*)mmap(NULL,
-			     trash_nbytes,
-			     PROT_READ | PROT_WRITE,
-			     MAP_ANONYMOUS | MAP_PRIVATE,
-			     -1,
-			     0);
+                             trash_nbytes,
+                             PROT_READ | PROT_WRITE,
+                             MAP_ANONYMOUS | MAP_PRIVATE,
+                             -1,
+                             0);
     buffers[nbuffers]   = trash_base;
     payload_base[nbuffers] = buffers[nbuffers];
     sci_base[nbuffers]  = (spead2::s_item_pointer_t*)(buffers[nbuffers] + trash_nbytes - sizeof(spead2::s_item_pointer_t)*nsci*group_nheaps);
@@ -1298,31 +1302,34 @@ namespace mkrecv
       // wait for the switch-the-slot trigger
       std::unique_lock<std::mutex> lck(switch_mutex);
       while (switch_cv.wait_for(lck, std::chrono::milliseconds(50)) == std::cv_status::timeout) {
-	if (has_stopped) return;
+        if (has_stopped) return;
       }
       // remove the last slot from the internal buffers (deactivating its use, by modifying buffer_first, buffer_active and timestamp_first)
       { // **** MUST BE GUARDED BY SEMAPHORE/MUTEX !!! ****
 #ifdef USE_STD_MUTEX
-	std::lock_guard<std::mutex> lock(dest_mutex);
+        std::lock_guard<std::mutex> lock(dest_mutex);
 #else
-	dest_sem.get();
+        dest_sem.get();
 #endif
-	replace_slot = buffer_first;
-	buffer_first++;
-	buffer_active--;
-	timestamp_first += timestamp_step*slot_ngroups;
+        replace_slot = buffer_first;
+				buffer_first = (buffer_first + 1) % nbuffers;
+        buffer_active--;
+        timestamp_first += timestamp_step*slot_ngroups;
 #ifndef USE_STD_MUTEX
-	dest_sem.put();
+        dest_sem.put();
 #endif
       }
       // Now we have time to release a slot
-      if (ipcio_update_block_write (dada->data_block, slot_nbytes) < 0) {
-	multilog(mlog, LOG_ERR, "close_buffer: ipcio_update_block_write failed\n");
-	throw std::runtime_error("Could not close ipcio data block");
+			//
+			 if ((ipcio_close_block_write (dada->data_block, slot_nbytes) < 0) || (ipcbuf_mark_filled(dada->header_block, slot_nbytes) < 0))
+			{
+        multilog(mlog, LOG_ERR, "close_buffer: ipcio_update_block_write failed\n");
+        throw std::runtime_error("Could not close ipcio data block");
       }
       // getting a new slot
       buffers[replace_slot] = ipcio_open_block_write(dada->data_block, &(indices[replace_slot]));
-      multilog(mlog, LOG_INFO, "got slot %d at %lx", indices[replace_slot], (void*)buffers[replace_slot]);
+			// multilog(mlog, LOG_INFO, "got slot %d at %lx", indices[replace_slot], (void*)buffers[replace_slot]);
+			std::cout <<  "got slot " <<  indices[replace_slot]  <<  " at " << (void*)buffers[replace_slot] << std::endl;
       payload_base[replace_slot] = buffers[replace_slot];
       sci_base[replace_slot]  = (spead2::s_item_pointer_t*)(buffers[replace_slot] + slot_nbytes - sizeof(spead2::s_item_pointer_t)*nsci*slot_nheaps);
       // clear the side channel items
@@ -1330,15 +1337,15 @@ namespace mkrecv
       // add the new slot to the internal buffers
       { // **** MUST BE GUARDED BY SEMAPHORE/MUTEX !!! ****
 #ifdef USE_STD_MUTEX
-	std::lock_guard<std::mutex> lock(dest_mutex);
+        std::lock_guard<std::mutex> lock(dest_mutex);
 #else
-	dest_sem.get();
+        dest_sem.get();
 #endif
-	buffer_active++;
-	timestamp_level += timestamp_step*slot_ngroups;
-	switch_triggered = false;
+        buffer_active++;
+        timestamp_level += timestamp_step*slot_ngroups;
+        switch_triggered = false;
 #ifndef USE_STD_MUTEX
-	dest_sem.put();
+        dest_sem.put();
 #endif
       }
     } while (true);
@@ -1376,7 +1383,7 @@ namespace mkrecv
   {
     spead2::recv::packet_header    *ph = (spead2::recv::packet_header*)hint;
     spead2::recv::pointer_decoder   decoder(ph->heap_address_bits);
-    spead2::s_item_pointer_t        timestamp;
+    spead2::s_item_pointer_t        timestamp = -1;
     bool                            use_data;
     std::int64_t                    dest_index = 0;
     std::int64_t                    heap_index = 0;
@@ -1394,13 +1401,13 @@ namespace mkrecv
     } else {
       heap_index = opts->p2i(ph, size, timestamp);
       if (heap_index == -1) {
-	heap_index = 0;
-	use_data = false;
+        heap_index = 0;
+        use_data = false;
       } else {
-	use_data = true;
+        use_data = true;
       }
       if (!use_data) {
-	std::cout << "heap ignored heap_cnt " << ph->heap_cnt << " size " << size << " n_items " << ph->n_items << '\n';
+        std::cout << "heap ignored heap_cnt " << ph->heap_cnt << " size " << size << " n_items " << ph->n_items << '\n';
       }
     }
     if (use_data) {
@@ -1408,7 +1415,7 @@ namespace mkrecv
     } else {
       dest_index = store->alloc_trash(timestamp, size, heap_place, sci_place);
     }
-    std::cout << "heap " << ph->heap_cnt << " size " << size << " nitems " << ph->n_items << " destidx " << dest_index << " heapidx " << heap_index << " timestamp " << timestamp << "\n";
+    //std::cout << "heap " << ph->heap_cnt << " size " << size << " nitems " << ph->n_items << " destidx " << dest_index << " heapidx " << heap_index << " timestamp " << timestamp << "\n";
     heap_id[head]        = ph->heap_cnt;
     heap_dest[head]      = dest_index;
     heap_timestamp[head] = timestamp;
@@ -1424,8 +1431,8 @@ namespace mkrecv
     if ((dest_index == storage::TRASH_DEST) && (odest_index != storage::TRASH_DEST) && !opts->quiet) {
       std::cout << "HEAP " << ph->heap_cnt << " " << ph->heap_length << " " << ph->payload_offset << " " << ph->payload_length;
       for (i = 0; i < ph->n_items; i++) {
-	spead2::item_pointer_t pts = spead2::load_be<spead2::item_pointer_t>(ph->pointers + i*sizeof(spead2::item_pointer_t));
-	std::cout << " I[" << i << "] = " << decoder.is_immediate(pts) << " " << decoder.get_id(pts) << " " << decoder.get_immediate(pts);
+        spead2::item_pointer_t pts = spead2::load_be<spead2::item_pointer_t>(ph->pointers + i*sizeof(spead2::item_pointer_t));
+        std::cout << " I[" << i << "] = " << decoder.is_immediate(pts) << " " << decoder.get_id(pts) << " " << decoder.get_immediate(pts);
       }
       std::cout << std::endl;
     }
@@ -1454,26 +1461,26 @@ namespace mkrecv
       std::int64_t count = MAX_OPEN_HEAPS;
       dec(idx, MAX_OPEN_HEAPS-1); // heaps + (MAX_OPEN_HEAPS - 1))%MAX_OPEN_HEAPS;
       do {
-	if (heap_id[idx] == cnt) {
-	  dest_index = heap_dest[idx];
-	  timestamp  = heap_timestamp[idx];
-	  break;
-	}
-	dec(idx, MAX_OPEN_HEAPS - 1);
-	count--;
+        if (heap_id[idx] == cnt) {
+          dest_index = heap_dest[idx];
+          timestamp  = heap_timestamp[idx];
+          break;
+        }
+        dec(idx, MAX_OPEN_HEAPS - 1);
+        count--;
       } while (count != 0);
       if (count == 0) {
-	std::cout << "ERROR: Cannot find heap with id " << cnt << " in internal map" << '\n';
-	dest_index = store->get_trash_dest_index();
-	timestamp = 0;
+        std::cout << "ERROR: Cannot find heap with id " << cnt << " in internal map" << '\n';
+        dest_index = store->get_trash_dest_index();
+        timestamp = 0;
       } else {
-	std::int64_t ohead = head;
-	dec(ohead,  MAX_OPEN_HEAPS-1); // The index of the latest entry
-	if (idx == ohead) {
-	  // the marked head is the first in the internal map, we can remove this entry
-	  // by setting the head ine step backwards and overwrite the latest entry next time a heap arrives
-	  head = ohead;
-	}
+        std::int64_t ohead = head;
+        dec(ohead,  MAX_OPEN_HEAPS-1); // The index of the latest entry
+        if (idx == ohead) {
+          // the marked head is the first in the internal map, we can remove this entry
+          // by setting the head ine step backwards and overwrite the latest entry next time a heap arrives
+          head = ohead;
+        }
       }
       //dest_index = heap2dest[cnt];
       //timestamp  = heap2timestamp[cnt];
@@ -1521,37 +1528,37 @@ namespace mkrecv
     if (opts->descriptors) {
       std::vector<spead2::descriptor> descriptors = fheap.get_descriptors();
       for (const auto &descriptor : descriptors) {
-	std::cout
-	  << "Descriptor for " << descriptor.name
-	  << " (" << std::hex << descriptor.id << ")\n"
-	  << "  description: " << descriptor.description << '\n'
-	  << "  format:      [";
-	bool first = true;
-	for (const auto &field : descriptor.format) {
-	  if (!first) std::cout << ", ";
-	  first = false;
-	  std::cout << '(' << field.first << ", " << field.second << ')';
-	}
-	std::cout << "]\n";
-	std::cout
-	  << "  dtype:       " << descriptor.numpy_header << '\n'
-	  << "  shape:       (";
-	first = true;
-	for (const auto &size : descriptor.shape) {
-	  if (!first) std::cout << ", ";
-	  first = false;
-	  if (size == -1)
-	    std::cout << "?";
-	  else
-	    std::cout << size;
-	}
-	std::cout << ")\n";
+        std::cout
+          << "Descriptor for " << descriptor.name
+          << " (" << std::hex << descriptor.id << ")\n"
+          << "  description: " << descriptor.description << '\n'
+          << "  format:      [";
+        bool first = true;
+        for (const auto &field : descriptor.format) {
+          if (!first) std::cout << ", ";
+          first = false;
+          std::cout << '(' << field.first << ", " << field.second << ')';
+        }
+        std::cout << "]\n";
+        std::cout
+          << "  dtype:       " << descriptor.numpy_header << '\n'
+          << "  shape:       (";
+        first = true;
+        for (const auto &size : descriptor.shape) {
+          if (!first) std::cout << ", ";
+          first = false;
+          if (size == -1)
+            std::cout << "?";
+          else
+            std::cout << size;
+        }
+        std::cout << ")\n";
       }
     }
     const auto &items = fheap.get_items();
     for (const auto &item : items) {
       std::cout << std::hex << item.id << std::dec
-		<< " = [" << item.length << " bytes]\n";
+                << " = [" << item.length << " bytes]\n";
     }
     std::cout << std::noshowbase;
   }
@@ -1643,7 +1650,7 @@ namespace mkrecv
   }
 
   std::unique_ptr<mkrecv::stream> receiver::make_stream(std::vector<std::string>::iterator first_source,
-							std::vector<std::string>::iterator last_source)
+                                                        std::vector<std::string>::iterator last_source)
   {
     using asio::ip::udp;
 
@@ -1675,12 +1682,12 @@ namespace mkrecv
     } else {
 #endif
       for (std::vector<boost::asio::ip::udp::endpoint>::iterator it = endpoints.begin() ; it != endpoints.end(); ++it) {
-	if (opts->udp_if != "") {
-	  boost::asio::ip::address interface_address = boost::asio::ip::address::from_string(opts->udp_if);
-	  stream->emplace_reader<spead2::recv::udp_reader>(*it, opts->packet_nbytes, opts->buffer_nbytes, interface_address);
-	} else {
-	  stream->emplace_reader<spead2::recv::udp_reader>(*it, opts->packet_nbytes, opts->buffer_nbytes);
-	}
+        if (opts->udp_if != "") {
+          boost::asio::ip::address interface_address = boost::asio::ip::address::from_string(opts->udp_if);
+          stream->emplace_reader<spead2::recv::udp_reader>(*it, opts->packet_nbytes, opts->buffer_nbytes, interface_address);
+        } else {
+          stream->emplace_reader<spead2::recv::udp_reader>(*it, opts->packet_nbytes, opts->buffer_nbytes);
+        }
       }
 #if SPEAD2_USE_IBV
     }
@@ -1710,7 +1717,7 @@ namespace mkrecv
       streams.push_back(make_stream(opts->sources.begin(), opts->sources.end()));
     } else {
       for (auto it = opts->sources.begin(); it != opts->sources.end(); ++it)
-	streams.push_back(make_stream(it, it + 1));
+        streams.push_back(make_stream(it, it + 1));
     }
     std::int64_t n_complete = 0;
     for (const auto &ptr : streams) {
