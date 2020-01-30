@@ -1051,7 +1051,7 @@ namespace mkrecv
         gstat.heaps_too_new++;
       } else {
         // correct the artificial destination/slot index with buffer_first
-        dest_index = (dest_index + buffer_first)%buffer_active;
+        dest_index = (dest_index + buffer_first)%nbuffers;
         gstat.heaps_present++;
       }
     }
@@ -1063,7 +1063,6 @@ namespace mkrecv
 #ifdef ENABLE_TIMING_MEASUREMENTS
     if (gstat.heaps_total == 100*slot_nheaps) {
       et.reset();
-      gstat.reset();
     }
     std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
     et.add_et(timing_statistics::ALLOC_TIMING, std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count());
@@ -1114,7 +1113,6 @@ namespace mkrecv
 #ifdef ENABLE_TIMING_MEASUREMENTS
     if (gstat.heaps_total == 100*slot_nheaps) {
       et.reset();
-      gstat.reset();
     }
     std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
     et.add_et(timing_statistics::ALLOC_TIMING, std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count());
@@ -1320,12 +1318,27 @@ namespace mkrecv
 #endif
       }
       // Now we have time to release a slot
-			//
-			 if ((ipcio_close_block_write (dada->data_block, slot_nbytes) < 0) || (ipcbuf_mark_filled(dada->header_block, slot_nbytes) < 0))
-			{
-        multilog(mlog, LOG_ERR, "close_buffer: ipcio_update_block_write failed\n");
-        throw std::runtime_error("Could not close ipcio data block");
-      }
+      //
+      if ((ipcio_close_block_write (dada->data_block, slot_nbytes) < 0) || (ipcbuf_mark_filled(dada->header_block, slot_nbytes) < 0))
+	{
+	  multilog(mlog, LOG_ERR, "close_buffer: ipcio_update_block_write failed\n");
+	  throw std::runtime_error("Could not close ipcio data block");
+	}
+      // write statistics and clears it for the oldest slot
+      std::cout << "STAT "
+		<< slot_nheaps << " "
+		<< bstat[replace_slot].heaps_completed << " "
+		<< bstat[replace_slot].heaps_discarded << " "
+		<< bstat[replace_slot].heaps_open << " "
+		<< bstat[replace_slot].bytes_expected << " "
+		<< bstat[replace_slot].bytes_received << " "
+		<< gstat.heaps_completed << " "
+		<< gstat.heaps_discarded << " "
+		<< gstat.heaps_open << " "
+		<< gstat.bytes_expected << " "
+		<< gstat.bytes_received
+		<< "\n";
+      bstat[replace_slot].reset();
       // getting a new slot
       buffers[replace_slot] = ipcio_open_block_write(dada->data_block, &(indices[replace_slot]));
 			// multilog(mlog, LOG_INFO, "got slot %d at %lx", indices[replace_slot], (void*)buffers[replace_slot]);
