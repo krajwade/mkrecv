@@ -236,6 +236,7 @@ namespace mkrecv
     std::int64_t               valshift = 0;
     spead2::s_item_pointer_t   valmin   = 0;
     spead2::s_item_pointer_t   valmax   = 0;
+    spead2::s_item_pointer_t   mapmax   = 0;
     std::int64_t              *map      = NULL;
   public:
     index();

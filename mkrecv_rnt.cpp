@@ -236,6 +236,8 @@ namespace mkrecv
     for (i = 0; i < (std::int64_t)values.size(); i++) {
       spead2::s_item_pointer_t k = values[i]; // key   := element in the option list (--idx<i>-list)
       std::int64_t             v = i*index_size;  // value := heap index [B] calculated from list position and index_size
+      if ((i == 0) || (k < valmin)) valmin = k;
+      if ((i == 0) || (k > valmax)) valmax = k;
       valbits |= k;
       values.push_back(k);
       value2index[k] = v;
@@ -247,21 +249,18 @@ namespace mkrecv
         valshift++;
         val = val >> 1;
       }
-      if (valshift != 0) {
-        valmin = 1 << valshift;
-      }
-      valmax = val;
+      mapmax = val;
       while (val != 0) {
         valsize++;
         val = val >> 1;
       }
       valmask = (1 << valsize) - 1;
     }
-    std::cout << "  valbits " << valbits << " size " << valsize << " shift " << valshift << " valmask " << valmask << " valmin " << valmin << " valmax " << valmax << '\n';
-    if (valmax < 4096) {
+    std::cout << "  valbits " << valbits << " size " << valsize << " shift " << valshift << " valmask " << valmask << " valmin " << valmin << " valmax " << valmax << " mapmax " << mapmax << '\n';
+    if (mapmax < 4096) {
       // we use a direct approach for mapping pointer item values into indices
-      map = new std::int64_t[valmax + 1];
-      for (val = 0; val <= valmax; val++) {
+      map = new std::int64_t[mapmax + 1];
+      for (val = 0; val <= mapmax; val++) {
         map[val] = (std::int64_t)-1;
       }
       for (i = 0; i < (std::int64_t)values.size(); i++) {
@@ -287,9 +286,11 @@ namespace mkrecv
       return -1;
     } else if (v < valmin) {
       return -1;
+    } else if (v > valmax) {
+      return -1;
     } else {
       spead2::s_item_pointer_t hv = v >> valshift;
-      if (hv > valmax) return -1;
+      if (hv > mapmax) return -1;
       return map[hv];
     }
   }
