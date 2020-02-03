@@ -37,12 +37,10 @@ namespace mkrecv
     heaps_needed    = 0;
     bytes_expected  = 0;
     bytes_received  = 0;
-    reset_flag      = false;
   }
 
   void storage_statistics::reset()
   {
-    if (reset_flag) return;
     heaps_total     = 0;
     heaps_completed = 0;
     heaps_discarded = 0;
@@ -56,7 +54,6 @@ namespace mkrecv
     heaps_needed    = 0;
     bytes_expected  = 0;
     bytes_received  = 0;
-    reset_flag      = true;
   }
 
   // *******************************************************************
