@@ -1325,16 +1325,28 @@ namespace mkrecv
       // write statistics and clears it for the oldest slot
       std::cout << "STAT "
 		<< slot_nheaps << " "
+		<< "slot "
 		<< bstat[replace_slot].heaps_completed << " "
 		<< bstat[replace_slot].heaps_discarded << " "
 		<< bstat[replace_slot].heaps_open << " "
 		<< bstat[replace_slot].bytes_expected << " "
 		<< bstat[replace_slot].bytes_received << " "
+		<< "total "
 		<< gstat.heaps_completed << " "
 		<< gstat.heaps_discarded << " "
 		<< gstat.heaps_open << " "
 		<< gstat.bytes_expected << " "
-		<< gstat.bytes_received
+		<< gstat.bytes_received << " "
+		<< "trash "
+		<< bstat[nbuffers].heaps_completed << " "
+		<< bstat[nbuffers].heaps_discarded << " "
+		<< bstat[nbuffers].heaps_open << " "
+		<< bstat[nbuffers].bytes_expected << " "
+		<< bstat[nbuffers].bytes_received << " "
+		<< "age "
+		<< gstat.heaps_too_old << " "
+		<< gstat.heaps_present << " "
+		<< gstat.heaps_too_new
 		<< "\n";
       bstat[replace_slot].reset();
       // getting a new slot
