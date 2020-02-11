@@ -236,7 +236,6 @@ namespace mkrecv
       if ((i == 0) || (k < valmin)) valmin = k;
       if ((i == 0) || (k > valmax)) valmax = k;
       valbits |= k;
-      values.push_back(k);
       value2index[k] = v;
       std::cout << "  hmap " << k << " -> " << v << '\n';
     }
@@ -938,11 +937,11 @@ namespace mkrecv
     //   If the heap size is wrong (needs a value for HEAP_SIZE of --heap-size)
     //   If there are not enough item pointers do calculate heap_index
     if (ph->heap_cnt == 1)                      
-			return -1;
+      return -1;
     if (heap_nbytes != (std::int64_t)size)                    
-			return -1;
+      return -1;
     if ((std::int64_t)(ph->n_items) < nindices) 
-			return -1;
+      return -1;
     // Extract all item pointer values and transform them into a heap index (inside a heap group)
     for (i = 0; i < nindices; i++) {
       spead2::item_pointer_t pts = spead2::load_be<spead2::item_pointer_t>(ph->pointers + indices[i].item);
@@ -951,7 +950,7 @@ namespace mkrecv
       } else {
         std::int64_t item_index = indices[i].v2i((std::int64_t)(decoder.get_immediate(pts) & indices[i].mask));
         if (item_index == (std::int64_t)-1) 
-					return -1;
+	  return -1;
         heap_index += item_index;
       }
     }
@@ -1308,7 +1307,7 @@ namespace mkrecv
         dest_sem.get();
 #endif
         replace_slot = buffer_first;
-				buffer_first = (buffer_first + 1) % nbuffers;
+	buffer_first = (buffer_first + 1) % nbuffers;
         buffer_active--;
         timestamp_first += timestamp_step*slot_ngroups;
 #ifndef USE_STD_MUTEX
@@ -1351,8 +1350,8 @@ namespace mkrecv
       bstat[replace_slot].reset();
       // getting a new slot
       buffers[replace_slot] = ipcio_open_block_write(dada->data_block, &(indices[replace_slot]));
-			// multilog(mlog, LOG_INFO, "got slot %d at %lx", indices[replace_slot], (void*)buffers[replace_slot]);
-			std::cout <<  "got slot " <<  indices[replace_slot]  <<  " at " << (void*)buffers[replace_slot] << std::endl;
+      // multilog(mlog, LOG_INFO, "got slot %d at %lx", indices[replace_slot], (void*)buffers[replace_slot]);
+      std::cout <<  "got slot " <<  indices[replace_slot]  <<  " at " << (void*)buffers[replace_slot] << std::endl;
       payload_base[replace_slot] = buffers[replace_slot];
       sci_base[replace_slot]  = (spead2::s_item_pointer_t*)(buffers[replace_slot] + slot_nbytes - sizeof(spead2::s_item_pointer_t)*nsci*slot_nheaps);
       // clear the side channel items
@@ -1451,14 +1450,14 @@ namespace mkrecv
       sci_place[i] = decoder.get_immediate(pts);
     }
     /*
-    if ((dest_index == storage::TRASH_DEST) && (odest_index != storage::TRASH_DEST) && !opts->quiet) {
+      if ((dest_index == storage::TRASH_DEST) && (odest_index != storage::TRASH_DEST) && !opts->quiet) {
       std::cout << "HEAP " << ph->heap_cnt << " " << ph->heap_length << " " << ph->payload_offset << " " << ph->payload_length;
       for (i = 0; i < ph->n_items; i++) {
-        spead2::item_pointer_t pts = spead2::load_be<spead2::item_pointer_t>(ph->pointers + i*sizeof(spead2::item_pointer_t));
-        std::cout << " I[" << i << "] = " << decoder.is_immediate(pts) << " " << decoder.get_id(pts) << " " << decoder.get_immediate(pts);
+      spead2::item_pointer_t pts = spead2::load_be<spead2::item_pointer_t>(ph->pointers + i*sizeof(spead2::item_pointer_t));
+      std::cout << " I[" << i << "] = " << decoder.is_immediate(pts) << " " << decoder.get_id(pts) << " " << decoder.get_immediate(pts);
       }
       std::cout << std::endl;
-    }
+      }
     */
 #ifdef ENABLE_TIMING_MEASUREMENTS
     if (heaps_total == 2000000) et.reset();
@@ -1466,7 +1465,7 @@ namespace mkrecv
     et.add_et(timing_statistics::ALLOC_TIMING, std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count());
 #endif
     return pointer((std::uint8_t*)(heap_place), deleter(shared_from_this(), (void *) std::uintptr_t(size)));
-   }
+  }
 
   void allocator::mark(spead2::s_item_pointer_t cnt, bool isok, spead2::s_item_pointer_t reclen)
   {
