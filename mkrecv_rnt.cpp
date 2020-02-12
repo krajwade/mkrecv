@@ -1146,7 +1146,8 @@ namespace mkrecv
       gstat.heaps_discarded++;
       bstat[dest_index].heaps_discarded++;
     }
-    if (dest_index < nbuffers) {
+    if (timestamp != -1) { // -1 -> no valid heap, went into trash and is not used to release a slot
+      if (timestamp > timestamp_last) timestamp_last = timestamp;
       if ((timestamp >= timestamp_level) && !switch_triggered) {
         switch_triggered = true;
         if (!has_stopped) {
@@ -1293,83 +1294,78 @@ namespace mkrecv
   {
     do {
       std::int64_t  replace_slot;
+      bool          lflag;
 
       // wait for the switch-the-slot trigger
       std::unique_lock<std::mutex> lck(switch_mutex);
       while (switch_cv.wait_for(lck, std::chrono::milliseconds(50)) == std::cv_status::timeout) {
         if (has_stopped) return;
       }
-      // remove the last slot from the internal buffers (deactivating its use, by modifying buffer_first, buffer_active and timestamp_first)
-      { // **** MUST BE GUARDED BY SEMAPHORE/MUTEX !!! ****
+      do {
+	// remove the last slot from the internal buffers (deactivating its use, by modifying buffer_first, buffer_active and timestamp_first)
+	{ // **** MUST BE GUARDED BY SEMAPHORE/MUTEX !!! ****
 #ifdef USE_STD_MUTEX
-        std::lock_guard<std::mutex> lock(dest_mutex);
+	  std::lock_guard<std::mutex> lock(dest_mutex);
 #else
-        dest_sem.get();
+	  dest_sem.get();
 #endif
-        replace_slot = buffer_first;
-	buffer_first = (buffer_first + 1) % nbuffers;
-        buffer_active--;
-        timestamp_first += timestamp_step*slot_ngroups;
+	  replace_slot = buffer_first;
+	  buffer_first = (buffer_first + 1) % nbuffers;
+	  buffer_active--;
+	  timestamp_first += timestamp_step*slot_ngroups;
 #ifndef USE_STD_MUTEX
-        dest_sem.put();
+	  dest_sem.put();
 #endif
-      }
-      // Now we have time to release a slot
-      //
-      if ((ipcio_close_block_write (dada->data_block, slot_nbytes) < 0) || (ipcbuf_mark_filled(dada->header_block, slot_nbytes) < 0))
-	{
-	  multilog(mlog, LOG_ERR, "close_buffer: ipcio_update_block_write failed\n");
-	  throw std::runtime_error("Could not close ipcio data block");
 	}
-      // write statistics and clears it for the oldest slot
-      std::cout << "STAT "
-		<< slot_nheaps << " "
-		<< "slot "
-		<< bstat[replace_slot].heaps_completed << " "
-		<< bstat[replace_slot].heaps_discarded << " "
-		<< bstat[replace_slot].heaps_open << " "
-		<< bstat[replace_slot].bytes_expected << " "
-		<< bstat[replace_slot].bytes_received << " "
-		<< "total "
-		<< gstat.heaps_completed << " "
-		<< gstat.heaps_discarded << " "
-		<< gstat.heaps_open << " "
-		<< gstat.bytes_expected << " "
-		<< gstat.bytes_received << " "
-		<< "trash "
-		<< bstat[nbuffers].heaps_completed << " "
-		<< bstat[nbuffers].heaps_discarded << " "
-		<< bstat[nbuffers].heaps_open << " "
-		<< bstat[nbuffers].bytes_expected << " "
-		<< bstat[nbuffers].bytes_received << " "
-		<< "age "
-		<< gstat.heaps_too_old << " "
-		<< gstat.heaps_present << " "
-		<< gstat.heaps_too_new
-		<< "\n";
-      bstat[replace_slot].reset();
-      // getting a new slot
-      buffers[replace_slot] = ipcio_open_block_write(dada->data_block, &(indices[replace_slot]));
-      // multilog(mlog, LOG_INFO, "got slot %d at %lx", indices[replace_slot], (void*)buffers[replace_slot]);
-      std::cout <<  "got slot " <<  indices[replace_slot]  <<  " at " << (void*)buffers[replace_slot] << std::endl;
-      payload_base[replace_slot] = buffers[replace_slot];
-      sci_base[replace_slot]  = (spead2::s_item_pointer_t*)(buffers[replace_slot] + slot_nbytes - sizeof(spead2::s_item_pointer_t)*nsci*slot_nheaps);
-      // clear the side channel items
-      if (nsci != 0) memset(sci_base[replace_slot], SCI_EMPTY, sizeof(spead2::s_item_pointer_t)*nsci*slot_nheaps);
-      // add the new slot to the internal buffers
-      { // **** MUST BE GUARDED BY SEMAPHORE/MUTEX !!! ****
+	// Now we have time to release a slot
+	if ((ipcio_close_block_write (dada->data_block, slot_nbytes) < 0) || (ipcbuf_mark_filled(dada->header_block, slot_nbytes) < 0))
+	  {
+	    multilog(mlog, LOG_ERR, "close_buffer: ipcio_update_block_write failed\n");
+	    throw std::runtime_error("Could not close ipcio data block");
+	  }
+	// write statistics and clears it for the oldest slot
+	std::cout << "STAT "
+		  << slot_nheaps << " "
+		  << "slot "
+		  << bstat[replace_slot].heaps_completed << " " << bstat[replace_slot].heaps_discarded << " "
+		  << bstat[replace_slot].heaps_open << " "
+		  << bstat[replace_slot].bytes_expected << " " << bstat[replace_slot].bytes_received << " "
+		  << "total "
+		  << gstat.heaps_completed << " " << gstat.heaps_discarded << " "
+		  << gstat.heaps_open << " "
+		  << gstat.bytes_expected << " " << gstat.bytes_received << " "
+		  << "trash "
+		  << bstat[nbuffers].heaps_completed << " " << bstat[nbuffers].heaps_discarded << " "
+		  << bstat[nbuffers].heaps_open << " "
+		  << bstat[nbuffers].bytes_expected << " " << bstat[nbuffers].bytes_received << " "
+		  << "age "
+		  << gstat.heaps_too_old << " " << gstat.heaps_present << " " << gstat.heaps_too_new
+		  << "\n";
+	bstat[replace_slot].reset();
+	// getting a new slot
+	buffers[replace_slot] = ipcio_open_block_write(dada->data_block, &(indices[replace_slot]));
+	// multilog(mlog, LOG_INFO, "got slot %d at %lx", indices[replace_slot], (void*)buffers[replace_slot]);
+	std::cout <<  "got slot " <<  indices[replace_slot]  <<  " at " << (void*)buffers[replace_slot] << std::endl;
+	payload_base[replace_slot] = buffers[replace_slot];
+	sci_base[replace_slot]  = (spead2::s_item_pointer_t*)(buffers[replace_slot] + slot_nbytes - sizeof(spead2::s_item_pointer_t)*nsci*slot_nheaps);
+	// clear the side channel items
+	if (nsci != 0) memset(sci_base[replace_slot], SCI_EMPTY, sizeof(spead2::s_item_pointer_t)*nsci*slot_nheaps);
+	// add the new slot to the internal buffers
+	{ // **** MUST BE GUARDED BY SEMAPHORE/MUTEX !!! ****
 #ifdef USE_STD_MUTEX
-        std::lock_guard<std::mutex> lock(dest_mutex);
+	  std::lock_guard<std::mutex> lock(dest_mutex);
 #else
-        dest_sem.get();
+	  dest_sem.get();
 #endif
-        buffer_active++;
-        timestamp_level += timestamp_step*slot_ngroups;
-        switch_triggered = false;
+	  buffer_active++;
+	  timestamp_level += timestamp_step*slot_ngroups;
+	  switch_triggered = (timestamp_level < timestamp_last);
+	  lflag = switch_triggered;
 #ifndef USE_STD_MUTEX
-        dest_sem.put();
+	  dest_sem.put();
 #endif
-      }
+	}
+      } while (lflag);
     } while (true);
   }
 

@@ -394,6 +394,7 @@ namespace mkrecv
     spead2::s_item_pointer_t   timestamp_mod    = 0;    // first timestamp is a multiple of this value
     spead2::s_item_pointer_t   timestamp_offset = 0;    // number of timestamps after timestamp_first when a buffer_first is released and a new one is allocated
     spead2::s_item_pointer_t   timestamp_level  = 0;    // timestamp_first + timestamp_step*timestamp_offset
+    spead2::s_item_pointer_t   timestamp_last   = 0;    // last (highest) timestamp => release slots until (timestamp_level < timestamp_last)
     // handle stopping
     bool                               stop = false;
     bool                               has_stopped = false;
