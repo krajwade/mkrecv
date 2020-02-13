@@ -53,6 +53,8 @@
 
 #define JOINT_OPT          "joint"
 
+#define DNSWTWR_OPT        "dnswtwr"
+
 /* the following options should have sufficient default values */
 #define PACKET_NBYTES_OPT         "packet-size"
 #define PACKET_NBYTES_KEY         "PACKET_SIZE"
@@ -257,6 +259,7 @@ namespace mkrecv
     bool                      quiet               = false;
     bool                      descriptors         = false;
     bool                      joint               = false;
+    bool                      dnswtwr             = false;
     // some options, default values should be ok to use, will _not_ go into header
     std::string               nthreads_str        = "1";
     std::int64_t              nthreads            =  1;  // number of threads in the thread pool

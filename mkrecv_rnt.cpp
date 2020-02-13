@@ -808,6 +808,8 @@ namespace mkrecv
       (QUIET_OPT,         make_opt(quiet),               "Only show total of heaps received")
       (DESCRIPTORS_OPT,   make_opt(descriptors),         "Show descriptors")
       (JOINT_OPT,         make_opt(joint),               "Treat all sources as a single stream")
+      (JOINT_OPT,         make_opt(joint),               "Treat all sources as a single stream")
+      (DNSWTWR_OPT,       make_opt(dnswtwr),             "Do not stop when timestamp will rollover")
       // some options, default values should be ok to use, will _not_ go into header
       (PACKET_NBYTES_OPT, make_opt(packet_nbytes_str),   "Maximum packet size to use for UDP")
       (BUFFER_NBYTES_OPT, make_opt(buffer_nbytes_str),   "Socket buffer size")
@@ -953,6 +955,9 @@ namespace mkrecv
 	  // we have a possible rollover
 	  if (timestamp < 0x0000ffffffffl) {
 	    // a rollover happened for this timestamp only -> add 2^48
+	    if (!dnswtwr) {
+	      throw std::runtime_error("A timestap rollover has happened.");
+	    }
 	    timestamp += (1l << 48);
 	  } else if (timestamp < 0x800000000000l) {
 	    // the rollover took place -> update offset and clear flag
@@ -1353,7 +1358,9 @@ namespace mkrecv
 		  << bstat[nbuffers].heaps_open << " "
 		  << bstat[nbuffers].bytes_expected << " " << bstat[nbuffers].bytes_received << " "
 		  << "age "
-		  << gstat.heaps_too_old << " " << gstat.heaps_present << " " << gstat.heaps_too_new
+		  << gstat.heaps_too_old << " " << gstat.heaps_present << " " << gstat.heaps_too_new << " "
+		  << "ts "
+		  << timestamp_first << " " << timestamp_level << " " << timestamp_last
 		  << "\n";
 	bstat[replace_slot].reset();
 	// getting a new slot
@@ -1745,19 +1752,23 @@ namespace mkrecv
       std::cerr << "Cannot connect to DADA Ringbuffer " << opts->dada_key << " exiting..." << '\n';
       exit(0);
     }
-    if (opts->joint) {
-      streams.push_back(make_stream(opts->sources.begin(), opts->sources.end()));
-    } else {
-      for (auto it = opts->sources.begin(); it != opts->sources.end(); ++it)
-        streams.push_back(make_stream(it, it + 1));
-    }
     std::int64_t n_complete = 0;
-    for (const auto &ptr : streams) {
-      auto &stream = dynamic_cast<mkrecv::stream &>(*ptr);
-      n_complete += stream.join();
+    try {
+      if (opts->joint) {
+	streams.push_back(make_stream(opts->sources.begin(), opts->sources.end()));
+      } else {
+	for (auto it = opts->sources.begin(); it != opts->sources.end(); ++it)
+	  streams.push_back(make_stream(it, it + 1));
+      }
+      for (const auto &ptr : streams) {
+	auto &stream = dynamic_cast<mkrecv::stream &>(*ptr);
+	n_complete += stream.join();
+      }
+      g_stop_thread.join();
+      storage->close();
+    } catch (std::runtime_error &e) {
+      std::cerr << e.what() << '\n';
     }
-    g_stop_thread.join();
-    storage->close();
     std::cout << "Received " << n_complete << " heaps\n";
     return 0;
   }
