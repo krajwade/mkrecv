@@ -310,6 +310,9 @@ namespace mkrecv
     po::options_description              all;
     po::positional_options_description   positional;
     po::variables_map                    vm;
+    // variables needed to handle rollover of timestamps and still get an increasing 64 bit timestamp
+    spead2::s_item_pointer_t  timestamp_offset   = 0;
+    bool                      timestamp_rollover = false;
   public:
     options();
     virtual ~options();

@@ -947,6 +947,20 @@ namespace mkrecv
       spead2::item_pointer_t pts = spead2::load_be<spead2::item_pointer_t>(ph->pointers + indices[i].item);
       if (i == 0) {
         timestamp = decoder.get_immediate(pts);
+	// check if a rollover is imminent
+	if (!timestamp_rollover && (timestamp > 0xffff00000000l)) timestamp_rollover = true;
+	if (timestamp_rollover) {
+	  // we have a possible rollover
+	  if (timestamp < 0x0000ffffffffl) {
+	    // a rollover happened for this timestamp only -> add 2^48
+	    timestamp += (1l << 48);
+	  } else if (timestamp < 0x800000000000l) {
+	    // the rollover took place -> update offset and clear flag
+	    timestamp_offset += (1l << 48);
+	    timestamp_rollover = false;
+	  }
+	}
+	timestamp += timestamp_offset;
       } else {
         std::int64_t item_index = indices[i].v2i((std::int64_t)(decoder.get_immediate(pts) & indices[i].mask));
         if (item_index == (std::int64_t)-1) 
