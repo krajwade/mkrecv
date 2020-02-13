@@ -2,7 +2,7 @@
 #define mkrecv_common_h
 
 #define ENABLE_TIMING_MEASUREMENTS    1
-//#define USE_STD_MUTEX                 1
+#define USE_STD_MUTEX                 1
 //#define ENABLE_CORE_MUTEX  1
 
 #define SCI_EMPTY -1

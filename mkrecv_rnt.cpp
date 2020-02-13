@@ -5,7 +5,8 @@
 #include <iostream>     // std::cout
 #include <fstream>      // std::ifstream
 
-#define BOOST_LOG_DYN_LINK 1
+#define BOOST_LOG_DYN_LINK    1
+#define USE_COMPACT_TIMESTAMP 1
 
 #include <boost/log/core.hpp>
 #include <boost/log/trivial.hpp>
@@ -423,6 +424,9 @@ namespace mkrecv
 
   void options::set_start_time(int64_t timestamp)
   {
+#ifdef USE_COMPACT_TIMESTAMP
+    timestamp *= indices[0].step;
+#endif
     double epoch = sync_epoch + timestamp / sample_clock;
     double integral;
     double fractional = modf(epoch, &integral);
@@ -966,6 +970,9 @@ namespace mkrecv
 	  }
 	}
 	timestamp += timestamp_offset;
+#ifdef USE_COMPACT_TIMESTAMP
+	timestamp /= indices[0].step;
+#endif
       } else {
         std::int64_t item_index = indices[i].v2i((std::int64_t)(decoder.get_immediate(pts) & indices[i].mask));
         if (item_index == (std::int64_t)-1) 
@@ -981,9 +988,6 @@ namespace mkrecv
   // *******************************************************************
 
   storage::storage(std::shared_ptr<mkrecv::options> hopts) :
-#ifndef USE_STD_MUTEX
-    dest_sem(1),
-#endif
     opts(hopts)
   {
     std::stringstream   converter;
@@ -994,8 +998,13 @@ namespace mkrecv
     group_nheaps = opts->group_nheaps;
     nsci = opts->nsci;
     timestamp_step = opts->indices[0].step;
+#ifdef USE_COMPACT_TIMESTAMP
+    timestamp_mod = (opts->indices[0].mod/timestamp_step);
+    if (timestamp_mod == 0) timestamp_mod = 1;
+#else
     timestamp_mod  = (opts->indices[0].mod/timestamp_step)*timestamp_step; // enforce that timestamp_mod is a multiple of timestamp_step
     if (timestamp_mod == 0) timestamp_mod = timestamp_step;
+#endif
     header_thread = std::thread([this] ()
                                 {
                                   this->create_header();
@@ -1027,11 +1036,7 @@ namespace mkrecv
     std::int64_t dest_index, group_index;
     
     // **** GUARDED BY SEMAPHORE ****
-#ifdef USE_STD_MUTEX
     std::lock_guard<std::mutex> lock(dest_mutex);
-#else
-    dest_sem.get();
-#endif
 #ifdef ENABLE_TIMING_MEASUREMENTS
     std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
 #endif
@@ -1041,8 +1046,13 @@ namespace mkrecv
     if (timestamp_first == 0) {
       // it is the first heap which should go into data -> initialize
       // ensure that at least 2 timesteps are skipped
+#ifdef USE_COMPACT_TIMESTAMP
+      timestamp_first = ((timestamp + 1 + timestamp_mod) / timestamp_mod) * timestamp_mod;
+      timestamp_level = timestamp_first + timestamp_offset;
+#else
       timestamp_first = ((timestamp + timestamp_step + timestamp_mod) / timestamp_mod) * timestamp_mod;
       timestamp_level = timestamp_first + timestamp_step*timestamp_offset;
+#endif
       std::cout << "sizes: buffer " << nbuffers << " " << slot_nbytes << " " << slot_ngroups
                 << " heap " << heap_nbytes << " " << group_nheaps
                 << " timestamp " << timestamp_first << " " << timestamp_step << " " << timestamp_level
@@ -1058,8 +1068,13 @@ namespace mkrecv
       group_index = 0;
       gstat.heaps_too_old++;
     } else {
+#ifdef USE_COMPACT_TIMESTAMP
+      dest_index  = (timestamp - timestamp_first) / slot_ngroups;
+      group_index = (timestamp - timestamp_first) % slot_ngroups;
+#else
       dest_index  = ((timestamp - timestamp_first) / timestamp_step) / slot_ngroups;
       group_index = ((timestamp - timestamp_first) / timestamp_step) % slot_ngroups;
+#endif
       if (dest_index >= buffer_active) {
         // this timestamp is too far in the future -> trash
         dest_index  = nbuffers;
@@ -1083,9 +1098,6 @@ namespace mkrecv
     std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
     et.add_et(timing_statistics::ALLOC_TIMING, std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count());
 #endif
-#ifndef USE_STD_MUTEX
-    dest_sem.put();
-#endif
     return dest_index;
   }
   
@@ -1107,11 +1119,7 @@ namespace mkrecv
     std::int64_t dest_index, group_index;
     
     // **** GUARDED BY SEMAPHORE ****
-#ifdef USE_STD_MUTEX
     std::lock_guard<std::mutex> lock(dest_mutex);
-#else
-    dest_sem.get();
-#endif
 #ifdef ENABLE_TIMING_MEASUREMENTS
     std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
 #endif
@@ -1133,9 +1141,6 @@ namespace mkrecv
     std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
     et.add_et(timing_statistics::ALLOC_TIMING, std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count());
 #endif
-#ifndef USE_STD_MUTEX
-    dest_sem.put();
-#endif
     return dest_index;
   }
   
@@ -1146,11 +1151,7 @@ namespace mkrecv
   void storage::free_place(spead2::s_item_pointer_t timestamp, std::int64_t dest_index, std::int64_t reclen)
   {
     // **** GUARDED BY SEMAPHORE ****
-#ifdef USE_STD_MUTEX
     std::lock_guard<std::mutex> lock(dest_mutex);
-#else
-    dest_sem.get();
-#endif
 #ifdef ENABLE_TIMING_MEASUREMENTS
     std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
 #endif
@@ -1200,9 +1201,6 @@ namespace mkrecv
         std::cout << '\n';
       }
     }
-#ifndef USE_STD_MUTEX
-    dest_sem.put();
-#endif
 #ifdef ENABLE_TIMING_MEASUREMENTS
     std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
     et.add_et(timing_statistics::MARK_TIMING, std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count());
@@ -1312,36 +1310,33 @@ namespace mkrecv
   void storage::move_ringbuffer()
   {
     do {
-      std::int64_t  replace_slot;
-      bool          lflag;
-
       // wait for the switch-the-slot trigger
       std::unique_lock<std::mutex> lck(switch_mutex);
-      while (switch_cv.wait_for(lck, std::chrono::milliseconds(50)) == std::cv_status::timeout) {
+      while (switch_cv.wait_for(lck, std::chrono::milliseconds(10)) == std::cv_status::timeout) {
         if (has_stopped) return;
       }
       do {
+	std::int64_t             replace_slot;
+	bool                     contine_flag;
+	spead2::s_item_pointer_t otsf;
 	// remove the last slot from the internal buffers (deactivating its use, by modifying buffer_first, buffer_active and timestamp_first)
 	{ // **** MUST BE GUARDED BY SEMAPHORE/MUTEX !!! ****
-#ifdef USE_STD_MUTEX
 	  std::lock_guard<std::mutex> lock(dest_mutex);
-#else
-	  dest_sem.get();
-#endif
 	  replace_slot = buffer_first;
 	  buffer_first = (buffer_first + 1) % nbuffers;
 	  buffer_active--;
+	  otsf = timestamp_first;
+#ifdef USE_COMPACT_TIMESTAMP
+	  timestamp_first += slot_ngroups;
+#else
 	  timestamp_first += timestamp_step*slot_ngroups;
-#ifndef USE_STD_MUTEX
-	  dest_sem.put();
 #endif
 	}
 	// Now we have time to release a slot
-	if ((ipcio_close_block_write (dada->data_block, slot_nbytes) < 0) || (ipcbuf_mark_filled(dada->header_block, slot_nbytes) < 0))
-	  {
-	    multilog(mlog, LOG_ERR, "close_buffer: ipcio_update_block_write failed\n");
-	    throw std::runtime_error("Could not close ipcio data block");
-	  }
+	if ((ipcio_close_block_write (dada->data_block, slot_nbytes) < 0) || (ipcbuf_mark_filled(dada->header_block, slot_nbytes) < 0)) {
+	  multilog(mlog, LOG_ERR, "close_buffer: ipcio_update_block_write failed\n");
+	  throw std::runtime_error("Could not close ipcio data block");
+	}
 	// write statistics and clears it for the oldest slot
 	std::cout << "STAT "
 		  << slot_nheaps << " "
@@ -1360,7 +1355,7 @@ namespace mkrecv
 		  << "age "
 		  << gstat.heaps_too_old << " " << gstat.heaps_present << " " << gstat.heaps_too_new << " "
 		  << "ts "
-		  << timestamp_first << " " << timestamp_level << " " << timestamp_last
+		  << otsf << " " << timestamp_level << " " << timestamp_last
 		  << "\n";
 	bstat[replace_slot].reset();
 	// getting a new slot
@@ -1373,20 +1368,18 @@ namespace mkrecv
 	if (nsci != 0) memset(sci_base[replace_slot], SCI_EMPTY, sizeof(spead2::s_item_pointer_t)*nsci*slot_nheaps);
 	// add the new slot to the internal buffers
 	{ // **** MUST BE GUARDED BY SEMAPHORE/MUTEX !!! ****
-#ifdef USE_STD_MUTEX
 	  std::lock_guard<std::mutex> lock(dest_mutex);
-#else
-	  dest_sem.get();
-#endif
 	  buffer_active++;
+#ifdef USE_COMPACT_TIMESTAMP
+	  timestamp_level += slot_ngroups;
+#else
 	  timestamp_level += timestamp_step*slot_ngroups;
-	  switch_triggered = (timestamp_level < timestamp_last);
-	  lflag = switch_triggered;
-#ifndef USE_STD_MUTEX
-	  dest_sem.put();
 #endif
+	  switch_triggered = (timestamp_level < timestamp_last);
+	  contine_flag = switch_triggered;
 	}
-      } while (lflag);
+	if (!contine_flag) break;
+      } while (true);
     } while (true);
   }
 

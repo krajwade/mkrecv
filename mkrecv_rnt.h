@@ -25,16 +25,12 @@
 #include <spead2/common_logging.h>
 #include <spead2/common_endian.h>
 
-#ifndef USE_STD_MUTEX
-#include "spead2/common_semaphore.h"
-#endif
+#include "mkrecv_common.h"
 
 #include "ipcbuf.h"
 #include "dada_hdu.h"
 #include "dada_def.h"
 #include "multilog.h"
-
-#include "mkrecv_common.h"
 
 //#define COMBINED_IP_PORT
 
@@ -356,11 +352,7 @@ namespace mkrecv
   class storage
   {
   protected:
-#ifdef USE_STD_MUTEX
     std::mutex                         dest_mutex;
-#else
-    spead2::semaphore_spin             dest_sem;
-#endif
     std::shared_ptr<mkrecv::options>          opts;
     std::shared_ptr<spead2::mmap_allocator>   memallocator;
     // connection to DADA
