@@ -6,7 +6,6 @@
 #include <fstream>      // std::ifstream
 
 #define BOOST_LOG_DYN_LINK    1
-#define USE_COMPACT_TIMESTAMP 1
 
 #include <boost/log/core.hpp>
 #include <boost/log/trivial.hpp>
@@ -424,7 +423,7 @@ namespace mkrecv
 
   void options::set_start_time(int64_t timestamp)
   {
-#ifdef USE_COMPACT_TIMESTAMP
+#ifdef USE_SCALED_TIMESTAMP
     timestamp *= indices[0].step;
 #endif
     double epoch = sync_epoch + timestamp / sample_clock;
@@ -970,7 +969,7 @@ namespace mkrecv
 	  }
 	}
 	timestamp += timestamp_offset;
-#ifdef USE_COMPACT_TIMESTAMP
+#ifdef USE_SCALED_TIMESTAMP
 	timestamp /= indices[0].step;
 #endif
       } else {
@@ -997,14 +996,13 @@ namespace mkrecv
     group_nbytes = opts->group_nbytes;
     group_nheaps = opts->group_nheaps;
     nsci = opts->nsci;
-    timestamp_step = opts->indices[0].step;
-#ifdef USE_COMPACT_TIMESTAMP
-    timestamp_mod = (opts->indices[0].mod/timestamp_step);
-    if (timestamp_mod == 0) timestamp_mod = 1;
+#ifdef USE_SCALED_TIMESTAMP
+    timestamp_step = 1;
 #else
+    timestamp_step = opts->indices[0].step;
+#endif
     timestamp_mod  = (opts->indices[0].mod/timestamp_step)*timestamp_step; // enforce that timestamp_mod is a multiple of timestamp_step
     if (timestamp_mod == 0) timestamp_mod = timestamp_step;
-#endif
     header_thread = std::thread([this] ()
                                 {
                                   this->create_header();
@@ -1046,13 +1044,8 @@ namespace mkrecv
     if (timestamp_first == 0) {
       // it is the first heap which should go into data -> initialize
       // ensure that at least 2 timesteps are skipped
-#ifdef USE_COMPACT_TIMESTAMP
-      timestamp_first = ((timestamp + 1 + timestamp_mod) / timestamp_mod) * timestamp_mod;
-      timestamp_level = timestamp_first + timestamp_offset;
-#else
       timestamp_first = ((timestamp + timestamp_step + timestamp_mod) / timestamp_mod) * timestamp_mod;
       timestamp_level = timestamp_first + timestamp_step*timestamp_offset;
-#endif
       std::cout << "sizes: buffer " << nbuffers << " " << slot_nbytes << " " << slot_ngroups
                 << " heap " << heap_nbytes << " " << group_nheaps
                 << " timestamp " << timestamp_first << " " << timestamp_step << " " << timestamp_level
@@ -1068,13 +1061,8 @@ namespace mkrecv
       group_index = 0;
       gstat.heaps_too_old++;
     } else {
-#ifdef USE_COMPACT_TIMESTAMP
-      dest_index  = (timestamp - timestamp_first) / slot_ngroups;
-      group_index = (timestamp - timestamp_first) % slot_ngroups;
-#else
       dest_index  = ((timestamp - timestamp_first) / timestamp_step) / slot_ngroups;
       group_index = ((timestamp - timestamp_first) / timestamp_step) % slot_ngroups;
-#endif
       if (dest_index >= buffer_active) {
         // this timestamp is too far in the future -> trash
         dest_index  = nbuffers;
@@ -1171,8 +1159,6 @@ namespace mkrecv
       if ((timestamp >= timestamp_level) && !switch_triggered) {
         switch_triggered = true;
         if (!has_stopped) {
-          // copy the optional side-channel items at the correct position
-          // sci_base = buffer + size - (scape *nsci)
           { // start thread which releases the first active slot (buffer_first), allocates a new slot and updates timestamp_first, buffer_first, statistics and pointers
             std::unique_lock<std::mutex> lck(switch_mutex);
             switch_cv.notify_all();
@@ -1317,7 +1303,7 @@ namespace mkrecv
       }
       do {
 	std::int64_t             replace_slot;
-	bool                     contine_flag;
+	bool                     continue_flag;
 	spead2::s_item_pointer_t otsf;
 	// remove the last slot from the internal buffers (deactivating its use, by modifying buffer_first, buffer_active and timestamp_first)
 	{ // **** MUST BE GUARDED BY SEMAPHORE/MUTEX !!! ****
@@ -1326,11 +1312,7 @@ namespace mkrecv
 	  buffer_first = (buffer_first + 1) % nbuffers;
 	  buffer_active--;
 	  otsf = timestamp_first;
-#ifdef USE_COMPACT_TIMESTAMP
-	  timestamp_first += slot_ngroups;
-#else
 	  timestamp_first += timestamp_step*slot_ngroups;
-#endif
 	}
 	// Now we have time to release a slot
 	if ((ipcio_close_block_write (dada->data_block, slot_nbytes) < 0) || (ipcbuf_mark_filled(dada->header_block, slot_nbytes) < 0)) {
@@ -1370,15 +1352,11 @@ namespace mkrecv
 	{ // **** MUST BE GUARDED BY SEMAPHORE/MUTEX !!! ****
 	  std::lock_guard<std::mutex> lock(dest_mutex);
 	  buffer_active++;
-#ifdef USE_COMPACT_TIMESTAMP
-	  timestamp_level += slot_ngroups;
-#else
 	  timestamp_level += timestamp_step*slot_ngroups;
-#endif
 	  switch_triggered = (timestamp_level < timestamp_last);
-	  contine_flag = switch_triggered;
+	  continue_flag = switch_triggered;
 	}
-	if (!contine_flag) break;
+	if (!continue_flag) break;
       } while (true);
     } while (true);
   }

@@ -32,6 +32,8 @@
 #include "dada_def.h"
 #include "multilog.h"
 
+#define USE_SCALED_TIMESTAMP 1
+
 //#define COMBINED_IP_PORT
 
 #define DADA_TIMESTR "%Y-%m-%d-%H:%M:%S"
