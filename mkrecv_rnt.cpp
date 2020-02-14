@@ -1302,7 +1302,11 @@ namespace mkrecv
         if (has_stopped) return;
       }
       do {
+#ifdef ENABLE_TIMING_MEASUREMENTS
+	std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+#endif
 	std::int64_t             replace_slot;
+	spead2::s_item_pointer_t tsdiff;
 	bool                     continue_flag;
 	spead2::s_item_pointer_t otsf;
 	// remove the last slot from the internal buffers (deactivating its use, by modifying buffer_first, buffer_active and timestamp_first)
@@ -1353,9 +1357,16 @@ namespace mkrecv
 	  std::lock_guard<std::mutex> lock(dest_mutex);
 	  buffer_active++;
 	  timestamp_level += timestamp_step*slot_ngroups;
-	  switch_triggered = (timestamp_level < timestamp_last);
+	  tsdiff = timestamp_last - timestamp_level;
+	  switch_triggered = (tsdiff > 0);
 	  continue_flag = switch_triggered;
 	}
+#ifdef ENABLE_TIMING_MEASUREMENTS
+	std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+	if (!opts->quiet) {
+	  std::cout << "slot switching needs " << std::chrono::duration_cast<std::chrono::nanoseconds>( t2 - t1 ).count() << " ns, trigger " << continue_flag << " tsdiff " << tsdiff << "\n";
+	}
+#endif
 	if (!continue_flag) break;
       } while (true);
     } while (true);
