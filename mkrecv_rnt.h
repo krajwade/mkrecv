@@ -74,6 +74,9 @@
 #define DADA_NSLOTS_OPT    "dada-nslots"
 #define DADA_NSLOTS_KEY    "DADA_NSLOTS"
 
+#define SLOTS_SKIP_OPT       "slots-skip"
+#define SLOTS_SKIP_KEY       "SLOTS_SKIP"
+
 /* The following options describe the connection to the network */
 
 #if SPEAD2_USE_IBV
@@ -268,6 +271,8 @@ namespace mkrecv
     std::string               dada_key            = "dada";
     std::string               dada_nslots_str     = "2";
     std::int64_t              dada_nslots         =  2;
+    std::string               slots_skip_str      = "0";
+    std::int64_t              slots_skip          =  0;
     // network configuration
 #if SPEAD2_USE_IBV
     std::string               ibv_if              = "";
@@ -354,7 +359,7 @@ namespace mkrecv
   class storage
   {
   protected:
-    std::mutex                         dest_mutex;
+    std::mutex                                dest_mutex;
     std::shared_ptr<mkrecv::options>          opts;
     std::shared_ptr<spead2::mmap_allocator>   memallocator;
     // connection to DADA

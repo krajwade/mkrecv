@@ -822,6 +822,7 @@ namespace mkrecv
       // DADA ringbuffer related stuff
       (DADA_KEY_OPT,      make_opt(dada_key),            "PSRDADA ring buffer key")
       (DADA_NSLOTS_OPT,   make_opt(dada_nslots_str),     "Maximum number of open dada ringbuffer slots")
+      (SLOTS_SKIP_OPT,    make_opt(slots_skip_str),      "Number of slots which are skipped before the first slot is filled")
       // network configuration
 #if SPEAD2_USE_IBV
       (IBV_IF_OPT,        make_opt(ibv_if),              "Interface address for ibverbs")
@@ -882,6 +883,7 @@ namespace mkrecv
     /* The following options describe the DADA ringbuffer use */
     parse_parameter(dada_key,                             DADA_KEY_OPT, DADA_KEY_KEY);
     parse_parameter(dada_nslots,     dada_nslots_str,     DADA_NSLOTS_OPT, DADA_NSLOTS_KEY);
+    parse_parameter(slots_skip,      slots_skip_str,      SLOTS_SKIP_OPT, SLOTS_SKIP_KEY);
     /* The following options describe the connection to the F-Engines (network) */
 #if SPEAD2_USE_IBV
     parse_parameter(ibv_if,                               IBV_IF_OPT, IBV_IF_KEY);
@@ -1044,7 +1046,7 @@ namespace mkrecv
     if (timestamp_first == 0) {
       // it is the first heap which should go into data -> initialize
       // ensure that at least 2 timesteps are skipped
-      timestamp_first = ((timestamp + timestamp_step + timestamp_mod) / timestamp_mod) * timestamp_mod;
+      timestamp_first = ((timestamp + timestamp_step*slot_ngroups*opts->slots_skip + timestamp_mod) / timestamp_mod) * timestamp_mod;
       timestamp_level = timestamp_first + timestamp_step*timestamp_offset;
       std::cout << "sizes: buffer " << nbuffers << " " << slot_nbytes << " " << slot_ngroups
                 << " heap " << heap_nbytes << " " << group_nheaps
