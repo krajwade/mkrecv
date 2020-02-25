@@ -1158,7 +1158,8 @@ namespace mkrecv
     }
     if (timestamp != -1) { // -1 -> no valid heap, went into trash and is not used to release a slot
       if (timestamp > timestamp_last) timestamp_last = timestamp;
-      if ((timestamp >= timestamp_level) && !switch_triggered) {
+      //if ((timestamp >= timestamp_level) && !switch_triggered) {
+      if (timestamp >= timestamp_level) {
         switch_triggered = true;
         if (!has_stopped) {
           { // start thread which releases the first active slot (buffer_first), allocates a new slot and updates timestamp_first, buffer_first, statistics and pointers
@@ -1186,6 +1187,8 @@ namespace mkrecv
         std::cout << " open "      << gstat.heaps_open      << " " << bstat[nbuffers].heaps_open;
         std::cout << " age "       << gstat.heaps_too_old   << " " << gstat.heaps_present << " " << gstat.heaps_too_new;
         std::cout << " payload "   << gstat.bytes_expected  << " " << gstat.bytes_received;
+	std::cout << " slots "     << buffer_first          << " " << buffer_active;
+	std::cout << " timestamp " << timestamp_first       << " " << timestamp_level << " " << timestamp_last << " " << switch_triggered;
         std::cout << '\n';
       }
     }
@@ -1309,11 +1312,14 @@ namespace mkrecv
 #endif
 	std::int64_t             replace_slot;
 	spead2::s_item_pointer_t tsdiff;
-	bool                     continue_flag;
+	bool                     continue_flag = false;
 	spead2::s_item_pointer_t otsf;
 	// remove the last slot from the internal buffers (deactivating its use, by modifying buffer_first, buffer_active and timestamp_first)
 	{ // **** MUST BE GUARDED BY SEMAPHORE/MUTEX !!! ****
 	  std::lock_guard<std::mutex> lock(dest_mutex);
+	  tsdiff = timestamp_last - timestamp_level;
+	  switch_triggered = (tsdiff > 0);
+	  if (!switch_triggered) break;
 	  replace_slot = buffer_first;
 	  buffer_first = (buffer_first + 1) % nbuffers;
 	  buffer_active--;
