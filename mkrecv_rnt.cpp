@@ -1158,12 +1158,11 @@ namespace mkrecv
     }
     if (timestamp != -1) { // -1 -> no valid heap, went into trash and is not used to release a slot
       if (timestamp > timestamp_last) timestamp_last = timestamp;
-      //if ((timestamp >= timestamp_level) && !switch_triggered) {
-      if (timestamp >= timestamp_level) {
-        switch_triggered = true;
+      if ((timestamp >= timestamp_level) && !switch_triggered) {
         if (!has_stopped) {
           { // start thread which releases the first active slot (buffer_first), allocates a new slot and updates timestamp_first, buffer_first, statistics and pointers
             std::unique_lock<std::mutex> lck(switch_mutex);
+	    switch_triggered = true;
             switch_cv.notify_all();
           }
         }
@@ -1303,9 +1302,14 @@ namespace mkrecv
     do {
       // wait for the switch-the-slot trigger
       std::unique_lock<std::mutex> lck(switch_mutex);
-      while (switch_cv.wait_for(lck, std::chrono::milliseconds(10)) == std::cv_status::timeout) {
-        if (has_stopped) return;
+      while (!switch_triggered) {
+	switch_cv.wait_for(lck, std::chrono::milliseconds(10));
+	if (has_stopped) return;
       }
+      /*
+	while (switch_cv.wait_for(lck, std::chrono::milliseconds(10)) == std::cv_status::timeout) {
+	}
+      */
       do {
 #ifdef ENABLE_TIMING_MEASUREMENTS
 	std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
@@ -1317,9 +1321,9 @@ namespace mkrecv
 	// remove the last slot from the internal buffers (deactivating its use, by modifying buffer_first, buffer_active and timestamp_first)
 	{ // **** MUST BE GUARDED BY SEMAPHORE/MUTEX !!! ****
 	  std::lock_guard<std::mutex> lock(dest_mutex);
-	  tsdiff = timestamp_last - timestamp_level;
-	  switch_triggered = (tsdiff > 0);
-	  if (!switch_triggered) break;
+	  //tsdiff = timestamp_last - timestamp_level;
+	  //switch_triggered = (tsdiff > 0);
+	  //if (!switch_triggered) break;
 	  replace_slot = buffer_first;
 	  buffer_first = (buffer_first + 1) % nbuffers;
 	  buffer_active--;
