@@ -1331,7 +1331,8 @@ namespace mkrecv
 	  timestamp_first += timestamp_step*slot_ngroups;
 	}
 	// Now we have time to release a slot
-	if ((ipcio_close_block_write (dada->data_block, slot_nbytes) < 0) || (ipcbuf_mark_filled(dada->header_block, slot_nbytes) < 0)) {
+	//if ((ipcio_close_block_write (dada->data_block, slot_nbytes) < 0) || (ipcbuf_mark_filled(dada->header_block, slot_nbytes) < 0)) { <= ipcbuf_mark_filled is wrong
+	if (ipcio_close_block_write (dada->data_block, slot_nbytes) < 0) {
 	  multilog(mlog, LOG_ERR, "close_buffer: ipcio_update_block_write failed\n");
 	  throw std::runtime_error("Could not close ipcio data block");
 	}
