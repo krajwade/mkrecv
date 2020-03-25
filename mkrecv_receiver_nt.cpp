@@ -126,7 +126,7 @@ namespace mkrecv
     std::cout << opts->header << '\n';
     if (opts->quiet)
       {
-        psrdada_cpp::set_log_level("warning");
+        psrdada_cpp::set_log_level("debug");
       }
     for (i = 10; i < 18; i++)
       {
